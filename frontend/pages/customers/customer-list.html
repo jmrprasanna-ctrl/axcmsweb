@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customer List - PULMO TECHNOLOGIES</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<style>
+    .btn-inline{
+        height: 36px;
+        padding: 0 12px;
+        margin-left: 8px;
+        margin-top: 0;
+    }
+    .search-inline{
+        width: 280px;
+        max-width: 100%;
+        margin-top: 0;
+        display: inline-block;
+        vertical-align: middle;
+    }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>PULMO TECHNOLOGIES</span>
+    </div>
+        <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../products/product-list.html">Products</a></li>
+        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../customers/customer-list.html">Customers</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../reports/sales-report.html">Reports</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header><h2>Customers List</h2></header>
+
+    <div class="form-container">
+        <a class="btn" href="add-customer.html" id="addCustomerBtn">Add</a>
+        <button onclick="exportPDF()">Export as PDF</button>
+        <input type="text" id="customerSearch" class="search-inline" placeholder="Search Name, Tel, Email">
+        <table id="customerTable">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Address</th>
+                    <th>Tel</th>
+                    <th>Email</th>
+                    <th>Customer Type</th>
+                    <th>VAT</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const role = (localStorage.getItem("role") || "").toLowerCase();
+const isUser = role === "user";
+const canAddCustomer = role === "admin" || role === "manager";
+const customerSearchEl = document.getElementById("customerSearch");
+let allCustomers = [];
+
+const addCustomerBtn = document.getElementById("addCustomerBtn");
+if(addCustomerBtn && !canAddCustomer){
+    addCustomerBtn.style.display = "none";
+}
+
+if(isUser){
+    const actionHeader = document.querySelector("#customerTable thead th:last-child");
+    if(actionHeader && actionHeader.innerText.toLowerCase().includes("action")){
+        actionHeader.remove();
+    }
+}
+
+function renderCustomers(customers){
+    const tbody = document.querySelector("#customerTable tbody");
+    tbody.innerHTML = "";
+    customers.forEach(c=>{
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${c.name}</td>
+            <td>${c.address}</td>
+            <td>${c.tel}</td>
+            <td>${c.email}</td>
+            <td>${c.customer_type || ""}</td>
+            <td>${String(c.vat_number || "").trim() ? "Yes" : "No"}</td>
+        `;
+        if(!isUser){
+            tr.innerHTML += `
+                <td>
+                    <a class="btn" href="edit-customer.html?id=${c.id}">Edit</a>
+                    <button class="btn btn-danger btn-inline" type="button" onclick="deleteCustomer(${c.id})">Delete</button>
+                </td>
+            `;
+        }
+        tbody.appendChild(tr);
+    });
+}
+
+function applyCustomerFilter(){
+    const query = (customerSearchEl?.value || "").trim().toLowerCase();
+    if(!query){
+        renderCustomers(allCustomers);
+        return;
+    }
+    const filtered = allCustomers.filter(c =>
+        [c.name, c.tel, c.email].some(v => String(v || "").toLowerCase().includes(query))
+    );
+    renderCustomers(filtered);
+}
+
+async function loadCustomers(){
+    try{
+        allCustomers = await request("/customers","GET");
+        applyCustomerFilter();
+    }catch(err){
+        alert("Failed to load customers");
+    }
+}
+
+if(customerSearchEl){
+    customerSearchEl.addEventListener("input", applyCustomerFilter);
+}
+
+function exportPDF(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ format: "a4" });
+    doc.setFontSize(10);
+    doc.text("Customers List",14,20);
+    let y = 30;
+    const rows = document.querySelectorAll("#customerTable tbody tr");
+    rows.forEach(r=>{
+        const cells = Array.from(r.children).slice(0, 5).map(td=>td.innerText);
+        doc.text(cells.join(" | "),14,y);
+        y+=8;
+    });
+    doc.save("Customers_List.pdf");
+}
+
+async function deleteCustomer(id){
+    if(!confirm("Delete this customer?")) return;
+    try{
+        await request(`/customers/${id}`,"DELETE");
+        showMessageBox("Customer deleted");
+        loadCustomers();
+    }catch(err){
+        alert(err.message || "Failed to delete customer");
+    }
+}
+
+function logout(){
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href="../login.html";
+}
+
+loadCustomers();
+</script>
+</body>
+</html>
+

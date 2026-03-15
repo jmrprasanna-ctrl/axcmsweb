@@ -1,0 +1,1 @@
+// Frontend vendors helpers placeholder

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User List - PULMO TECHNOLOGIES</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <style>
+        .form-actions{
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .btn-secondary{
+            background: #e9f3fc;
+            color: #0b4f93;
+            border: 1px solid #cfe1f5;
+            text-decoration: none;
+        }
+        .btn-secondary:hover{
+            filter: brightness(0.98);
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar & Navbar -->
+    <div id="sidebar-container"></div>
+    <div id="navbar-container"></div>
+
+    <div class="main-content">
+        <header><h2>User List</h2></header>
+        <div class="form-actions">
+            <button class="btn btn-primary" onclick="window.location.href='add-user.html'">Add User</button>
+            <button class="btn btn-primary" onclick="window.location.href='technician-list.html'">Technicians</button>
+            <button class="btn btn-primary" onclick="window.location.href='../support/email-setup.html'">email</button>
+            <button class="btn btn-primary" type="button" onclick="checkBackupTools()">Check Tools</button>
+            <button class="btn btn-primary" type="button" onclick="downloadSystemBackup()">Backup</button>
+            <button class="btn btn-primary" type="button" onclick="openRestorePicker()">Upload DB</button>
+            <input id="restore-db-file" type="file" accept=".sql" style="display:none" onchange="restoreSystemBackup(event)">
+            <a class="btn btn-secondary" href="../dashboard.html">Back</a>
+        </div>
+        <div class="card">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Company</th>
+                        <th>Department</th>
+                        <th>Telephone</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="user-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="../../assets/js/api.js"></script>
+    <script>
+        async function loadUsers(){
+            try{
+                const users = await request("/users","GET");
+                const tbody = document.getElementById('user-table-body');
+                tbody.innerHTML = '';
+                users.forEach(u => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${u.id}</td>
+                        <td>${u.username}</td>
+                        <td>${u.company || ""}</td>
+                        <td>${u.department || ""}</td>
+                        <td>${u.telephone || ""}</td>
+                        <td>${u.email}</td>
+                        <td>${u.role}</td>
+                        <td>
+                            <a class="btn btn-inline" href="edit-user.html?id=${u.id}">Edit</a>
+                            <button class="btn btn-danger btn-inline" type="button" onclick="deleteUser(${u.id})">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }catch(err){
+                alert(err.message || "Failed to load users");
+            }
+        }
+
+        async function deleteUser(id){
+            if(!confirm("Delete this user?")) return;
+            try{
+                await request(`/users/${id}`,"DELETE");
+                showMessageBox("User deleted");
+                loadUsers();
+            }catch(err){
+                alert(err.message || "Failed to delete user");
+            }
+        }
+
+        async function downloadSystemBackup(){
+            const token = localStorage.getItem("token");
+            if(!token){
+                alert("Please login first.");
+                return;
+            }
+
+            try{
+                const apiBase = (window.BASE_URL || "http://localhost:5000/api").replace(/\/+$/, "");
+                const res = await fetch(`${apiBase}/system-backup/download`, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": "Bearer " + token
+                    }
+                });
+
+                if(!res.ok){
+                    const raw = await res.text();
+                    let message = "Failed to create backup";
+                    try{
+                        message = JSON.parse(raw).message || message;
+                    }catch(_err){
+                        if(raw) message = raw;
+                    }
+                    throw new Error(message);
+                }
+
+                const blob = await res.blob();
+                const disposition = res.headers.get("Content-Disposition") || "";
+                const fileNameMatch = disposition.match(/filename="([^"]+)"/i);
+                const fileName = (fileNameMatch && fileNameMatch[1]) ? fileNameMatch[1] : `inventory_backup_${Date.now()}.sql`;
+
+                // Prefer explicit Save As dialog on supported browsers (Chrome/Edge on localhost/https)
+                if(window.showSaveFilePicker){
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: fileName,
+                        types: [{
+                            description: "SQL Backup File",
+                            accept: {
+                                "application/sql": [".sql"],
+                                "text/sql": [".sql"],
+                                "text/plain": [".sql"]
+                            }
+                        }]
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                }else{
+                    // Fallback: browser downloads to default downloads folder
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                }
+                showMessageBox("Backup downloaded");
+            }catch(err){
+                if(err && err.name === "AbortError"){
+                    return; // User canceled Save As dialog
+                }
+                alert(err.message || "Failed to create backup");
+            }
+        }
+
+        async function checkBackupTools(){
+            try{
+                const status = await request("/system-backup/status", "GET");
+                const pgDump = status?.tools?.pg_dump;
+                const psql = status?.tools?.psql;
+                if(status.ok){
+                    showMessageBox("Backup tools are ready");
+                    return;
+                }
+                alert(
+                    `Tools not ready.\n\n` +
+                    `pg_dump: ${pgDump?.available ? "OK" : "Missing"}\n` +
+                    `Command: ${pgDump?.command || "N/A"}\n\n` +
+                    `psql: ${psql?.available ? "OK" : "Missing"}\n` +
+                    `Command: ${psql?.command || "N/A"}`
+                );
+            }catch(err){
+                alert(err.message || "Failed to check backup tools");
+            }
+        }
+
+        function openRestorePicker(){
+            const input = document.getElementById("restore-db-file");
+            input.value = "";
+            input.click();
+        }
+
+        async function restoreSystemBackup(event){
+            const file = event.target.files && event.target.files[0];
+            if(!file) return;
+
+            if(!file.name.toLowerCase().endsWith(".sql")){
+                alert("Please select a .sql backup file");
+                return;
+            }
+
+            if(!confirm("This will restore the uploaded SQL to the current database. Continue?")) return;
+
+            try{
+                const sqlText = await file.text();
+                await request("/system-backup/restore", "POST", {
+                    fileName: file.name,
+                    sqlText
+                });
+                showMessageBox("Database restored");
+            }catch(err){
+                alert(err.message || "Failed to restore database");
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', loadUsers);
+    </script>
+</body>
+</html>

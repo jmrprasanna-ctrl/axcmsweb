@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vendor List - PULMO TECHNOLOGIES</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<style>
+    .btn-inline{
+        height: 36px;
+        padding: 0 12px;
+        margin-left: 8px;
+        margin-top: 0;
+    }
+    .search-inline{
+        width: 280px;
+        max-width: 100%;
+        margin-top: 0;
+        display: inline-block;
+        vertical-align: middle;
+    }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>PULMO TECHNOLOGIES</span>
+    </div>
+        <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../products/product-list.html">Products</a></li>
+        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../customers/customer-list.html">Customers</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../reports/sales-report.html">Reports</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header><h2>Vendors List</h2></header>
+
+    <div class="form-container">
+        <a class="btn" href="add-vendor.html" id="addVendorBtn">Add</a>
+        <button onclick="exportPDF()">Export as PDF</button>
+        <input type="text" id="vendorSearch" class="search-inline" placeholder="Search Name, Product Category">
+        <table id="vendorTable">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Address</th>
+                    <th>Product Category</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+if(!localStorage.getItem("token")){
+    window.location.href = "../login.html";
+}
+
+const isUser = (localStorage.getItem("role") || "").toLowerCase() === "user";
+const role = (localStorage.getItem("role") || "").toLowerCase();
+const canAddVendor = role === "admin" || role === "manager";
+const vendorSearchEl = document.getElementById("vendorSearch");
+let allVendors = [];
+
+const addVendorBtn = document.getElementById("addVendorBtn");
+if(addVendorBtn && !canAddVendor){
+    addVendorBtn.style.display = "none";
+}
+
+if(isUser){
+    const actionHeader = document.querySelector("#vendorTable thead th:last-child");
+    if(actionHeader && actionHeader.innerText.toLowerCase().includes("action")){
+        actionHeader.remove();
+    }
+}
+
+function renderVendors(vendors){
+    const tbody = document.querySelector("#vendorTable tbody");
+    tbody.innerHTML = "";
+    vendors.forEach(v=>{
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${v.name}</td>
+            <td>${v.address}</td>
+            <td>${v.category || ""}</td>
+        `;
+        if(!isUser){
+            tr.innerHTML += `
+                <td>
+                    <a class="btn" href="edit-vendor.html?id=${v.id}">Edit</a>
+                    <button class="btn btn-danger btn-inline" type="button" onclick="deleteVendor(${v.id})">Delete</button>
+                </td>
+            `;
+        }
+        tbody.appendChild(tr);
+    });
+}
+
+function applyVendorFilter(){
+    const query = (vendorSearchEl?.value || "").trim().toLowerCase();
+    if(!query){
+        renderVendors(allVendors);
+        return;
+    }
+    const filtered = allVendors.filter(v =>
+        [v.name, v.category].some(val => String(val || "").toLowerCase().includes(query))
+    );
+    renderVendors(filtered);
+}
+
+async function loadVendors(){
+    try{
+        allVendors = await request("/vendors","GET");
+        applyVendorFilter();
+    }catch(err){
+        alert(err.message || "Failed to load vendors");
+        if((err.message || "").toLowerCase().includes("login") || (err.message || "").toLowerCase().includes("token")){
+            window.location.href = "../login.html";
+        }
+    }
+}
+
+if(vendorSearchEl){
+    vendorSearchEl.addEventListener("input", applyVendorFilter);
+}
+
+function exportPDF(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ format: "a4" });
+    doc.setFontSize(10);
+    doc.text("Vendors List",14,20);
+    let y = 30;
+    const rows = document.querySelectorAll("#vendorTable tbody tr");
+    rows.forEach(r=>{
+        const cells = Array.from(r.children).slice(0, 3).map(td=>td.innerText);
+        doc.text(cells.join(" | "),14,y);
+        y+=8;
+    });
+    doc.save("Vendors_List.pdf");
+}
+
+async function deleteVendor(id){
+    if(!confirm("Delete this vendor?")) return;
+    try{
+        await request(`/vendors/${id}`,"DELETE");
+        showMessageBox("Vendor deleted");
+        loadVendors();
+    }catch(err){
+        const msg = err.message || "Failed to delete vendor";
+        if(msg.toLowerCase().includes("products are linked")){
+            try{
+                const products = await request(`/vendors/${id}/products`,"GET");
+                if(products.length){
+                    const lines = products.slice(0, 10).map(p => `${p.product_id} - ${p.description || p.model || ""}`.trim());
+                    alert(`Cannot delete vendor. Linked products:\n${lines.join("\n")}`);
+                }else{
+                    alert(msg);
+                }
+            }catch(_err){
+                alert(msg);
+            }
+        }else{
+            alert(msg);
+        }
+    }
+}
+
+function logout(){
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href="../login.html";
+}
+
+loadVendors();
+</script>
+</body>
+</html>
+

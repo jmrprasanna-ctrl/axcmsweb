@@ -1,0 +1,42 @@
+{
+  "name": "pulmotech_inhouse",
+  "version": "1.0.0",
+  "description": "pulmotech_inhouse - IT Inventory & Business Management System with Node.js, Express, PostgreSQL, and Modern UI",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js",
+    "setup": "node backend/scripts/setup.js",
+    "doctor": "node backend/scripts/setup.js",
+    "start:auto": "npm run doctor && npm run start",
+    "lint": "eslint .",
+    "sync-db": "node backend/scripts/setup.js"
+  },
+  "keywords": [
+    "inventory",
+    "management",
+    "nodejs",
+    "express",
+    "postgresql",
+    "sequelize",
+    "dashboard"
+  ],
+  "author": "JMR Prasanna - CRONIT SOLLUSIONS",
+  "license": "MIT",
+  "dependencies": {
+    "bcrypt": "^5.1.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.1",
+    "jspdf": "^4.2.0",
+    "nodemailer": "^8.0.2",
+    "pg": "^8.12.0",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.33.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.48.0",
+    "nodemon": "^3.0.1"
+  }
+}

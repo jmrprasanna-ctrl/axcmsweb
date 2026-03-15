@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expense List - PULMO TECHNOLOGIES</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<style>
+    .form-actions{
+        display: flex;
+        align-items: flex-end;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+    }
+    .date-filter{
+        display: grid;
+        gap: 6px;
+        min-width: 200px;
+    }
+    .btn-inline{
+        height: 36px;
+        padding: 0 12px;
+        margin-left: 8px;
+        margin-top: 0;
+    }
+    .search-inline{
+        width: 280px;
+        max-width: 100%;
+        margin-top: 0;
+        display: inline-block;
+        vertical-align: middle;
+    }
+    .summary-row{
+        display:grid;
+        grid-template-columns:repeat(3,minmax(180px,1fr));
+        gap:10px;
+        margin-bottom:12px;
+    }
+    .summary-box{
+        border:1px solid #d9e4f0;
+        border-radius:10px;
+        padding:10px 12px;
+        background:#fff;
+    }
+    .summary-box .label{
+        font-size:12px;
+        color:#556b84;
+        margin-bottom:4px;
+    }
+    .summary-box .value{
+        font-weight:700;
+        color:#0f6abf;
+    }
+    @media (max-width: 900px){
+        .summary-row{ grid-template-columns:1fr; }
+    }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>PULMO TECHNOLOGIES</span>
+    </div>
+        <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../products/product-list.html">Products</a></li>
+        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../customers/customer-list.html">Customers</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../reports/sales-report.html">Reports</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header><h2>Expenses List</h2></header>
+
+    <div class="form-container">
+        <div class="form-actions">
+            <div class="date-filter">
+                <label for="filterDate">Date</label>
+                <input type="date" id="filterDate">
+            </div>
+            <div class="date-filter">
+                <label for="filterPeriod">Period</label>
+                <select id="filterPeriod">
+                    <option value="date">Date</option>
+                    <option value="week">Week</option>
+                    <option value="month" selected>Month</option>
+                    <option value="year">Annual</option>
+                </select>
+            </div>
+            <a class="btn" href="add-expense.html" id="addExpenseBtn">Add</a>
+            <button onclick="exportPDF()">Export as PDF</button>
+            <input type="text" id="expenseSearch" class="search-inline" placeholder="Search Title, Category">
+        </div>
+        <div class="summary-row">
+            <div class="summary-box">
+                <div class="label">Filtered Total Expenses</div>
+                <div class="value" id="filteredTotal">0.00</div>
+            </div>
+            <div class="summary-box">
+                <div class="label">Filtered Entries</div>
+                <div class="value" id="filteredCount">0</div>
+            </div>
+            <div class="summary-box">
+                <div class="label">Filter Info</div>
+                <div class="value" id="filterInfo">Month</div>
+            </div>
+        </div>
+        <table id="expenseTable">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Category</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const filterDateEl = document.getElementById("filterDate");
+const filterPeriodEl = document.getElementById("filterPeriod");
+const expenseSearchEl = document.getElementById("expenseSearch");
+filterDateEl.value = new Date().toISOString().slice(0,10);
+const role = (localStorage.getItem("role") || "").toLowerCase();
+const isUser = role === "user";
+const canAddExpense = role === "admin" || role === "manager";
+let allExpenses = [];
+
+const addExpenseBtn = document.getElementById("addExpenseBtn");
+if(addExpenseBtn && !canAddExpense){
+    addExpenseBtn.style.display = "none";
+}
+
+if(isUser){
+    const actionHeader = document.querySelector("#expenseTable thead th:last-child");
+    if(actionHeader && actionHeader.innerText.toLowerCase().includes("action")){
+        actionHeader.remove();
+    }
+}
+
+function toDateOnly(value){
+    const d = new Date(value);
+    if(Number.isNaN(d.getTime())) return "";
+    return d.toISOString().slice(0,10);
+}
+
+function expenseDateValue(exp){
+    return exp.date || exp.createdAt || exp.updatedAt || "";
+}
+
+function getWeekRange(dateStr){
+    const d = new Date(dateStr);
+    const day = d.getDay(); // 0=Sun
+    const diffToMonday = (day + 6) % 7;
+    const start = new Date(d);
+    start.setDate(d.getDate() - diffToMonday);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return [start, end];
+}
+
+function inRange(dateStr, start, end){
+    const d = new Date(dateStr);
+    return d >= start && d <= end;
+}
+
+function filterExpensesByPeriod(expenses){
+    const selectedDate = filterDateEl.value;
+    const period = filterPeriodEl.value;
+    if(!selectedDate) return expenses;
+    if(period === "date"){
+        return expenses.filter(exp => toDateOnly(expenseDateValue(exp)) === selectedDate);
+    }
+    if(period === "week"){
+        const [start, end] = getWeekRange(selectedDate);
+        return expenses.filter(exp => inRange(expenseDateValue(exp), start, end));
+    }
+    if(period === "month"){
+        const [y, m] = selectedDate.split("-");
+        return expenses.filter(exp => {
+            const d = new Date(expenseDateValue(exp));
+            return d.getFullYear() === Number(y) && (d.getMonth() + 1) === Number(m);
+        });
+    }
+    if(period === "year"){
+        const [y] = selectedDate.split("-");
+        return expenses.filter(exp => {
+            const d = new Date(expenseDateValue(exp));
+            return d.getFullYear() === Number(y);
+        });
+    }
+    return expenses;
+}
+
+async function loadExpenses(){
+    try{
+        allExpenses = await request("/expenses","GET");
+        applyExpenseFilters();
+    }catch(err){
+        alert("Failed to load expenses");
+    }
+}
+
+function renderExpenses(expenses){
+    const tbody = document.querySelector("#expenseTable tbody");
+    tbody.innerHTML = "";
+    if(!expenses.length){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td colspan="${isUser ? 4 : 5}">No data found.</td>`;
+        tbody.appendChild(tr);
+        return;
+    }
+    expenses.forEach(exp=>{
+        const tr = document.createElement("tr");
+        const dateText = expenseDateValue(exp) ? new Date(expenseDateValue(exp)).toLocaleDateString() : "";
+        tr.innerHTML = `
+            <td>${exp.title}</td>
+            <td>${Number(exp.amount || 0).toFixed(2)}</td>
+            <td>${dateText}</td>
+            <td>${exp.category}</td>
+        `;
+        if(!isUser){
+            tr.innerHTML += `
+                <td>
+                    <a class="btn" href="edit-expense.html?id=${exp.id}">Edit</a>
+                    <button class="btn btn-danger btn-inline" type="button" onclick="deleteExpense(${exp.id})">Delete</button>
+                </td>
+            `;
+        }
+        tbody.appendChild(tr);
+    });
+}
+
+function updateSummary(expenses){
+    const total = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    document.getElementById("filteredTotal").innerText = Number(total).toFixed(2);
+    document.getElementById("filteredCount").innerText = String(expenses.length);
+    const dateText = filterDateEl.value || "";
+    const period = filterPeriodEl.value;
+    const label = period === "date" ? "Date" : period === "week" ? "Week" : period === "month" ? "Month" : "Annual";
+    document.getElementById("filterInfo").innerText = `${label} ${dateText}`.trim();
+}
+
+function applyExpenseFilters(){
+    const query = (expenseSearchEl?.value || "").trim().toLowerCase();
+    let filtered = filterExpensesByPeriod(allExpenses);
+    if(query){
+        filtered = filtered.filter(exp =>
+            [exp.title, exp.category, expenseDateValue(exp)].some(v => String(v || "").toLowerCase().includes(query))
+        );
+    }
+    renderExpenses(filtered);
+    updateSummary(filtered);
+}
+
+function exportPDF(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ format: "a4" });
+    doc.setFontSize(10);
+    doc.text("Expenses List",14,20);
+    const period = filterPeriodEl.value;
+    const selectedDate = filterDateEl.value;
+    doc.setFontSize(9);
+    doc.text(`Filter: ${period} ${selectedDate || ""}`.trim(),14,26);
+    let y = 34;
+    const rows = document.querySelectorAll("#expenseTable tbody tr");
+    rows.forEach(r=>{
+        const cells = Array.from(r.children).slice(0, 4).map(td=>td.innerText);
+        doc.text(cells.join(" | "),14,y);
+        y+=8;
+    });
+    doc.save("Expenses_List.pdf");
+}
+
+async function deleteExpense(id){
+    if(!confirm("Delete this expense?")) return;
+    try{
+        await request(`/expenses/${id}`,"DELETE");
+        showMessageBox("Expense deleted");
+        loadExpenses();
+    }catch(err){
+        alert(err.message || "Failed to delete expense");
+    }
+}
+
+function logout(){
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href="../login.html";
+}
+
+filterDateEl.addEventListener("change", applyExpenseFilters);
+filterPeriodEl.addEventListener("change", applyExpenseFilters);
+if(expenseSearchEl){
+    expenseSearchEl.addEventListener("input", applyExpenseFilters);
+}
+
+loadExpenses();
+</script>
+</body>
+</html>
+

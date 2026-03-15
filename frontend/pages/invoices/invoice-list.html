@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice List - PULMO TECHNOLOGIES</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <style>
+        .search-inline{
+            width: 280px;
+            max-width: 100%;
+            margin-top: 0;
+            margin-left: 8px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo">
+            <img src="../../assets/images/logo.png" alt="Logo">
+            <span>PULMO TECHNOLOGIES</span>
+        </div>
+            <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../products/product-list.html">Products</a></li>
+        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../customers/customer-list.html">Customers</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../reports/sales-report.html">Reports</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+    </ul>
+    </div>
+
+    <div class="main-content">
+        <header><h2>Invoice List</h2></header>
+        <button class="btn btn-primary" onclick="window.location.href='create-invoice.html'">Add Invoice</button>
+        <input type="text" id="invoiceSearch" class="search-inline" placeholder="Search Invoice No, Customer, Date, Total">
+        <div class="card">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Invoice No</th>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th>Total</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="invoice-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="../../assets/js/api.js"></script>
+    <script>
+        const invoiceSearchEl = document.getElementById("invoiceSearch");
+        let allInvoices = [];
+
+        function isAdmin(){
+            return (localStorage.getItem("role") || "").toLowerCase() === "admin";
+        }
+
+        function renderInvoices(invoices){
+            const tbody = document.getElementById('invoice-table-body');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            if(!invoices || invoices.length === 0){
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="5">No invoices found.</td>`;
+                tbody.appendChild(row);
+                return;
+            }
+            invoices.forEach(inv => {
+                const row = document.createElement('tr');
+                const dateText = inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString() : "";
+                row.innerHTML = `
+                    <td>${inv.invoice_no}</td>
+                    <td>${inv.customer_name || ""}</td>
+                    <td>${dateText}</td>
+                    <td>${inv.total}</td>
+                    <td>
+                        <button class="btn btn-success" onclick="viewInvoice(${inv.id})">INV 1</button>
+                        <button class="btn btn-primary btn-inline" onclick="viewQuatation(${inv.id})">QUT 1</button>
+                        <button class="btn btn-primary btn-inline" onclick="viewQuatation2(${inv.id})">QUT 2</button>
+                        <button class="btn btn-primary btn-inline" onclick="viewQuatation3(${inv.id})">QUT 3</button>
+                        ${isAdmin() ? `<button class="btn btn-danger btn-inline" onclick="deleteInvoice(${inv.id})">Delete</button>` : ""}
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function applyInvoiceFilter(){
+            const query = (invoiceSearchEl?.value || "").trim().toLowerCase();
+            if(!query){
+                renderInvoices(allInvoices);
+                return;
+            }
+            const filtered = allInvoices.filter(inv => {
+                const dateText = inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString() : "";
+                return [
+                    inv.invoice_no,
+                    inv.customer_name,
+                    dateText,
+                    inv.total
+                ].some(v => String(v || "").toLowerCase().includes(query));
+            });
+            renderInvoices(filtered);
+        }
+
+        async function loadInvoices(){
+            try{
+                allInvoices = await request("/invoices","GET");
+                applyInvoiceFilter();
+            }catch(err){
+                const tbody = document.getElementById('invoice-table-body');
+                if(!tbody) return;
+                tbody.innerHTML = '';
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="5">${err.message || "Failed to load invoices"}</td>`;
+                tbody.appendChild(row);
+            }
+        }
+
+        function viewInvoice(id){
+            window.location.href = `view-invoice.html?id=${id}`;
+        }
+
+        function viewQuatation(id){
+            window.location.href = `view-quotation.html?id=${id}`;
+        }
+
+        function viewQuatation2(id){
+            window.location.href = `view-quotation-2.html?id=${id}`;
+        }
+
+        function viewQuatation3(id){
+            window.location.href = `view-quotation-3.html?id=${id}`;
+        }
+
+        async function deleteInvoice(id){
+            if(!confirm("Delete this invoice?")) return;
+            try{
+                await request(`/invoices/${id}`,"DELETE");
+                loadInvoices();
+            }catch(err){
+                alert(err.message || "Failed to delete invoice");
+            }
+        }
+
+        if(invoiceSearchEl){
+            invoiceSearchEl.addEventListener("input", applyInvoiceFilter);
+        }
+
+        window.addEventListener('DOMContentLoaded', loadInvoices);
+
+        function logout(){
+            localStorage.removeItem("token");
+            localStorage.removeItem("role");
+            window.location.href="../login.html";
+        }
+    </script>
+</body>
+</html>
+

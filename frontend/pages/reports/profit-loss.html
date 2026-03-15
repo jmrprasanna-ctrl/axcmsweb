@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profit-Loss Report - PULMO TECHNOLOGIES</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>PULMO TECHNOLOGIES</span>
+    </div>
+        <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../products/product-list.html">Products</a></li>
+        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../customers/customer-list.html">Customers</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../reports/sales-report.html">Reports</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header><h2>Profit-Loss Report</h2></header>
+
+    <div class="form-container">
+        <button onclick="exportPDF()">Export as PDF</button>
+        <table id="profitLossTable">
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Total Sales</th>
+                    <th>Total Expenses</th>
+                    <th>Net Profit</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+async function loadProfitLoss(){
+    try{
+        const data = await request("/reports/profit-loss","GET");
+        const tbody = document.querySelector("#profitLossTable tbody");
+        tbody.innerHTML = "";
+        data.forEach(d=>{
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${d.month}</td>
+                <td>${d.total_sales}</td>
+                <td>${d.total_expense}</td>
+                <td>${d.net_profit}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }catch(err){
+        alert("Failed to load profit-loss data");
+    }
+}
+
+function exportPDF(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ format: "a4" });
+    doc.setFontSize(10);
+    doc.text("Profit-Loss Report",14,20);
+    let y = 30;
+    const rows = document.querySelectorAll("#profitLossTable tbody tr");
+    rows.forEach(r=>{
+        const cells = Array.from(r.children).map(td=>td.innerText);
+        doc.text(cells.join(" | "),14,y);
+        y+=8;
+    });
+    doc.save("Profit_Loss_Report.pdf");
+}
+
+function logout(){
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href="../login.html";
+}
+
+loadProfitLoss();
+</script>
+</body>
+</html>
+

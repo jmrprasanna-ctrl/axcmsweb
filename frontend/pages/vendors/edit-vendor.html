@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edit Vendor - PULMO TECHNOLOGIES</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<style>
+    .helper-text{
+        margin-top: 6px;
+        font-size: 0.85rem;
+        color: #5f748a;
+    }
+    .category-grid{
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 10px;
+        margin-top: 6px;
+    }
+    .check{
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid #d9e6f3;
+        background: #f8fbff;
+        font-weight: 600;
+        color: #2a4057;
+    }
+    .check input{
+        width: 16px;
+        height: 16px;
+    }
+    .form-actions{
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+    }
+    .btn-secondary{
+        background: #e9f3fc;
+        color: #0b4f93;
+        border: 1px solid #cfe1f5;
+        text-decoration: none;
+    }
+    .btn-secondary:hover{
+        filter: brightness(0.98);
+    }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>PULMO TECHNOLOGIES</span>
+    </div>
+        <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../products/product-list.html">Products</a></li>
+        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../customers/customer-list.html">Customers</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../reports/sales-report.html">Reports</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+    </ul>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+    <header><h2>Edit Vendor</h2></header>
+
+    <div class="form-container">
+        <form id="vendorForm">
+            <label>Vendor Name</label>
+            <input type="text" id="name" placeholder="Vendor Name" required>
+
+            <label>Address</label>
+            <input type="text" id="address" placeholder="Address" required>
+
+            <label>Product Category</label>
+            <div class="category-grid" id="category">
+                <label class="check">
+                    <input type="checkbox" value="Photocopier">
+                    <span>Photocopier</span>
+                </label>
+                <label class="check">
+                    <input type="checkbox" value="Printer">
+                    <span>Printer</span>
+                </label>
+                <label class="check">
+                    <input type="checkbox" value="Plotter">
+                    <span>Plotter</span>
+                </label>
+                <label class="check">
+                    <input type="checkbox" value="Computer">
+                    <span>Computer</span>
+                </label>
+                <label class="check">
+                    <input type="checkbox" value="Laptop">
+                    <span>Laptop</span>
+                </label>
+                <label class="check">
+                    <input type="checkbox" value="Accessory">
+                    <span>Accessory</span>
+                </label>
+                <label class="check">
+                    <input type="checkbox" value="Consumable">
+                    <span>Consumable</span>
+                </label>
+                <label class="check">
+                    <input type="checkbox" value="Machine">
+                    <span>Machine</span>
+                </label>
+                <label class="check">
+                    <input type="checkbox" value="Service">
+                    <span>Service</span>
+                </label>
+            </div>
+            <p class="helper-text">Select one or more categories.</p>
+
+            <div class="form-actions">
+                <button type="submit">Update Vendor</button>
+                <a class="btn btn-secondary" href="list-vendor.html">Back</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script>
+const params = new URLSearchParams(window.location.search);
+const vendorId = params.get("id");
+
+if(!vendorId){
+    alert("Missing vendor id.");
+    window.location.href = "list-vendor.html";
+}
+
+function setCheckedCategories(categoryText){
+    if(!categoryText) return;
+    const selected = categoryText.split(",").map(c => c.trim()).filter(Boolean);
+    const checks = document.querySelectorAll("#category input[type='checkbox']");
+    checks.forEach(ch => {
+        ch.checked = selected.includes(ch.value);
+    });
+}
+
+async function loadVendor(){
+    try{
+        const vendor = await request(`/vendors/${vendorId}`,"GET");
+        document.getElementById("name").value = vendor.name || "";
+        document.getElementById("address").value = vendor.address || "";
+        setCheckedCategories(vendor.category || "");
+    }catch(err){
+        alert(err.message || "Failed to load vendor");
+        window.location.href = "list-vendor.html";
+    }
+}
+
+document.getElementById("vendorForm").addEventListener("submit", async function(e){
+    e.preventDefault();
+    const selected = Array.from(document.querySelectorAll("#category input[type='checkbox']:checked"))
+        .map(input => input.value)
+        .filter(Boolean);
+    const data = {
+        name: document.getElementById("name").value.trim(),
+        address: document.getElementById("address").value.trim(),
+        category: selected
+    };
+
+    try{
+        await request(`/vendors/${vendorId}`,"PUT",data);
+        showMessageBox("Vendor updated successfully!");
+    }catch(err){
+        alert(err.message || "Failed to update vendor");
+    }
+});
+
+function logout(){
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href="../login.html";
+}
+
+loadVendor();
+</script>
+</body>
+</html>
+

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edit Expense - PULMO TECHNOLOGIES</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<style>
+    .form-actions{
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+    }
+    .btn-secondary{
+        background: #e9f3fc;
+        color: #0b4f93;
+        border: 1px solid #cfe1f5;
+        text-decoration: none;
+    }
+    .btn-secondary:hover{
+        filter: brightness(0.98);
+    }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>PULMO TECHNOLOGIES</span>
+    </div>
+        <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../products/product-list.html">Products</a></li>
+        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../customers/customer-list.html">Customers</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../reports/sales-report.html">Reports</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header><h2>Edit Expense</h2></header>
+
+    <div class="form-container">
+        <form id="expenseForm">
+            <label>Title</label>
+            <input type="text" id="title" placeholder="Expense Title" required>
+
+            <label>Customer</label>
+            <input type="text" id="customer" placeholder="Customer name">
+
+            <label>Amount</label>
+            <input type="number" id="amount" placeholder="Amount" min="0" required>
+
+            <label>Date & Time</label>
+            <input type="datetime-local" id="date" required>
+
+            <label>Category</label>
+            <select id="category" required>
+                <option value="">Select Category</option>
+                <option value="Repair">Repair</option>
+                <option value="Customer Visit">Customer Visit</option>
+                <option value="Brekdown">Brekdown</option>
+                <option value="Personal">Personal</option>
+                <option value="Miscellaneous">Miscellaneous</option>
+            </select>
+
+            <div class="form-actions">
+                <button type="submit">Update Expense</button>
+                <a class="btn btn-secondary" href="expense-list.html">Back</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script>
+const params = new URLSearchParams(window.location.search);
+const expenseId = params.get("id");
+
+if(!expenseId){
+    alert("Missing expense id.");
+    window.location.href = "expense-list.html";
+}
+
+async function loadExpense(){
+    try{
+        const expense = await request(`/expenses/${expenseId}`,"GET");
+        document.getElementById("title").value = expense.title || "";
+        document.getElementById("customer").value = expense.customer || "";
+        document.getElementById("amount").value = expense.amount || 0;
+        const dateVal = expense.date ? new Date(expense.date) : new Date();
+        const tzOffset = dateVal.getTimezoneOffset() * 60000;
+        const localISOTime = new Date(dateVal - tzOffset).toISOString().slice(0,16);
+        document.getElementById("date").value = localISOTime;
+        document.getElementById("category").value = expense.category || "";
+    }catch(err){
+        alert(err.message || "Failed to load expense");
+        window.location.href = "expense-list.html";
+    }
+}
+
+document.getElementById("expenseForm").addEventListener("submit", async function(e){
+    e.preventDefault();
+    const data = {
+        title: document.getElementById("title").value.trim(),
+        customer: document.getElementById("customer").value.trim(),
+        amount: parseFloat(document.getElementById("amount").value),
+        date: document.getElementById("date").value,
+        category: document.getElementById("category").value.trim()
+    };
+
+    try{
+        await request(`/expenses/${expenseId}`,"PUT",data);
+        showMessageBox("Expense updated successfully!");
+    }catch(err){
+        alert(err.message || "Failed to update expense");
+    }
+});
+
+function logout(){
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href="../login.html";
+}
+
+loadExpense();
+</script>
+</body>
+</html>
+

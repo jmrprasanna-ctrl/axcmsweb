@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales List - PULMO TECHNOLOGIES</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+</head>
+<body class="app-has-sidebar-footer">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo">
+            <img src="../../assets/images/logo.png" alt="Logo">
+            <span>PULMO TECHNOLOGIES</span>
+        </div>
+            <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../products/product-list.html">Products</a></li>
+        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../customers/customer-list.html">Customers</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../reports/sales-report.html">Reports</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+    </ul>
+    </div>
+
+    <div class="main-content">
+        <header><h2>Sales List</h2></header>
+        <div class="card">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Invoice No</th>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th>Total</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="sales-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer class="app-global-footer">© All Right Recieved with CRONIT SOLLUTIONS - JMR Prasanna.</footer>
+
+    <script type="module" src="../../js/sales.js"></script>
+    <script>
+        window.addEventListener("DOMContentLoaded", loadSales);
+
+        function logout(){
+            localStorage.removeItem("token");
+            localStorage.removeItem("role");
+            window.location.href="../login.html";
+        }
+    </script>
+</body>
+</html>
+

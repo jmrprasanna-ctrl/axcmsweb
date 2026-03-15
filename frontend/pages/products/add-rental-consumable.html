@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Rental Consumables - PULMO TECHNOLOGIES</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<link rel="stylesheet" href="../../assets/css/add-product.css">
+<style>
+    .btn-inline{
+        height: 36px;
+        padding: 0 12px;
+        margin-top: 0;
+    }
+    .controls-row{
+        display:flex;
+        gap:8px;
+        align-items:center;
+        flex-wrap:wrap;
+    }
+    .consumables-shell{
+        margin-bottom: 16px;
+    }
+    .section-title{
+        margin: 14px 0 10px 0;
+        color: #13304f;
+        font-size: 17px;
+    }
+    .pending-actions{
+        margin-top: 10px;
+    }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>PULMO TECHNOLOGIES</span>
+    </div>
+    <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../products/product-list.html">Products</a></li>
+        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../customers/customer-list.html">Customers</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../reports/sales-report.html">Reports</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+    </ul>
+</div>
+
+<div class="main-content add-product-main">
+    <div class="add-product-shell consumables-shell">
+        <div class="add-product-header">
+            <div>
+                <h2 class="add-product-title">Add Rental Consumables</h2>
+            </div>
+            <div class="add-product-badge">Machine Setup</div>
+        </div>
+
+        <form id="consumableForm">
+            <div class="add-product-grid">
+                <div class="field">
+                    <label for="rentalMachineId">Rental Machine</label>
+                    <select id="rentalMachineId" required>
+                        <option value="">Select Rental Machine</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="consumableProduct">Consumables</label>
+                    <select id="consumableProduct" required>
+                        <option value="">Select Consumable from Products</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="quantity">Quantity</label>
+                    <input type="number" id="quantity" min="1" step="1" value="1" required>
+                </div>
+
+                <div class="field">
+                    <label for="count">Count</label>
+                    <input type="number" id="count" min="1" step="1" value="1">
+                </div>
+            </div>
+
+            <div class="add-product-actions">
+                <button type="button" id="addItemBtn">Add Consumable</button>
+            </div>
+        </form>
+
+        <h3 class="section-title">Pending Consumables (Current Entry)</h3>
+        <table id="pendingTable">
+            <thead>
+                <tr>
+                    <th>Consumables</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                    <th>Count</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <div class="controls-row pending-actions">
+            <button type="button" id="saveEntryBtn">Save</button>
+            <button type="button" onclick="window.location.href='machine.html'">Back</button>
+        </div>
+    </div>
+
+    <div class="add-product-shell consumables-shell">
+        <div class="controls-row">
+            <h3 class="section-title" style="margin: 0;">Added Consumables</h3>
+            <button type="button" class="btn-inline" onclick="saveAddedConsumablesPDF()">Save as PDF</button>
+        </div>
+        <table id="consumableTable">
+            <thead>
+                <tr>
+                    <th>Entry</th>
+                    <th>Machine ID</th>
+                    <th>Rental Customer</th>
+                    <th>Consumables</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                    <th>Count</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+if(!localStorage.getItem("token")){
+    window.location.href = "../login.html";
+}
+
+const role = (localStorage.getItem("role") || "").toLowerCase();
+if(role !== "admin" && role !== "manager"){
+    alert("Only Admin and Manager can add consumables.");
+    window.location.href = "machine.html";
+}
+
+let consumableProducts = [];
+let pendingItems = [];
+let rentalMachines = [];
+
+async function loadRentalMachines(){
+    try{
+        const rows = await request("/rental-machines", "GET");
+        rentalMachines = Array.isArray(rows) ? rows : [];
+        const select = document.getElementById("rentalMachineId");
+        select.innerHTML = "<option value=''>Select Rental Machine</option>";
+        rentalMachines.forEach(m => {
+            const opt = document.createElement("option");
+            opt.value = m.id;
+            const machineId = m.machine_id || `M-${m.id}`;
+            const customerName = m.customer_name || (m.Customer ? m.Customer.name : "");
+            const serialNo = m.serial_no || "";
+            opt.innerText = `${machineId} - ${customerName}${serialNo ? ` (${serialNo})` : ""}`;
+            select.appendChild(opt);
+        });
+    }catch(err){
+        alert(err.message || "Failed to load rental machines");
+    }
+}
+
+async function loadConsumableProducts(){
+    try{
+        const products = await request("/products", "GET");
+        const consumableLike = products.filter(p => {
+            const categoryName = p.Category ? p.Category.name : "";
+            const normalized = String(categoryName || "").toLowerCase();
+            return normalized === "consumable" || normalized === "consumables";
+        });
+        consumableProducts = consumableLike.length ? consumableLike : products;
+
+        const select = document.getElementById("consumableProduct");
+        select.innerHTML = "<option value=''>Select Consumable from Products</option>";
+        consumableProducts.forEach(p => {
+            const opt = document.createElement("option");
+            opt.value = p.id;
+            const code = p.product_id || `ID:${p.id}`;
+            const name = p.description || "Unnamed";
+            opt.innerText = `${code} - ${name}`;
+            select.appendChild(opt);
+        });
+    }catch(err){
+        alert(err.message || "Failed to load products");
+    }
+}
+
+function renderPending(){
+    const tbody = document.querySelector("#pendingTable tbody");
+    tbody.innerHTML = "";
+    pendingItems.forEach((item, index) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${item.consumable_name}</td>
+            <td>${item.quantity}</td>
+            <td>${Number(item.total_price || 0).toFixed(2)}</td>
+            <td>${item.count ?? 0}</td>
+            <td><button class="btn btn-danger btn-inline" type="button" onclick="removePending(${index})">Remove</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function removePending(index){
+    pendingItems.splice(index, 1);
+    renderPending();
+}
+window.removePending = removePending;
+
+function addPendingItem(){
+    const productId = Number(document.getElementById("consumableProduct").value);
+    const quantity = Number.parseInt(document.getElementById("quantity").value, 10);
+    const count = Number.parseInt(document.getElementById("count").value, 10);
+    const product = consumableProducts.find(p => Number(p.id) === productId);
+
+    if(!product || Number.isNaN(quantity) || quantity <= 0 || Number.isNaN(count) || count <= 0){
+        alert("Please select consumable and valid quantity/count (Count must be greater than 0).");
+        return;
+    }
+
+    pendingItems.push({
+        product_id: product.id,
+        consumable_name: String(product.description || product.product_id || "").toUpperCase(),
+        quantity,
+        count,
+        unit_price: Number(product.dealer_price || 0),
+        total_price: Number(product.dealer_price || 0) * quantity
+    });
+
+    renderPending();
+    document.getElementById("consumableProduct").value = "";
+    document.getElementById("quantity").value = "1";
+    document.getElementById("count").value = "1";
+}
+
+document.getElementById("addItemBtn").addEventListener("click", addPendingItem);
+
+async function loadAddedConsumables(){
+    try{
+        const rows = await request("/rental-machine-consumables", "GET");
+        const tbody = document.querySelector("#consumableTable tbody");
+        tbody.innerHTML = "";
+        const grouped = new Map();
+        rows.forEach(r => {
+            const key = r.save_batch_id || `ROW-${r.id}`;
+            if(!grouped.has(key)){
+                grouped.set(key, {
+                    entry: key,
+                    machineId: r.RentalMachine ? (r.RentalMachine.machine_id || "") : "",
+                    customer: r.Customer ? (r.Customer.name || "") : "",
+                    consumables: [],
+                    totalQty: 0,
+                    totalPrice: 0,
+                    counts: []
+                });
+            }
+            const g = grouped.get(key);
+            g.consumables.push(`${r.consumable_name || ""} (${r.quantity ?? 0})`);
+            g.totalQty += Number(r.quantity || 0);
+            g.totalPrice += Number((r.Product ? r.Product.dealer_price : 0) || 0) * Number(r.quantity || 0);
+            const c = Number(r.count || 0);
+            if(c > 0){
+                g.counts.push(c);
+            }
+        });
+
+        grouped.forEach(g => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${g.entry}</td>
+                <td>${g.machineId || "-"}</td>
+                <td>${g.customer}</td>
+                <td>${g.consumables.join(", ")}</td>
+                <td>${g.totalQty}</td>
+                <td>${Number(g.totalPrice || 0).toFixed(2)}</td>
+                <td>${g.counts.length ? g.counts.join(", ") : "-"}</td>
+                <td><button class="btn btn-danger btn-inline" type="button" onclick="deleteAddedEntry('${String(g.entry).replace(/'/g, "\\'")}')">Delete</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }catch(err){
+        alert(err.message || "Failed to load consumables");
+    }
+}
+
+async function saveEntry(){
+    const rentalMachineId = Number(document.getElementById("rentalMachineId").value);
+    const selectedMachine = rentalMachines.find(m => Number(m.id) === rentalMachineId);
+    const customerId = Number(selectedMachine ? selectedMachine.customer_id : 0);
+    if(!selectedMachine || !customerId){
+        alert("Please select Rental machine.");
+        return;
+    }
+    if(!pendingItems.length){
+        alert("Please add at least one consumable.");
+        return;
+    }
+
+    try{
+        await request("/rental-machine-consumables/batch", "POST", {
+            rental_machine_id: rentalMachineId,
+            customer_id: customerId,
+            items: pendingItems
+        });
+        showMessageBox("Consumables saved in one entry");
+        pendingItems = [];
+        renderPending();
+        await loadAddedConsumables();
+    }catch(err){
+        alert(err.message || "Failed to save consumables");
+    }
+}
+
+document.getElementById("consumableForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+});
+document.getElementById("saveEntryBtn").addEventListener("click", saveEntry);
+
+async function deleteAddedEntry(entryId){
+    if(!entryId) return;
+    if(!confirm("Delete this added consumables entry?")) return;
+
+    try{
+        if(String(entryId).startsWith("ROW-")){
+            const rowId = Number(String(entryId).slice(4));
+            if(Number.isFinite(rowId) && rowId > 0){
+                await request(`/rental-machine-consumables/${rowId}`, "DELETE");
+            }else{
+                throw new Error("Invalid row entry id");
+            }
+        }else{
+            await request(`/rental-machine-consumables/batch/${encodeURIComponent(entryId)}`, "DELETE");
+        }
+        showMessageBox("Consumables entry deleted");
+        await loadAddedConsumables();
+    }catch(err){
+        alert(err.message || "Failed to delete added consumables entry");
+    }
+}
+window.deleteAddedEntry = deleteAddedEntry;
+
+function saveAddedConsumablesPDF(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ format: "a4" });
+    doc.setFontSize(10);
+    doc.text("Added Rental Consumables", 14, 20);
+    let y = 30;
+    const rows = document.querySelectorAll("#consumableTable tbody tr");
+    rows.forEach(r => {
+        const cells = Array.from(r.children).slice(0, 7).map(td => td.innerText);
+        doc.text(cells.join(" | "), 14, y);
+        y += 8;
+    });
+    doc.save("Added_Rental_Consumables.pdf");
+}
+window.saveAddedConsumablesPDF = saveAddedConsumablesPDF;
+
+function logout(){
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href = "../login.html";
+}
+
+(async function init(){
+    await loadRentalMachines();
+    await loadConsumableProducts();
+    await loadAddedConsumables();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Rental Count - PULMO TECHNOLOGIES</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<style>
+.button-row{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    margin-top:10px;
+}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>PULMO TECHNOLOGIES</span>
+    </div>
+    <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../products/product-list.html">Products</a></li>
+        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../customers/customer-list.html">Customers</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../reports/sales-report.html">Reports</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header><h2>Rental Count</h2></header>
+
+    <div class="form-container">
+        <form id="rentalCountForm">
+            <label>Transaction ID</label>
+            <input type="text" id="transactionId" placeholder="RMC-0001" required>
+
+            <label>Rental Machine</label>
+            <select id="rentalMachineId" required>
+                <option value="">Select Rental Machine</option>
+            </select>
+
+            <label>Customer</label>
+            <input type="text" id="customerName" placeholder="Customer Name" readonly>
+
+            <label>Input Count (Last Updated Count)</label>
+            <input type="number" id="inputCount" min="0" step="1" readonly>
+
+            <label>Updated Count</label>
+            <input type="number" id="updatedCount" min="0" step="1" required>
+
+            <div class="button-row">
+                <button type="submit">Save Rental Count</button>
+                <button type="button" onclick="window.location.href='machine.html'">Back</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="form-container">
+        <header><h3>Added Rental Counts</h3></header>
+        <table id="rentalCountTable">
+            <thead>
+                <tr>
+                    <th>Transaction ID</th>
+                    <th>Machine ID</th>
+                    <th>Customer</th>
+                    <th>Input Count</th>
+                    <th>Updated Count</th>
+                    <th>Price (Rs.)</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script>
+if(!localStorage.getItem("token")){
+    window.location.href = "../login.html";
+}
+
+const role = (localStorage.getItem("role") || "").toLowerCase();
+if(role !== "admin" && role !== "manager"){
+    alert("Only Admin and Manager can add rental counts.");
+    window.location.href = "machine.html";
+}
+
+let allMachines = [];
+
+function normalizeTransaction(raw){
+    const value = String(raw || "").trim().toUpperCase();
+    if(!value) return "";
+    if(value.startsWith("RMC-")) return value;
+    if(value.startsWith("RMC")) return `RMC-${value.slice(3)}`;
+    return value;
+}
+
+async function generateTransactionId(){
+    try{
+        const last = await request("/rental-machine-counts/last-id", "GET");
+        const lastId = String(last && last.transaction_id ? last.transaction_id : "").toUpperCase();
+        const num = lastId.startsWith("RMC-") ? Number.parseInt(lastId.slice(4), 10) : 0;
+        const next = Number.isNaN(num) ? 1 : num + 1;
+        document.getElementById("transactionId").value = `RMC-${String(next).padStart(4, "0")}`;
+    }catch(_err){
+        document.getElementById("transactionId").value = `RMC-${Date.now()}`;
+    }
+}
+
+async function loadMachines(){
+    try{
+        const rows = await request("/rental-machines", "GET");
+        allMachines = Array.isArray(rows) ? rows : [];
+        const select = document.getElementById("rentalMachineId");
+        select.innerHTML = "<option value=''>Select Rental Machine</option>";
+        allMachines.forEach(m => {
+            const opt = document.createElement("option");
+            opt.value = m.id;
+            const customer = m.customer_name || (m.Customer ? m.Customer.name : "");
+            opt.innerText = `${m.machine_id || "MACHINE"} - ${customer}`;
+            select.appendChild(opt);
+        });
+    }catch(err){
+        alert(err.message || "Failed to load rental machines");
+    }
+}
+
+async function onMachineChange(){
+    const machineId = Number(document.getElementById("rentalMachineId").value);
+    const machine = allMachines.find(m => Number(m.id) === machineId);
+    document.getElementById("customerName").value = machine
+        ? (machine.customer_name || (machine.Customer ? machine.Customer.name : ""))
+        : "";
+
+    if(!machineId){
+        document.getElementById("inputCount").value = "";
+        document.getElementById("updatedCount").value = "";
+        return;
+    }
+
+    try{
+        const next = await request(`/rental-machine-counts/next-count?rental_machine_id=${machineId}`, "GET");
+        const input = Number(next.next_input_count || 0);
+        document.getElementById("inputCount").value = String(input);
+        document.getElementById("updatedCount").value = String(input);
+    }catch(err){
+        document.getElementById("inputCount").value = String(machine ? (machine.updated_count ?? machine.start_count ?? 0) : 0);
+        document.getElementById("updatedCount").value = document.getElementById("inputCount").value;
+        alert(err.message || "Failed to load next input count");
+    }
+}
+
+async function loadRentalCounts(){
+    try{
+        const rows = await request("/rental-machine-counts", "GET");
+        const tbody = document.querySelector("#rentalCountTable tbody");
+        tbody.innerHTML = "";
+        rows.forEach(r => {
+            const tr = document.createElement("tr");
+            const dateText = r.createdAt ? new Date(r.createdAt).toLocaleString() : "";
+            const machineId = r.RentalMachine ? (r.RentalMachine.machine_id || "") : "";
+            const customer = r.Customer ? (r.Customer.name || "") : "";
+            const inputCount = Number(r.input_count || 0);
+            const updatedCount = Number(r.updated_count || 0);
+            const pagePerPrice = Number((r.RentalMachine && r.RentalMachine.page_per_price) || 0);
+            const copiedPages = Math.max(0, updatedCount - inputCount);
+            const priceAmount = copiedPages * pagePerPrice;
+            tr.innerHTML = `
+                <td>${r.transaction_id || ""}</td>
+                <td>${machineId}</td>
+                <td>${customer}</td>
+                <td>${inputCount}</td>
+                <td>${updatedCount}</td>
+                <td>${priceAmount.toFixed(2)}</td>
+                <td>${dateText}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }catch(err){
+        alert(err.message || "Failed to load rental counts");
+    }
+}
+
+document.getElementById("transactionId").addEventListener("blur", (e) => {
+    e.target.value = normalizeTransaction(e.target.value);
+});
+
+document.getElementById("rentalMachineId").addEventListener("change", onMachineChange);
+
+document.getElementById("rentalCountForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const rental_machine_id = Number(document.getElementById("rentalMachineId").value);
+    const updated_count = Number.parseInt(document.getElementById("updatedCount").value, 10);
+    const transaction_id = normalizeTransaction(document.getElementById("transactionId").value);
+
+    if(!Number.isFinite(rental_machine_id) || rental_machine_id <= 0 || Number.isNaN(updated_count)){
+        alert("Please select rental machine and enter valid updated count.");
+        return;
+    }
+    if(updated_count < 0){
+        alert("Updated count cannot be negative.");
+        return;
+    }
+
+    try{
+        await request("/rental-machine-counts", "POST", {
+            transaction_id,
+            rental_machine_id,
+            updated_count
+        });
+        showMessageBox("Rental count saved successfully");
+        await loadMachines();
+        await loadRentalCounts();
+        await generateTransactionId();
+        document.getElementById("rentalMachineId").value = "";
+        document.getElementById("customerName").value = "";
+        document.getElementById("inputCount").value = "";
+        document.getElementById("updatedCount").value = "";
+    }catch(err){
+        alert(err.message || "Failed to save rental count");
+    }
+});
+
+function logout(){
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href = "../login.html";
+}
+
+(async function init(){
+    await loadMachines();
+    await loadRentalCounts();
+    await generateTransactionId();
+})();
+</script>
+</body>
+</html>

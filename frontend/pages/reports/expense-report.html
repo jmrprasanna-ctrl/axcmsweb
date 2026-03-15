@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expense Report - PULMO TECHNOLOGIES</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>PULMO TECHNOLOGIES</span>
+    </div>
+        <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../products/product-list.html">Products</a></li>
+        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../customers/customer-list.html">Customers</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../reports/sales-report.html">Reports</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header><h2>Expense Report</h2></header>
+
+    <div class="form-container">
+        <button onclick="exportPDF()">Export as PDF</button>
+        <table id="expenseReportTable">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Category</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+async function loadExpensesReport(){
+    try{
+        const expenses = await request("/reports/expenses","GET");
+        const tbody = document.querySelector("#expenseReportTable tbody");
+        tbody.innerHTML = "";
+        expenses.forEach(e=>{
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${e.title}</td>
+                <td>${e.amount}</td>
+                <td>${e.date}</td>
+                <td>${e.category}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }catch(err){
+        alert("Failed to load expense report");
+    }
+}
+
+function exportPDF(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ format: "a4" });
+    doc.setFontSize(10);
+    doc.text("Expense Report",14,20);
+    let y = 30;
+    const rows = document.querySelectorAll("#expenseReportTable tbody tr");
+    rows.forEach(r=>{
+        const cells = Array.from(r.children).map(td=>td.innerText);
+        doc.text(cells.join(" | "),14,y);
+        y+=8;
+    });
+    doc.save("Expense_Report.pdf");
+}
+
+function logout(){
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href="../login.html";
+}
+
+loadExpensesReport();
+</script>
+</body>
+</html>
+

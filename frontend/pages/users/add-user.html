@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add User - PULMO TECHNOLOGIES</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <style>
+        .form-actions{
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+        .btn-secondary{
+            background: #e9f3fc;
+            color: #0b4f93;
+            border: 1px solid #cfe1f5;
+            text-decoration: none;
+        }
+        .btn-secondary:hover{
+            filter: brightness(0.98);
+        }
+        .input-wrap{
+            position: relative;
+        }
+        .toggle-pass{
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 0;
+            background: transparent;
+            color: #0b4f93;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 4px 6px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar & Navbar -->
+    <div id="sidebar-container"></div>
+    <div id="navbar-container"></div>
+
+    <div class="main-content">
+        <header><h2>Add User</h2></header>
+        <div class="form-container">
+            <form id="addUserForm">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Enter username" required>
+
+                <label for="company">Company</label>
+                <input type="text" id="company" placeholder="Enter company name" required>
+
+                <label for="department">Department</label>
+                <input type="text" id="department" placeholder="Enter department" required>
+
+                <label for="tel">Telephone</label>
+                <input type="text" id="tel" placeholder="Enter telephone" required>
+
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="Enter email" required>
+
+                <label for="role">Role</label>
+                <select id="role" required>
+                    <option value="">Select Role</option>
+                    <option value="user">User</option>
+                    <option value="manager">Manager</option>
+                    <option value="admin">Admin</option>
+                </select>
+
+                <label for="password">Password</label>
+                <div class="input-wrap">
+                    <input type="password" id="password" placeholder="Enter password" required>
+                    <button type="button" class="toggle-pass" id="togglePassword" aria-label="Show password">Show</button>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Add User</button>
+                    <a class="btn btn-secondary" href="user-list.html">Back</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../../assets/js/api.js"></script>
+    <script>
+        window.addEventListener("load", () => {
+            const form = document.getElementById('addUserForm');
+            const companyInput = document.getElementById('company');
+            const togglePassword = document.getElementById('togglePassword');
+            const passwordInput = document.getElementById('password');
+
+            companyInput.style.textTransform = "uppercase";
+            companyInput.addEventListener("input", () => {
+                const pos = companyInput.selectionStart;
+                companyInput.value = companyInput.value.toUpperCase();
+                companyInput.setSelectionRange(pos, pos);
+            });
+
+            form.addEventListener('submit', async e => {
+                e.preventDefault();
+                const user = {
+                    username: document.getElementById('username').value.trim(),
+                    email: document.getElementById('email').value.trim(),
+                    password: document.getElementById('password').value,
+                    role: document.getElementById('role').value,
+                    company: document.getElementById('company').value.trim(),
+                    department: document.getElementById('department').value.trim(),
+                    telephone: document.getElementById('tel').value.trim()
+                };
+                try{
+                    await request("/users","POST",user);
+                    showMessageBox("User saved successfully!");
+                    form.reset();
+                }catch(err){
+                    alert(err.message || "Failed to add user");
+                }
+            });
+
+            togglePassword.addEventListener("click", () => {
+                const isPassword = passwordInput.type === "password";
+                passwordInput.type = isPassword ? "text" : "password";
+                togglePassword.textContent = isPassword ? "Hide" : "Show";
+                togglePassword.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+            });
+        });
+    </script>
+</body>
+</html>

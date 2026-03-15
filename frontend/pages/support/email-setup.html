@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email Setup - PULMO TECHNOLOGIES</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+</head>
+<body>
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Company Logo">
+        <span>PULMO TECHNOLOGIES</span>
+    </div>
+    <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../products/product-list.html">Products</a></li>
+        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../customers/customer-list.html">Customers</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../reports/sales-report.html">Reports</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+        <li><a href="support.html">Support</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header><h2>Email Setup</h2></header>
+    <div class="card">
+        <form id="emailSetupForm">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;">
+                <div>
+                    <label for="smtp_host">SMTP Host</label>
+                    <input type="text" id="smtp_host" placeholder="smtp.gmail.com" required>
+                </div>
+                <div>
+                    <label for="smtp_port">SMTP Port</label>
+                    <input type="number" id="smtp_port" placeholder="587" min="1" required>
+                </div>
+                <div>
+                    <label for="smtp_user">SMTP User</label>
+                    <input type="text" id="smtp_user" placeholder="username/email" required>
+                </div>
+                <div>
+                    <label for="smtp_pass">SMTP Password</label>
+                    <input type="password" id="smtp_pass" placeholder="Leave blank to keep existing">
+                </div>
+                <div>
+                    <label for="from_name">From Name</label>
+                    <input type="text" id="from_name" placeholder="PULMO TECHNOLOGIES">
+                </div>
+                <div>
+                    <label for="from_email">From Email</label>
+                    <input type="email" id="from_email" placeholder="noreply@domain.com">
+                </div>
+            </div>
+
+            <label style="display:inline-flex;align-items:center;gap:8px;margin-top:10px;">
+                <input type="checkbox" id="smtp_secure">
+                Use Secure SMTP (SSL/TLS)
+            </label>
+
+            <label for="subject_template" style="margin-top:12px;">Subject Template</label>
+            <input type="text" id="subject_template" placeholder="Invoice {{invoice_no}} - PULMO TECHNOLOGIES">
+
+            <label for="body_template" style="margin-top:12px;">Body Template</label>
+            <textarea id="body_template" rows="8" placeholder="Dear {{customer_name}}, ..."></textarea>
+
+            <small>Available placeholders: <code>{{invoice_no}}</code>, <code>{{customer_name}}</code>, <code>{{total_amount}}</code>, <code>{{invoice_date}}</code></small>
+
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;">
+                <button class="btn btn-primary" type="submit">Save Setup</button>
+                <a class="btn btn-secondary" href="support.html">Back</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script>
+function getRole(){
+    return (localStorage.getItem("role") || "").toLowerCase();
+}
+
+function canManageEmailSetup(){
+    const role = getRole();
+    return role === "admin" || role === "manager";
+}
+
+function setForm(setup){
+    document.getElementById("smtp_host").value = setup.smtp_host || "";
+    document.getElementById("smtp_port").value = setup.smtp_port || 587;
+    document.getElementById("smtp_user").value = setup.smtp_user || "";
+    document.getElementById("smtp_pass").value = "";
+    document.getElementById("smtp_secure").checked = !!setup.smtp_secure;
+    document.getElementById("from_name").value = setup.from_name || "PULMO TECHNOLOGIES";
+    document.getElementById("from_email").value = setup.from_email || "";
+    document.getElementById("subject_template").value = setup.subject_template || "Invoice {{invoice_no}} - PULMO TECHNOLOGIES";
+    document.getElementById("body_template").value = setup.body_template || "Dear {{customer_name}},\n\nPlease find attached your invoice {{invoice_no}}.\n\nThank you.\nPULMO TECHNOLOGIES";
+}
+
+async function loadSetup(){
+    try{
+        const setup = await request("/email-setup", "GET");
+        setForm(setup || {});
+    }catch(err){
+        alert(err.message || "Failed to load email setup");
+    }
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+    if(!canManageEmailSetup()){
+        alert("Access denied.");
+        window.location.href = "support.html";
+        return;
+    }
+
+    const form = document.getElementById("emailSetupForm");
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const payload = {
+            smtp_host: document.getElementById("smtp_host").value.trim(),
+            smtp_port: Number(document.getElementById("smtp_port").value || 587),
+            smtp_user: document.getElementById("smtp_user").value.trim(),
+            smtp_pass: document.getElementById("smtp_pass").value.trim(),
+            smtp_secure: !!document.getElementById("smtp_secure").checked,
+            from_name: document.getElementById("from_name").value.trim(),
+            from_email: document.getElementById("from_email").value.trim(),
+            subject_template: document.getElementById("subject_template").value.trim(),
+            body_template: document.getElementById("body_template").value
+        };
+
+        if(!payload.smtp_host || !payload.smtp_user){
+            alert("SMTP Host and SMTP User are required.");
+            return;
+        }
+
+        try{
+            await request("/email-setup", "POST", payload);
+            showMessageBox("Email setup saved");
+            document.getElementById("smtp_pass").value = "";
+        }catch(err){
+            alert(err.message || "Failed to save email setup");
+        }
+    });
+
+    loadSetup();
+});
+</script>
+</body>
+</html>

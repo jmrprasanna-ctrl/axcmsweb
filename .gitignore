@@ -1,0 +1,36 @@
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Dependencies
+node_modules/
+mobile-app/node_modules/
+
+# Environment and secrets
+.env
+.env.*
+backend/.env
+mobile-app/.env
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime/temp/cache
+tmp/
+temp/
+.tmp/
+.cache/
+
+# App-specific generated files
+backend/uploads/
+folder_structure.pdf
+pulmo_web_UI_structure.pdf
+*.tmp
+
+# Expo/React Native
+.expo/
+mobile-app/.expo/

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard - PULMO TECHNOLOGIES</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/dashboard.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="logo">
+        <img src="../assets/images/logo.png" alt="Company Logo">
+        <span>PULMO TECHNOLOGIES</span>
+    </div>
+    <ul class="nav-links">
+        <li><a href="dashboard.html">Dashboard</a></li>
+        <li><a href="products/product-list.html">Products</a></li>
+        <li><a href="products/machine.html">Machines</a></li>
+        <li><a href="customers/customer-list.html">Customers</a></li>
+        <li><a href="invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="expenses/expense-list.html">Expenses</a></li>
+        <li><a href="reports/sales-report.html">Reports</a></li>
+        <li><a href="analytics/sales-chart.html">Analytics</a></li>
+    </ul>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+    <header class="dashboard-header">
+        <div class="dashboard-topbar">
+            <div class="topbar-left">
+                <h2>Dashboard</h2>
+                <p>Welcome, <span id="userRole"></span></p>
+            </div>
+            <div class="topbar-right">
+                <div class="user-chip">
+                    <div class="user-avatar" id="userInitial">U</div>
+                    <div class="user-meta">
+                        <span class="user-label">Logged in</span>
+                        <span class="user-name" id="userName">User</span>
+                    </div>
+                </div>
+                <a class="icon-btn" id="messagesBtn" href="messages/messages.html" aria-label="Internal messages">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M4 5.5h16a1.5 1.5 0 0 1 1.5 1.5v8.5A1.5 1.5 0 0 1 20 17H8l-4 3v-3.5A1.5 1.5 0 0 1 2.5 15.5V7A1.5 1.5 0 0 1 4 5.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+                        <path d="M7 9.5h10M7 12.5h7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                    </svg>
+                    <span class="badge-count hidden" id="messagesBadgeCount" aria-hidden="true">0</span>
+                </a>
+                <a class="icon-btn" id="noticeBtn" href="notifications/notifications.html" aria-label="Notices">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 3.5c-3.6 0-6.5 2.9-6.5 6.5v3.2l-1.6 2.8a1 1 0 0 0 .9 1.5h14.4a1 1 0 0 0 .9-1.5l-1.6-2.8V10c0-3.6-2.9-6.5-6.5-6.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+                        <path d="M9.5 19a2.5 2.5 0 0 0 5 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                    </svg>
+                    <span class="badge-count hidden" id="noticeBadgeCount" aria-hidden="true">0</span>
+                </a>
+                <a class="icon-btn" id="todoBtn" href="#todoSection" aria-label="To-do list">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M4.5 6.5h10M4.5 12h10M4.5 17.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                        <path d="M18 7l1.5 1.5L22 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M18 12.5l1.5 1.5L22 11.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="badge-count hidden" id="todoBadgeCount" aria-hidden="true">0</span>
+                </a>
+                <a class="btn btn-secondary" href="#" onclick="logout()">Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Summary Cards -->
+    <div class="summary-filters">
+        <div>
+            <h3>Summary Period</h3>
+            <p class="muted" id="summaryRangeLabel">Today</p>
+        </div>
+        <div class="summary-controls">
+            <select id="summaryPeriod">
+                <option value="day">Day</option>
+                <option value="week">Week</option>
+                <option value="month">Month</option>
+            </select>
+            <input type="date" id="summaryDate">
+        </div>
+    </div>
+    <div class="cards">
+        <div class="card" id="totalUsers">
+            <h3>Total Users</h3>
+            <p>0</p>
+        </div>
+        <div class="card" id="totalRentalMachines">
+            <h3>Total Rental Machines</h3>
+            <p>0</p>
+        </div>
+        <div class="card" id="totalCustomers">
+            <h3>Total Customers</h3>
+            <p>0</p>
+        </div>
+        <div class="card" id="totalVendors">
+            <h3>Total Vendors</h3>
+            <p>0</p>
+        </div>
+        <div class="card" id="totalProducts">
+            <h3>Total Products</h3>
+            <p>0</p>
+        </div>
+        <div class="card" id="totalSales">
+            <h3>Total Sales</h3>
+            <p>0</p>
+        </div>
+        <div class="card" id="totalExpenses">
+            <h3>Total Expenses</h3>
+            <p>0</p>
+        </div>
+        <div class="card" id="netProfit">
+            <h3>Net Profit</h3>
+            <p>0</p>
+        </div>
+    </div>
+
+    <section class="health-panel" id="healthPanel">
+        <div class="health-head">
+            <h3>System Health</h3>
+            <button type="button" class="btn btn-secondary" id="healthRefreshBtn">Refresh</button>
+        </div>
+        <div class="health-grid">
+            <div class="health-item">
+                <span class="health-label">Overall</span>
+                <span class="health-badge unknown" id="healthOverall">Unknown</span>
+            </div>
+            <div class="health-item">
+                <span class="health-label">Database</span>
+                <span class="health-badge unknown" id="healthDb">Unknown</span>
+            </div>
+            <div class="health-item">
+                <span class="health-label">pg_dump</span>
+                <span class="health-badge unknown" id="healthPgDump">Unknown</span>
+            </div>
+            <div class="health-item">
+                <span class="health-label">psql</span>
+                <span class="health-badge unknown" id="healthPsql">Unknown</span>
+            </div>
+            <div class="health-item">
+                <span class="health-label">Invoice Template</span>
+                <span class="health-badge unknown" id="healthTplInvoice">Unknown</span>
+            </div>
+            <div class="health-item">
+                <span class="health-label">Quotation Template</span>
+                <span class="health-badge unknown" id="healthTplQuotation">Unknown</span>
+            </div>
+            <div class="health-item">
+                <span class="health-label">Quotation 2 Template</span>
+                <span class="health-badge unknown" id="healthTplQuotation2">Unknown</span>
+            </div>
+        </div>
+        <p class="muted" id="healthUpdatedAt">Last updated: -</p>
+    </section>
+
+    <!-- Charts -->
+    <div class="charts">
+        <div class="chart-container">
+            <h3>Monthly Sales</h3>
+            <canvas id="salesChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Monthly Profit</h3>
+            <canvas id="profitChart"></canvas>
+        </div>
+    </div>
+
+    <section class="todo-section" id="todoSection">
+        <div class="todo-header">
+            <div>
+                <h3>To-Do List</h3>
+                <p class="muted">Shared tasks for all users.</p>
+            </div>
+            <form id="todoForm" class="todo-form">
+                <input type="text" id="todoInput" placeholder="Add a new to-do" maxlength="200">
+                <select id="todoAssign">
+                    <option value="">Assign to me</option>
+                </select>
+                <button class="btn btn-primary" type="submit">Add</button>
+            </form>
+        </div>
+        <ul id="todoList" class="todo-list"></ul>
+    </section>
+</div>
+
+<script src="../assets/js/api.js"></script>
+<script src="../assets/js/dashboard.js"></script>
+<script>
+function logout(){
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href = "login.html";
+}
+</script>
+</body>
+</html>
+

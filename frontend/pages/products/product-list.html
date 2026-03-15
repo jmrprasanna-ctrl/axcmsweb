@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product List - PULMO TECHNOLOGIES</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<style>
+    .btn-inline{
+        height: 36px;
+        padding: 0 12px;
+        margin-left: 8px;
+        margin-top: 0;
+    }
+    .search-inline{
+        width: 280px;
+        max-width: 100%;
+        margin-top: 0;
+        display: inline-block;
+        vertical-align: middle;
+    }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>PULMO TECHNOLOGIES</span>
+    </div>
+        <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../products/product-list.html">Products</a></li>
+        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../customers/customer-list.html">Customers</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../reports/sales-report.html">Reports</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header><h2>Products List</h2></header>
+
+    <div class="form-container">
+        <a class="btn" href="add-product.html" id="addProductBtn">Add</a>
+        <button onclick="exportPDF()">Export as PDF</button>
+        <input type="text" id="productSearch" class="search-inline" placeholder="Search Product ID, Description, Category, Model, Serial No">
+        <table id="productTable">
+            <thead>
+                <tr>
+                    <th>Product ID</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Model</th>
+                    <th>Serial No</th>
+                    <th>Count</th>
+                    <th>Selling Price</th>
+                    <th>Vendor</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const role = (localStorage.getItem("role") || "").toLowerCase();
+const isUser = role === "user";
+const canAddProduct = role === "admin" || role === "manager";
+const productSearchEl = document.getElementById("productSearch");
+let allProducts = [];
+
+const addProductBtn = document.getElementById("addProductBtn");
+if(addProductBtn && !canAddProduct){
+    addProductBtn.style.display = "none";
+}
+
+if(isUser){
+    const actionHeader = document.querySelector("#productTable thead th:last-child");
+    if(actionHeader && actionHeader.innerText.toLowerCase().includes("action")){
+        actionHeader.remove();
+    }
+}
+
+function renderProducts(products){
+    const tbody = document.querySelector("#productTable tbody");
+    tbody.innerHTML = "";
+    products.forEach(p=>{
+        const tr = document.createElement("tr");
+        const vendorName = p.Vendor ? p.Vendor.name : (p.vendor_name || "");
+        const categoryName = p.Category ? p.Category.name : (p.category || "");
+        tr.innerHTML = `
+            <td>${p.product_id}</td>
+            <td>${p.description}</td>
+            <td>${categoryName}</td>
+            <td>${p.model}</td>
+            <td>${p.serial_no}</td>
+            <td>${p.count}</td>
+            <td>${p.selling_price}</td>
+            <td>${vendorName}</td>
+        `;
+        if(!isUser){
+            const count = Number(p.count || 0);
+            tr.innerHTML += `
+                <td>
+                    <a class="btn" href="edit-product.html?id=${p.id}">Edit</a>
+                    <button class="btn btn-danger btn-inline" type="button" onclick="deleteProduct(${p.id}, ${count})">Delete</button>
+                </td>
+            `;
+        }
+        tbody.appendChild(tr);
+    });
+}
+
+function applyProductFilter(){
+    const query = (productSearchEl?.value || "").trim().toLowerCase();
+    if(!query){
+        renderProducts(allProducts);
+        return;
+    }
+
+    const filtered = allProducts.filter(p => {
+        const categoryName = p.Category ? p.Category.name : (p.category || "");
+        return [p.product_id, p.description, categoryName, p.model, p.serial_no]
+            .some(v => String(v || "").toLowerCase().includes(query));
+    });
+    renderProducts(filtered);
+}
+
+async function loadProducts(){
+    try{
+        allProducts = await request("/products","GET");
+        applyProductFilter();
+    }catch(err){
+        alert(err.message || "Failed to load products");
+        if((err.message || "").toLowerCase().includes("login")){
+            window.location.href = "../login.html";
+        }
+    }
+}
+
+if(productSearchEl){
+    productSearchEl.addEventListener("input", applyProductFilter);
+}
+
+// Export table as PDF
+function exportPDF(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ format: "a4" });
+    doc.setFontSize(10);
+    doc.text("Products List",14,20);
+    let y = 30;
+    const rows = document.querySelectorAll("#productTable tbody tr");
+    rows.forEach(r=>{
+        const cells = Array.from(r.children).slice(0, 8).map(td=>td.innerText);
+        doc.text(cells.join(" | "),14,y);
+        y+=8;
+    });
+    doc.save("Products_List.pdf");
+}
+
+async function deleteProduct(id, count){
+    if(Number(count) !== 0){
+        alert("Only products with quantity 0 can be deleted.");
+        return;
+    }
+    if(!confirm("Delete this product?")) return;
+    try{
+        await request(`/products/${id}`,"DELETE");
+        showMessageBox("Product deleted");
+        loadProducts();
+    }catch(err){
+        alert(err.message || "Failed to delete product");
+    }
+}
+
+function logout(){
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href="../login.html";
+}
+
+loadProducts();
+</script>
+</body>
+</html>
+

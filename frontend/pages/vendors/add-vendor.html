@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Vendor - PULMO TECHNOLOGIES</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<link rel="stylesheet" href="../../assets/css/add-product.css">
+<style>
+    .vendor-grid .field-span-full{
+        grid-column: 1 / -1;
+    }
+
+    .helper-text{
+        margin-top: 6px;
+        font-size: 0.85rem;
+        color: #5f748a;
+    }
+
+    .category-grid{
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 10px;
+        margin-top: 6px;
+    }
+
+    .check{
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid #d9e6f3;
+        background: #f8fbff;
+        font-weight: 600;
+        color: #2a4057;
+    }
+
+    .check input{
+        width: 16px;
+        height: 16px;
+    }
+
+    @media (max-width: 900px){
+        .vendor-grid .field-span-full{
+            grid-column: auto;
+        }
+    }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>PULMO TECHNOLOGIES</span>
+    </div>
+        <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../products/product-list.html">Products</a></li>
+        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../customers/customer-list.html">Customers</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../reports/sales-report.html">Reports</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+    </ul>
+</div>
+
+<!-- Main Content -->
+<div class="main-content add-product-main">
+    <div class="add-product-shell">
+        <div class="add-product-header">
+            <div>
+                <h2 class="add-product-title">Add Vendor</h2>
+            </div>
+            <div class="add-product-badge">Vendor Setup</div>
+        </div>
+
+        <form id="vendorForm">
+            <div class="add-product-grid vendor-grid">
+                <div class="field">
+                    <label for="name">Vendor Name</label>
+                    <input type="text" id="name" placeholder="Vendor Name" required>
+                </div>
+
+                <div class="field">
+                    <label for="address">Address</label>
+                    <input type="text" id="address" placeholder="Address" required>
+                </div>
+
+                <div class="field field-span-full">
+                    <label for="category">Product Category</label>
+                    <div class="category-grid" id="category">
+                        <label class="check">
+                            <input type="checkbox" value="Photocopier">
+                            <span>Photocopier</span>
+                        </label>
+                        <label class="check">
+                            <input type="checkbox" value="Printer">
+                            <span>Printer</span>
+                        </label>
+                        <label class="check">
+                            <input type="checkbox" value="Plotter">
+                            <span>Plotter</span>
+                        </label>
+                        <label class="check">
+                            <input type="checkbox" value="Computer">
+                            <span>Computer</span>
+                        </label>
+                        <label class="check">
+                            <input type="checkbox" value="Laptop">
+                            <span>Laptop</span>
+                        </label>
+                        <label class="check">
+                            <input type="checkbox" value="Accessory">
+                            <span>Accessory</span>
+                        </label>
+                        <label class="check">
+                            <input type="checkbox" value="Consumable">
+                            <span>Consumable</span>
+                        </label>
+                        <label class="check">
+                            <input type="checkbox" value="Machine">
+                            <span>Machine</span>
+                        </label>
+                        <label class="check">
+                            <input type="checkbox" value="Service">
+                            <span>Service</span>
+                        </label>
+                    </div>
+                    <p class="helper-text">Select one or more categories.</p>
+                </div>
+            </div>
+
+            <div class="add-product-actions">
+                <button type="submit">Save Vendor</button>
+                <button type="button" onclick="window.location.href='list-vendor.html'">Edit Vendor</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script>
+const vendorNameInput = document.getElementById("name");
+vendorNameInput.style.textTransform = "uppercase";
+vendorNameInput.addEventListener("input", () => {
+    const pos = vendorNameInput.selectionStart;
+    vendorNameInput.value = vendorNameInput.value.toUpperCase();
+    vendorNameInput.setSelectionRange(pos, pos);
+});
+
+document.getElementById("vendorForm").addEventListener("submit", async function(e){
+    e.preventDefault();
+    const selected = Array.from(document.querySelectorAll("#category input[type='checkbox']:checked"))
+        .map(input => input.value)
+        .filter(Boolean);
+
+    const data = {
+        name: document.getElementById("name").value.trim(),
+        address: document.getElementById("address").value.trim(),
+        category: selected
+    };
+
+    try{
+        await request("/vendors","POST",data);
+        showMessageBox("Vendor added successfully!");
+        document.getElementById("vendorForm").reset();
+    }catch(err){
+        alert(err.message || "Failed to add vendor");
+    }
+});
+
+function logout(){
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href="../login.html";
+}
+</script>
+</body>
+</html>

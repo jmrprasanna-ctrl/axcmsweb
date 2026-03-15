@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Support - PULMO TECHNOLOGIES</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+</head>
+<body>
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Company Logo">
+        <span>PULMO TECHNOLOGIES</span>
+    </div>
+    <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../products/product-list.html">Products</a></li>
+        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../customers/customer-list.html">Customers</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../reports/sales-report.html">Reports</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header><h2>Support</h2></header>
+
+    <div class="card">
+        <h3>Add Important</h3>
+        <form id="supportImportantForm">
+            <label for="importantText">Important</label>
+            <input id="importantText" type="text" required placeholder="Enter important note">
+
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;">
+                <button class="btn btn-primary" type="submit">Add Important</button>
+                <a class="btn btn-secondary" href="../finance/finance.html">Back</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+        <h3>Important Library</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Important</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="support-important-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script>
+function getRole(){
+    return (localStorage.getItem("role") || "").toLowerCase();
+}
+
+function canManage(){
+    const role = getRole();
+    return role === "admin" || role === "manager";
+}
+
+async function loadSupportImportants(){
+    try{
+        const rows = await request("/support-importants","GET");
+        const tbody = document.getElementById("support-important-body");
+        tbody.innerHTML = "";
+
+        rows.forEach((row) => {
+            const encText = encodeURIComponent(String(row.important_text || ""));
+            const actions = canManage()
+                ? `<button class="btn btn-inline" type="button" onclick="editImportant(${row.id}, '${encText}')">Edit</button>
+                   <button class="btn btn-danger btn-inline" type="button" onclick="deleteImportant(${row.id})">Delete</button>`
+                : `<span>-</span>`;
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${row.id}</td>
+                <td>${row.important_text || ""}</td>
+                <td>${actions}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }catch(err){
+        alert(err.message || "Failed to load support importants");
+    }
+}
+
+async function deleteImportant(id){
+    if(!canManage()) return;
+    if(!confirm("Delete this important note?")) return;
+    try{
+        await request(`/support-importants/${id}`,"DELETE");
+        showMessageBox("Important deleted");
+        loadSupportImportants();
+    }catch(err){
+        alert(err.message || "Failed to delete important");
+    }
+}
+
+async function editImportant(id, encodedText){
+    if(!canManage()) return;
+    const currentText = decodeURIComponent(encodedText || "");
+    const text = prompt("Edit important", currentText);
+    if(text === null) return;
+    const payload = {
+        important_text: String(text || "").trim()
+    };
+    if(!payload.important_text){
+        alert("Important text is required.");
+        return;
+    }
+    // Backward compatibility for older backend validation.
+    payload.title = payload.important_text;
+    try{
+        await request(`/support-importants/${id}`,"PUT",payload);
+        showMessageBox("Important updated");
+        loadSupportImportants();
+    }catch(err){
+        alert(err.message || "Failed to update important");
+    }
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("supportImportantForm");
+    if(!canManage()){
+        form.style.display = "none";
+    }
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if(!canManage()) return;
+        const payload = {
+            important_text: document.getElementById("importantText").value.trim()
+        };
+        // Backward compatibility for older backend validation.
+        payload.title = payload.important_text;
+        try{
+            await request("/support-importants","POST",payload);
+            showMessageBox("Important saved");
+            form.reset();
+            loadSupportImportants();
+        }catch(err){
+            alert(err.message || "Failed to save important");
+        }
+    });
+    loadSupportImportants();
+});
+</script>
+</body>
+</html>

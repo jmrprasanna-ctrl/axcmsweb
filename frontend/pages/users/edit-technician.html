@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Technician - PULMO TECHNOLOGIES</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../../assets/css/technicians.css">
+</head>
+<body>
+    <div id="sidebar-container"></div>
+    <div id="navbar-container"></div>
+
+    <div class="main-content">
+        <header><h2>Edit Technician</h2></header>
+        <div class="form-container">
+            <form id="editTechnicianForm">
+                <label for="technicianName">Technician Name</label>
+                <input type="text" id="technicianName" placeholder="Enter technician name" required>
+
+                <label for="company">Company</label>
+                <input type="text" id="company" placeholder="Enter company name" required>
+
+                <label for="department">Department</label>
+                <input type="text" id="department" placeholder="Enter department" required>
+
+                <label for="tel">Telephone</label>
+                <input type="text" id="tel" placeholder="Enter telephone" required>
+
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="Enter email" required>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <a class="btn btn-secondary" href="technician-list.html">Back</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../../assets/js/api.js"></script>
+    <script>
+        function getTechnicianId(){
+            const params = new URLSearchParams(window.location.search);
+            return params.get("id");
+        }
+
+        async function loadTechnician(){
+            const id = getTechnicianId();
+            if(!id){
+                alert("Missing technician id");
+                window.location.href = "technician-list.html";
+                return;
+            }
+
+            try{
+                const row = await request(`/technicians/${id}`,"GET");
+                document.getElementById("technicianName").value = row.technician_name || "";
+                document.getElementById("company").value = row.company || "";
+                document.getElementById("department").value = row.department || "";
+                document.getElementById("tel").value = row.telephone || "";
+                document.getElementById("email").value = row.email || "";
+            }catch(err){
+                alert(err.message || "Failed to load technician");
+                window.location.href = "technician-list.html";
+            }
+        }
+
+        window.addEventListener("load", () => {
+            const form = document.getElementById("editTechnicianForm");
+            const companyInput = document.getElementById("company");
+
+            companyInput.style.textTransform = "uppercase";
+            companyInput.addEventListener("input", () => {
+                const pos = companyInput.selectionStart;
+                companyInput.value = companyInput.value.toUpperCase();
+                companyInput.setSelectionRange(pos, pos);
+            });
+
+            form.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const id = getTechnicianId();
+                const payload = {
+                    technician_name: document.getElementById("technicianName").value.trim(),
+                    company: document.getElementById("company").value.trim(),
+                    department: document.getElementById("department").value.trim(),
+                    telephone: document.getElementById("tel").value.trim(),
+                    email: document.getElementById("email").value.trim()
+                };
+
+                try{
+                    await request(`/technicians/${id}`,"PUT",payload);
+                    showMessageBox("Technician updated successfully!");
+                    window.location.href = "technician-list.html";
+                }catch(err){
+                    alert(err.message || "Failed to update technician");
+                }
+            });
+
+            loadTechnician();
+        });
+    </script>
+</body>
+</html>

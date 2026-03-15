@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sales Chart - PULMO TECHNOLOGIES</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>PULMO TECHNOLOGIES</span>
+    </div>
+        <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../products/product-list.html">Products</a></li>
+        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../customers/customer-list.html">Customers</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../reports/sales-report.html">Reports</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header><h2>Monthly Sales Chart</h2></header>
+    <div class="form-container">
+        <canvas id="salesChart"></canvas>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script>
+async function renderSalesChart(){
+    try{
+        const data = await request("/analytics/sales","GET");
+        const ctx = document.getElementById("salesChart").getContext("2d");
+        new Chart(ctx,{
+            type:"bar",
+            data:{
+                labels:data.map(d=>d.month),
+                datasets:[{
+                    label:"Sales Amount",
+                    data:data.map(d=>d.total_sales),
+                    backgroundColor:"rgba(54, 162, 235, 0.7)"
+                }]
+            },
+            options:{
+                responsive:true,
+                plugins:{
+                    legend:{display:true}
+                }
+            }
+        });
+    }catch(err){
+        alert("Failed to render sales chart");
+    }
+}
+renderSalesChart();
+
+function logout(){
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href="../login.html";
+}
+</script>
+</body>
+</html>
+

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rental Machines - PULMO TECHNOLOGIES</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<style>
+    .btn-inline{
+        height: 36px;
+        padding: 0 12px;
+        margin-left: 8px;
+        margin-top: 0;
+    }
+    .search-inline{
+        width: 320px;
+        max-width: 100%;
+        margin-top: 0;
+        margin-left: 8px;
+        display: inline-block;
+        vertical-align: middle;
+    }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>PULMO TECHNOLOGIES</span>
+    </div>
+    <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../products/product-list.html">Products</a></li>
+        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../customers/customer-list.html">Customers</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../reports/sales-report.html">Reports</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header><h2>Rental Machines</h2></header>
+
+    <div class="form-container">
+        <a class="btn" href="add-rental-machine.html" id="addMachineBtn">Add</a>
+        <a class="btn" href="general-machine.html">General Machines</a>
+        <a class="btn" href="add-rental-count.html" id="rentalCountBtn">Rental Count</a>
+        <a class="btn" href="add-rental-consumable.html" id="consumablesBtn">Consumables</a>
+        <button onclick="savePDF()">Save as PDF</button>
+        <input type="text" id="machineSearch" class="search-inline" placeholder="Search Machine ID, Customer Name, Serial No">
+        <table id="machineTable">
+            <thead>
+                <tr>
+                    <th>Machine ID</th>
+                    <th>Customer Name</th>
+                    <th>Address</th>
+                    <th>Model</th>
+                    <th>Machine Title</th>
+                    <th>Serial No</th>
+                    <th>Start Count</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const role = (localStorage.getItem("role") || "").toLowerCase();
+const canAddMachine = role === "admin" || role === "manager";
+const isReadOnlyUser = role === "user";
+const addMachineBtn = document.getElementById("addMachineBtn");
+const rentalCountBtn = document.getElementById("rentalCountBtn");
+const consumablesBtn = document.getElementById("consumablesBtn");
+const machineSearchEl = document.getElementById("machineSearch");
+let allMachines = [];
+
+if(addMachineBtn && !canAddMachine){
+    addMachineBtn.style.display = "none";
+}
+if(consumablesBtn && !canAddMachine){
+    consumablesBtn.style.display = "none";
+}
+if(rentalCountBtn && !canAddMachine){
+    rentalCountBtn.style.display = "none";
+}
+
+if(isReadOnlyUser){
+    const actionHeader = document.querySelector("#machineTable thead th:last-child");
+    if(actionHeader && actionHeader.innerText.toLowerCase().includes("action")){
+        actionHeader.remove();
+    }
+}
+
+function renderMachines(machines){
+    const tbody = document.querySelector("#machineTable tbody");
+    tbody.innerHTML = "";
+
+    machines.forEach(m => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${m.machine_id || ""}</td>
+            <td>${m.customer_name || (m.Customer ? m.Customer.name : "")}</td>
+            <td>${m.address || ""}</td>
+            <td>${m.model || ""}</td>
+            <td>${m.machine_title || ""}</td>
+            <td>${m.serial_no || ""}</td>
+            <td>${m.start_count ?? 0}</td>
+        `;
+
+        if(!isReadOnlyUser){
+            tr.innerHTML += `
+                <td>
+                    <a class="btn" href="edit-rental-machine.html?id=${m.id}">Edit</a>
+                    <button class="btn btn-danger btn-inline" type="button" onclick="deleteMachine(${m.id})">Delete</button>
+                </td>
+            `;
+        }
+
+        tbody.appendChild(tr);
+    });
+}
+
+function applyMachineFilter(){
+    const query = (machineSearchEl?.value || "").trim().toLowerCase();
+    if(!query){
+        renderMachines(allMachines);
+        return;
+    }
+
+    const filtered = allMachines.filter(m => {
+        const customerName = m.customer_name || (m.Customer ? m.Customer.name : "");
+        return [m.machine_id, customerName, m.serial_no]
+            .some(v => String(v || "").toLowerCase().includes(query));
+    });
+    renderMachines(filtered);
+}
+
+async function loadMachines(){
+    try{
+        allMachines = await request("/rental-machines", "GET");
+        applyMachineFilter();
+    }catch(err){
+        alert(err.message || "Failed to load rental machines");
+    }
+}
+
+if(machineSearchEl){
+    machineSearchEl.addEventListener("input", applyMachineFilter);
+}
+
+async function deleteMachine(id){
+    if(!confirm("Delete this rental machine?")) return;
+    try{
+        await request(`/rental-machines/${id}`, "DELETE");
+        showMessageBox("Rental machine deleted");
+        await loadMachines();
+    }catch(err){
+        alert(err.message || "Failed to delete rental machine");
+    }
+}
+
+function savePDF(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ format: "a4" });
+    doc.setFontSize(10);
+    doc.text("Rental Machines", 14, 20);
+    let y = 30;
+    const rows = document.querySelectorAll("#machineTable tbody tr");
+    rows.forEach(r => {
+        const cells = Array.from(r.children).slice(0, 7).map(td => td.innerText);
+        doc.text(cells.join(" | "), 14, y);
+        y += 8;
+    });
+    doc.save("Rental_Machines.pdf");
+}
+
+function logout(){
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href = "../login.html";
+}
+
+loadMachines();
+</script>
+</body>
+</html>

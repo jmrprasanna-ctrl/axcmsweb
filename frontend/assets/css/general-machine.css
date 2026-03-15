@@ -1,0 +1,31 @@
+.btn-inline{
+    height: 36px;
+    padding: 0 12px;
+    margin-left: 8px;
+    margin-top: 0;
+}
+
+.search-inline{
+    width: 320px;
+    max-width: 100%;
+    margin-top: 0;
+    margin-left: 8px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.button-row{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    margin-top:10px;
+}
+
+.btn-secondary{
+    display:inline-block;
+    text-decoration:none;
+    background:#6c757d;
+    color:#fff;
+    padding:10px 16px;
+    border-radius:6px;
+}

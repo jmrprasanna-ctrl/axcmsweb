@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Invoice Conditions - PULMO TECHNOLOGIES</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>PULMO TECHNOLOGIES</span>
+    </div>
+        <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../products/product-list.html">Products</a></li>
+        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../customers/customer-list.html">Customers</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../reports/sales-report.html">Reports</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header><h2>Invoice Conditions</h2></header>
+
+    <div class="form-container">
+        <form id="conditionForm">
+            <label>Select Condition</label>
+            <select id="conditionSelect" required>
+                <option value="">-- Select Condition --</option>
+                <option value="Payment within 30 days">Payment within 30 days</option>
+                <option value="Goods once sold cannot be returned">Goods once sold cannot be returned</option>
+                <option value="Warranty as per manufacturer terms">Warranty as per manufacturer terms</option>
+                <option value="All disputes subject to local jurisdiction">All disputes subject to local jurisdiction</option>
+            </select>
+            <button type="submit">Save Condition</button>
+        </form>
+
+        <h3>Saved Conditions</h3>
+        <table id="conditionsTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Condition</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script>
+let conditions = [];
+
+async function loadConditions(){
+    try{
+        conditions = await request("/invoices/conditions","GET");
+        const tbody = document.querySelector("#conditionsTable tbody");
+        tbody.innerHTML = "";
+        conditions.forEach((c,index)=>{
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${index+1}</td>
+                <td>${c.condition}</td>
+                <td>
+                    <button onclick="editCondition(${c.id})">Edit</button>
+                    <button onclick="deleteCondition(${c.id})">Delete</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }catch(err){
+        alert("Failed to load conditions");
+    }
+}
+
+document.getElementById("conditionForm").addEventListener("submit", async function(e){
+    e.preventDefault();
+    const conditionText = document.getElementById("conditionSelect").value;
+    if(!conditionText) return alert("Select a condition");
+
+    try{
+        await request("/invoices/conditions","POST",{condition: conditionText});
+        showMessageBox("Condition saved successfully");
+        document.getElementById("conditionSelect").value = "";
+        loadConditions();
+    }catch(err){
+        alert(err.message || "Failed to save condition");
+    }
+});
+
+async function editCondition(id){
+    const newCondition = prompt("Edit condition:");
+    if(!newCondition) return;
+    try{
+        await request(`/invoices/conditions/${id}`,"PUT",{condition:newCondition});
+        showMessageBox("Condition updated");
+        loadConditions();
+    }catch(err){
+        alert("Failed to update condition");
+    }
+}
+
+async function deleteCondition(id){
+    if(!confirm("Are you sure you want to delete this condition?")) return;
+    try{
+        await request(`/invoices/conditions/${id}`,"DELETE");
+        showMessageBox("Condition deleted");
+        loadConditions();
+    }catch(err){
+        alert("Failed to delete condition");
+    }
+}
+
+function logout(){
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href="../login.html";
+}
+
+loadConditions();
+</script>
+</body>
+</html>
+

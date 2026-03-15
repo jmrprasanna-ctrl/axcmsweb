@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice Details - PULMO TECHNOLOGIES</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<link rel="stylesheet" href="../../assets/css/invoice-view.css">
+</head>
+<body>
+<div class="main-content invoice-main">
+    <h1 class="invoice-title">Invoice Details</h1>
+    <div class="invoice-address-controls" style="display:flex;gap:20px;align-items:center;margin:8px 0 12px 0;">
+        <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
+            <input type="checkbox" id="addressColomboChk" checked>
+            Address Colombo
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
+            <input type="checkbox" id="addressVChk">
+            Address V
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
+            <input type="checkbox" id="sign1Chk">
+            SIGN C
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
+            <input type="checkbox" id="signVChk">
+            SIGN V
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
+            <input type="checkbox" id="seal1Chk">
+            SEAL C
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
+            <input type="checkbox" id="sealVChk">
+            SEAL V
+        </label>
+    </div>
+    <div class="invoice-image-wrap">
+        <img id="invoicePreview" class="invoice-image" alt="Invoice preview">
+    </div>
+    <div class="invoice-actions">
+        <button class="btn btn-primary" onclick="printPDF()">Print PDF</button>
+        <button class="btn btn-primary" onclick="emailInvoice()">email</button>
+        <button class="btn btn-danger" onclick="window.location.href='invoice-list.html'">Back</button>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+let latestInvoiceData = null;
+let templateDataUrl = "";
+let templatePlacement = { dx: 0, dy: 0, w: 1240, h: 1754 };
+const BASE_W = 1240;
+const BASE_H = 1754;
+const OVERLAY = {
+    // Keep neutral mapping to preserve original-template alignment
+    shiftX: 0,
+    shiftY: 0,
+    fontScale: 1,
+    rowGap: 0
+};
+const INPUT_FONT_SIZE = 25;
+const INPUT_FONT_FAMILY = "Calibri";
+let sign1Enabled = false;
+let sign1Image = null;
+let sign1LoadFailedNotified = false;
+let signVEnabled = false;
+let signVImage = null;
+let signVLoadFailedNotified = false;
+let seal1Enabled = false;
+let seal1Image = null;
+let seal1LoadFailedNotified = false;
+let sealVEnabled = false;
+let sealVImage = null;
+let sealVLoadFailedNotified = false;
+const POS = {
+    customer: { x: 165, nameY: 490, addressY: 530, telY: 606, vatY: 646, w: 440, fs: 17 },
+    meta: { dateX: 794, noX: 794, dateY: 490, noY: 530, refY: 570, supportY: 610, w: 360, fs: 17 },
+    paymentMethod: { labelX: 920, labelY: 513, optionsX: 920, optionsY: 537, gapX: 86, creditExtraX: 12, fs: 20 },
+    machineInfo: { countX: 60, serialX: 520, y: 610, countW: 180, serialW: 320, countOffsetX: 100, countOffsetY: 28, countFs: 25, serialOffsetX: 10, serialOffsetY: 26, serialFs: 25, fs: 17 },
+    table: { x: 35, y: 660, c1: 50, c2: 800, c3: 890, c4: 985, c5: 1065, rowStart: 62, rowH: 38, fs: 13 },
+    important: { x: 67, y: 1295, rowH: 40, w: 980, maxRows: 4, fs: 25 },
+    amountWords: { x: 175, yFromTable: 790, yInCell: 28, w: 840, fs: 25 },
+    addressBlockColombo: { x: 822, y: 80, lineH: 34, fs: 25 },
+    addressBlockV: { x: 822, y: 80, lineH: 34, fs: 25 },
+    sign1: { x: 46, y: 1496, w: 300, h: 130 },
+    signV: { x: 46, y: 1496, w: 300, h: 130 },
+    seal1: { x: 297, y: 1452, w: 235, h: 110 },
+    sealV: { x: 297, y: 1452, w: 235, h: 110 },
+    total: { yFromTable: 790, yInCell: 28, fs: 14 }
+};
+const ADDRESS_TEXTS = {
+    colombo: [
+        "PULMO TECHNOLOGIES",
+        "No 528/48, 2nd Maradana, Colombo 10.",
+        "TEL : 0770 3000 80",
+        "pulmotechnologies@gmail.com",
+        "www.pulmotech.lk"
+    ],
+    v: [
+        "PULMO TECHNOLOGIES",
+        "No 30/1, Muddaragama, Veyangoda.",
+        "TEL : 0770 3000 80",
+        "pulmotechnologies@gmail.com",
+        "www.pulmotech.lk"
+    ]
+};
+let selectedAddressKey = "colombo";
+
+function money(value){
+    return Number(value || 0).toFixed(2);
+}
+
+function asDate(value){
+    const dt = new Date(value);
+    if(Number.isNaN(dt.getTime())) return "";
+    return dt.toLocaleDateString("en-GB");
+}
+
+function loadImage(src){
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+    });
+}
+
+async function ensureSign1Image(){
+    if(sign1Image) return sign1Image;
+    try{
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${BASE_URL}/invoices/sign1-image`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if(!res.ok){
+            sign1Image = null;
+            return null;
+        }
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        sign1Image = await loadImage(objectUrl);
+        URL.revokeObjectURL(objectUrl);
+        return sign1Image;
+    }catch(_err){
+        sign1Image = null;
+        return null;
+    }
+}
+
+async function ensureSignVImage(){
+    if(signVImage) return signVImage;
+    try{
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${BASE_URL}/invoices/signv-image`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if(!res.ok){
+            signVImage = null;
+            return null;
+        }
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        signVImage = await loadImage(objectUrl);
+        URL.revokeObjectURL(objectUrl);
+        return signVImage;
+    }catch(_err){
+        signVImage = null;
+        return null;
+    }
+}
+
+async function ensureSeal1Image(){
+    if(seal1Image) return seal1Image;
+    try{
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${BASE_URL}/invoices/seal1-image`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if(!res.ok){
+            seal1Image = null;
+            return null;
+        }
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        seal1Image = await loadImage(objectUrl);
+        URL.revokeObjectURL(objectUrl);
+        return seal1Image;
+    }catch(_err){
+        seal1Image = null;
+        return null;
+    }
+}
+
+async function ensureSealVImage(){
+    if(sealVImage) return sealVImage;
+    try{
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${BASE_URL}/invoices/sealv-image`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if(!res.ok){
+            sealVImage = null;
+            return null;
+        }
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        sealVImage = await loadImage(objectUrl);
+        URL.revokeObjectURL(objectUrl);
+        return sealVImage;
+    }catch(_err){
+        sealVImage = null;
+        return null;
+    }
+}
+
+function fitText(ctx, text, x, y, maxWidth, size=12, weight="normal", fontFamily="Arial"){
+    let fontSize = size;
+    const value = String(text || "");
+    while(fontSize >= 8){
+        ctx.font = `${weight} ${fontSize}px ${fontFamily}`;
+        if(ctx.measureText(value).width <= maxWidth) break;
+        fontSize -= 1;
+    }
+    ctx.fillText(value, x, y);
+}
+
+function drawRight(ctx, text, rightX, y, maxWidth, size=12, weight="normal", fontFamily="Arial"){
+    const prevAlign = ctx.textAlign;
+    let fontSize = size;
+    const value = String(text || "");
+    while(fontSize >= 8){
+        ctx.font = `${weight} ${fontSize}px ${fontFamily}`;
+        if(ctx.measureText(value).width <= maxWidth) break;
+        fontSize -= 1;
+    }
+    ctx.textAlign = "right";
+    ctx.fillText(value, rightX, y);
+    ctx.textAlign = prevAlign;
+}
+
+function drawRightFixed(ctx, text, rightX, y, size=12, weight="normal", fontFamily="Arial"){
+    const prevAlign = ctx.textAlign;
+    ctx.font = `${weight} ${size}px ${fontFamily}`;
+    ctx.textAlign = "right";
+    ctx.fillText(String(text || ""), rightX, y);
+    ctx.textAlign = prevAlign;
+}
+
+function drawFixedText(ctx, text, x, y, size=12, weight="normal", fontFamily="Arial"){
+    ctx.font = `${weight} ${size}px ${fontFamily}`;
+    ctx.fillText(String(text || ""), x, y);
+}
+
+function drawMultilineFixedText(ctx, lines, x, y, lineHeight, size=12, weight="normal", fontFamily="Arial"){
+    const safeLines = Array.isArray(lines) ? lines : [];
+    ctx.font = `${weight} ${size}px ${fontFamily}`;
+    safeLines.forEach((line, idx) => {
+        ctx.fillText(String(line || ""), x, y + (idx * lineHeight));
+    });
+}
+
+function numberToWords(num){
+    const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+    const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+    const scales = ["", "Thousand", "Million", "Billion", "Trillion"];
+
+    const underThousand = (n) => {
+        let out = "";
+        const h = Math.floor(n / 100);
+        const r = n % 100;
+        if (h) out += `${ones[h]} Hundred`;
+        if (r) {
+            if (out) out += " ";
+            if (r < 20) out += ones[r];
+            else {
+                out += tens[Math.floor(r / 10)];
+                if (r % 10) out += ` ${ones[r % 10]}`;
+            }
+        }
+        return out.trim();
+    };
+
+    let n = Math.floor(Math.abs(Number(num) || 0));
+    if (!n) return "Zero";
+
+    let parts = [];
+    let scaleIndex = 0;
+    while (n > 0) {
+        const chunk = n % 1000;
+        if (chunk) {
+            const chunkWords = underThousand(chunk);
+            const scale = scales[scaleIndex];
+            parts.unshift(scale ? `${chunkWords} ${scale}` : chunkWords);
+        }
+        n = Math.floor(n / 1000);
+        scaleIndex += 1;
+    }
+    return parts.join(" ").trim();
+}
+
+function amountInWords(amount){
+    const words = numberToWords(amount);
+    return `Rupees ${words} Only`;
+}
+
+function getImportantNotes(invoice){
+    const rows = Array.isArray(invoice?.InvoiceImportants) ? invoice.InvoiceImportants : [];
+    const fromRows = rows
+        .map((row) => String(row?.note || "").trim())
+        .filter(Boolean);
+    if(fromRows.length) return fromRows;
+
+    if(Array.isArray(invoice?.importants)){
+        return invoice.importants
+            .map((v) => String(v || "").trim())
+            .filter(Boolean);
+    }
+    return [];
+}
+
+function mapFactory(){
+    const p = templatePlacement || { dx: 0, dy: 0, w: BASE_W, h: BASE_H };
+    const sx = p.w / BASE_W;
+    const sy = p.h / BASE_H;
+    const sf = (sx + sy) / 2;
+    return {
+        x: (v) => p.dx + ((v + OVERLAY.shiftX) * sx),
+        y: (v) => p.dy + ((v + OVERLAY.shiftY) * sy),
+        w: (v) => v * sx,
+        h: (v) => v * sy,
+        fs: (v) => Math.max(8, v * sf * OVERLAY.fontScale)
+    };
+}
+
+async function fetchInvoiceData(){
+    const id = new URLSearchParams(window.location.search).get("id");
+    if(!id) throw new Error("Invoice id is missing.");
+
+    const invoice = await request(`/invoices/${id}`, "GET");
+    let customer = invoice.Customer || {};
+    if(customer && customer.id){
+        try{
+            customer = await request(`/customers/${customer.id}`, "GET");
+        }catch(_err){
+        }
+    }
+
+    const totals = invoice.print_totals || {};
+    const items = Array.isArray(invoice.InvoiceItems) ? invoice.InvoiceItems : [];
+    return {
+        invoice,
+        customer,
+        items,
+        total_amount: Number(totals.total_amount || invoice.total_amount || 0)
+    };
+}
+
+async function fetchTemplatePdfBuffer(){
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${BASE_URL}/invoices/template-pdf`, {
+        headers: {
+            "Authorization": `Bearer ${token}`
+        }
+    });
+    if(!res.ok){
+        throw new Error("Failed to load invoice template PDF from backend.");
+    }
+    return res.arrayBuffer();
+}
+
+async function ensureTemplateDataUrl(width, height){
+    if(templateDataUrl) return templateDataUrl;
+
+    if(!window.pdfjsLib){
+        throw new Error("pdf.js is not loaded.");
+    }
+
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    const buffer = await fetchTemplatePdfBuffer();
+    const doc = await window.pdfjsLib.getDocument({ data: buffer }).promise;
+    const page = await doc.getPage(1);
+
+    const vp0 = page.getViewport({ scale: 1 });
+    const scale = Math.min(width / vp0.width, height / vp0.height);
+    const vp = page.getViewport({ scale });
+
+    const pageCanvas = document.createElement("canvas");
+    pageCanvas.width = Math.round(vp.width);
+    pageCanvas.height = Math.round(vp.height);
+    const pctx = pageCanvas.getContext("2d");
+    pctx.fillStyle = "#fff";
+    pctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+
+    await page.render({ canvasContext: pctx, viewport: vp }).promise;
+
+    const out = document.createElement("canvas");
+    out.width = width;
+    out.height = height;
+    const octx = out.getContext("2d");
+    octx.fillStyle = "#fff";
+    octx.fillRect(0, 0, width, height);
+
+    const dx = (width - pageCanvas.width) / 2;
+    const dy = (height - pageCanvas.height) / 2;
+    octx.drawImage(pageCanvas, dx, dy);
+    templatePlacement = { dx, dy, w: pageCanvas.width, h: pageCanvas.height };
+    templateDataUrl = out.toDataURL("image/png");
+    return templateDataUrl;
+}
+
+async function drawInvoice(data, mimeType="image/png", renderSize=null){
+    const W = renderSize && renderSize.width ? renderSize.width : 1240;
+    const H = renderSize && renderSize.height ? renderSize.height : 1754;
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, W, H);
+
+    try{
+        const bgUrl = await ensureTemplateDataUrl(W, H);
+        const bg = await loadImage(bgUrl);
+        ctx.drawImage(bg, 0, 0, W, H);
+    }catch(_err){
+        // Fallback when template PDF cannot be loaded
+        ctx.strokeStyle = "#111";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(18, 18, W - 36, H - 36);
+    }
+
+    const c = data.customer || {};
+    const m = mapFactory();
+
+    // Customer block
+    ctx.fillStyle = "#000";
+    const normalFs = m.fs(POS.customer.fs);
+    const rowFs = m.fs(POS.table.fs);
+    const totalFs = m.fs(POS.total.fs);
+    ctx.font = `${normalFs}px Arial`;
+    fitText(ctx, c.name || "", m.x(POS.customer.x), m.y(POS.customer.nameY - 103), m.w(POS.customer.w), INPUT_FONT_SIZE, "normal", INPUT_FONT_FAMILY);
+    fitText(ctx, c.address || "", m.x(POS.customer.x), m.y(POS.customer.addressY - 103), m.w(POS.customer.w), INPUT_FONT_SIZE, "normal", INPUT_FONT_FAMILY);
+    fitText(ctx, c.tel || "", m.x(POS.customer.x), m.y(POS.customer.telY - 95), m.w(POS.customer.w), INPUT_FONT_SIZE, "normal", INPUT_FONT_FAMILY);
+    fitText(ctx, c.vat_number || "", m.x(POS.customer.x), m.y(POS.customer.vatY - 95), m.w(POS.customer.w), INPUT_FONT_SIZE, "normal", "Calibri");
+
+    // Invoice meta block
+    fitText(ctx, asDate(data.invoice.createdAt || data.invoice.invoice_date), m.x(POS.meta.dateX + 205), m.y(POS.meta.dateY - 105), m.w(POS.meta.w), INPUT_FONT_SIZE, "normal", INPUT_FONT_FAMILY);
+    fitText(ctx, data.invoice.invoice_no || "", m.x(POS.meta.noX + 205), m.y(POS.meta.noY - 112), m.w(POS.meta.w), INPUT_FONT_SIZE, "normal", INPUT_FONT_FAMILY);
+    fitText(ctx, data.invoice.machine_description || "", m.x(POS.meta.noX + 205), m.y(POS.meta.refY - 117), m.w(POS.meta.w), INPUT_FONT_SIZE, "normal", INPUT_FONT_FAMILY);
+    fitText(ctx, data.invoice.support_technician || "", m.x(POS.meta.noX + 205), m.y(POS.meta.supportY - 125), m.w(POS.meta.w), INPUT_FONT_SIZE, "normal", INPUT_FONT_FAMILY);
+
+    // Payment method block (Cash / Cheque / Credit)
+    const selectedPaymentMethod = String(data.invoice.payment_method || "Cash").trim().toLowerCase();
+    const paymentOptions = [
+        { key: "cash", label: "Cash", x: POS.paymentMethod.optionsX },
+        { key: "cheque", label: "Cheque", x: POS.paymentMethod.optionsX + POS.paymentMethod.gapX },
+        { key: "credit", label: "Credit", x: POS.paymentMethod.optionsX + (POS.paymentMethod.gapX * 2) + (POS.paymentMethod.creditExtraX || 0) }
+    ];
+    paymentOptions.forEach((opt) => {
+        const x = m.x(opt.x);
+        const y = m.y(POS.paymentMethod.optionsY);
+        const isSelected = selectedPaymentMethod === opt.key;
+        const fs = INPUT_FONT_SIZE;
+        ctx.font = `${isSelected ? "bold" : "normal"} ${fs}px ${INPUT_FONT_FAMILY}`;
+        ctx.fillText(opt.label, x, y);
+        if(!isSelected){
+            const textWidth = ctx.measureText(opt.label).width;
+            const lineY = y - (fs * 0.32);
+            ctx.beginPath();
+            ctx.lineWidth = Math.max(1, fs * 0.08);
+            ctx.moveTo(x, lineY);
+            ctx.lineTo(x + textWidth, lineY);
+            ctx.strokeStyle = "#000";
+            ctx.stroke();
+        }
+    });
+
+    // Count + Serial row
+    fitText(
+        ctx,
+        String(data.invoice.machine_count ?? ""),
+        m.x(POS.machineInfo.countX + POS.machineInfo.countOffsetX),
+        m.y(POS.machineInfo.y - 95 + POS.machineInfo.countOffsetY),
+        m.w(POS.machineInfo.countW),
+        INPUT_FONT_SIZE,
+        "normal",
+        INPUT_FONT_FAMILY
+    );
+    fitText(
+        ctx,
+        data.invoice.serial_no || "",
+        m.x(POS.machineInfo.serialX + POS.machineInfo.serialOffsetX),
+        m.y(POS.machineInfo.y - 95 + POS.machineInfo.serialOffsetY),
+        m.w(POS.machineInfo.serialW),
+        INPUT_FONT_SIZE,
+        "normal",
+        INPUT_FONT_FAMILY
+    );
+
+    // Items table values
+    const tableX = m.x(POS.table.x);
+    const tableY = m.y(POS.table.y);
+    const tableW = m.w(BASE_W - 70);
+    const c1 = tableX + m.w(POS.table.c1);
+    const c2 = tableX + m.w(POS.table.c2);
+    const c3 = tableX + m.w(POS.table.c3);
+    const c4 = tableX + m.w(POS.table.c4);
+    const c5 = tableX + m.w(POS.table.c5);
+    const tableRight = tableX + tableW;
+
+    ctx.font = `${rowFs}px Arial`;
+    let y = tableY + m.h(POS.table.rowStart - 86);
+    const rowH = m.h(POS.table.rowH + OVERLAY.rowGap);
+    data.items.slice(0, 18).forEach((item, idx) => {
+        const product = item.Product || {};
+        const code = product.product_id || "";
+        const desc = product.description || product.model || "";
+        fitText(ctx, String(idx + 1), tableX + m.w(32), y, m.w(34), INPUT_FONT_SIZE, "normal", INPUT_FONT_FAMILY);
+        fitText(ctx, `${code} ${desc}`.trim(), c1 + m.w(28), y, c2 - c1 - m.w(16), INPUT_FONT_SIZE, "normal", INPUT_FONT_FAMILY);
+        drawRight(ctx, String(item.qty || 0), c3 + m.w(12) - m.w(190), y, c3 - c2 - m.w(16), INPUT_FONT_SIZE, "normal", INPUT_FONT_FAMILY);
+        drawRightFixed(ctx, money(item.rate), c4 + m.w(12) - m.w(150), y, 23, "normal", INPUT_FONT_FAMILY);
+        drawRight(ctx, `${money(item.vat)}%`, c5 + m.w(12) - m.w(150), y, c5 - c4 - m.w(16), INPUT_FONT_SIZE, "normal", INPUT_FONT_FAMILY);
+        drawRight(ctx, money(item.gross), tableRight + m.w(12) - m.w(40), y, tableRight - c5 - m.w(16), INPUT_FONT_SIZE, "normal", INPUT_FONT_FAMILY);
+        y += rowH;
+    });
+
+    // Total
+    ctx.font = `bold ${totalFs}px Arial`;
+    const amountY = tableY + m.h(POS.total.yFromTable);
+    drawRight(ctx, money(data.total_amount), tableRight - m.w(28), amountY + m.h(POS.total.yInCell - 247), tableRight - c5 - m.w(16), INPUT_FONT_SIZE, "normal", INPUT_FONT_FAMILY);
+
+    // Amount in words
+    drawFixedText(
+        ctx,
+        amountInWords(data.total_amount),
+        m.x(POS.amountWords.x),
+        tableY + m.h(POS.amountWords.yFromTable + POS.amountWords.yInCell - 247),
+        INPUT_FONT_SIZE,
+        "normal",
+        INPUT_FONT_FAMILY
+    );
+
+    // Optional selectable address label block
+    if(selectedAddressKey && ADDRESS_TEXTS[selectedAddressKey]){
+        const blockPos = selectedAddressKey === "colombo"
+            ? POS.addressBlockColombo
+            : POS.addressBlockV;
+        drawMultilineFixedText(
+            ctx,
+            ADDRESS_TEXTS[selectedAddressKey],
+            m.x(blockPos.x),
+            m.y(blockPos.y),
+            m.h(blockPos.lineH),
+            m.fs(blockPos.fs),
+            "normal",
+            "Bahnschrift SemiCondensed, Calibri, Arial"
+        );
+    }
+
+    // Important notes
+    const importantNotes = getImportantNotes(data.invoice);
+    let importantY = m.y(POS.important.y);
+    const importantGap = m.h(POS.important.rowH);
+    importantNotes.slice(0, POS.important.maxRows).forEach((note, idx) => {
+        drawFixedText(ctx, `${idx + 1}. ${note}`, m.x(POS.important.x), importantY, INPUT_FONT_SIZE, "normal", INPUT_FONT_FAMILY);
+        importantY += importantGap;
+    });
+
+    // Optional signature image
+    if(sign1Enabled){
+        const signImg = await ensureSign1Image();
+        if(signImg){
+            ctx.drawImage(
+                signImg,
+                m.x(POS.sign1.x),
+                m.y(POS.sign1.y),
+                m.w(POS.sign1.w),
+                m.h(POS.sign1.h)
+            );
+        }else if(!sign1LoadFailedNotified){
+            sign1LoadFailedNotified = true;
+            alert("Sign 1 image not found. Expected file: frontend/assets/images/pulmo-sign-1.png");
+        }
+    }
+
+    // Optional V signature image
+    if(signVEnabled){
+        const signVImg = await ensureSignVImage();
+        if(signVImg){
+            ctx.drawImage(
+                signVImg,
+                m.x(POS.signV.x),
+                m.y(POS.signV.y),
+                m.w(POS.signV.w),
+                m.h(POS.signV.h)
+            );
+        }else if(!signVLoadFailedNotified){
+            signVLoadFailedNotified = true;
+            alert("SIGN V image not found. Expected file: frontend/assets/images/pulmo-sign-v.png");
+        }
+    }
+
+    // Optional seal image
+    if(seal1Enabled){
+        const sealImg = await ensureSeal1Image();
+        if(sealImg){
+            ctx.drawImage(
+                sealImg,
+                m.x(POS.seal1.x),
+                m.y(POS.seal1.y),
+                m.w(POS.seal1.w),
+                m.h(POS.seal1.h)
+            );
+        }else if(!seal1LoadFailedNotified){
+            seal1LoadFailedNotified = true;
+            alert("SEAL 1 image not found. Expected file: frontend/assets/images/pulmo-seal-1.png");
+        }
+    }
+
+    // Optional seal V image
+    if(sealVEnabled){
+        const sealVImg = await ensureSealVImage();
+        if(sealVImg){
+            ctx.drawImage(
+                sealVImg,
+                m.x(POS.sealV.x),
+                m.y(POS.sealV.y),
+                m.w(POS.sealV.w),
+                m.h(POS.sealV.h)
+            );
+        }else if(!sealVLoadFailedNotified){
+            sealVLoadFailedNotified = true;
+            alert("SEAL V image not found. Expected file: frontend/assets/images/pulmo-seal-v.png");
+        }
+    }
+
+    if(mimeType === "image/jpeg") return canvas.toDataURL("image/jpeg", 0.78);
+    return canvas.toDataURL("image/png");
+}
+
+async function refreshPreviewFromLatest(){
+    if(!latestInvoiceData) return;
+    const preview = await drawInvoice(latestInvoiceData, "image/jpeg");
+    document.getElementById("invoicePreview").src = preview;
+}
+
+function initAddressControls(){
+    const cChk = document.getElementById("addressColomboChk");
+    const vChk = document.getElementById("addressVChk");
+    if(!cChk || !vChk) return;
+    cChk.checked = true;
+    vChk.checked = false;
+    selectedAddressKey = "colombo";
+
+    cChk.addEventListener("change", async () => {
+        if(cChk.checked){
+            vChk.checked = false;
+            selectedAddressKey = "colombo";
+        }else if(!vChk.checked){
+            cChk.checked = true;
+            selectedAddressKey = "colombo";
+        }else{
+            selectedAddressKey = "v";
+        }
+        await refreshPreviewFromLatest();
+    });
+
+    vChk.addEventListener("change", async () => {
+        if(vChk.checked){
+            cChk.checked = false;
+            selectedAddressKey = "v";
+        }else if(!cChk.checked){
+            vChk.checked = true;
+            selectedAddressKey = "v";
+        }else{
+            selectedAddressKey = "colombo";
+        }
+        await refreshPreviewFromLatest();
+    });
+}
+
+function initSignControl(){
+    const signChk = document.getElementById("sign1Chk");
+    if(!signChk) return;
+    signChk.checked = false;
+    sign1Enabled = false;
+    signChk.addEventListener("change", async () => {
+        sign1Enabled = !!signChk.checked;
+        if(sign1Enabled){
+            sign1LoadFailedNotified = false;
+        }
+        await refreshPreviewFromLatest();
+    });
+}
+
+function initSignVControl(){
+    const signVChk = document.getElementById("signVChk");
+    if(!signVChk) return;
+    signVChk.checked = false;
+    signVEnabled = false;
+    signVChk.addEventListener("change", async () => {
+        signVEnabled = !!signVChk.checked;
+        if(signVEnabled){
+            signVLoadFailedNotified = false;
+        }
+        await refreshPreviewFromLatest();
+    });
+}
+
+function initSealControl(){
+    const sealChk = document.getElementById("seal1Chk");
+    if(!sealChk) return;
+    sealChk.checked = false;
+    seal1Enabled = false;
+    sealChk.addEventListener("change", async () => {
+        seal1Enabled = !!sealChk.checked;
+        if(seal1Enabled){
+            seal1LoadFailedNotified = false;
+        }
+        await refreshPreviewFromLatest();
+    });
+}
+
+function initSealVControl(){
+    const sealVChk = document.getElementById("sealVChk");
+    if(!sealVChk) return;
+    sealVChk.checked = false;
+    sealVEnabled = false;
+    sealVChk.addEventListener("change", async () => {
+        sealVEnabled = !!sealVChk.checked;
+        if(sealVEnabled){
+            sealVLoadFailedNotified = false;
+        }
+        await refreshPreviewFromLatest();
+    });
+}
+
+async function renderInvoice(){
+    try{
+        latestInvoiceData = await fetchInvoiceData();
+        await refreshPreviewFromLatest();
+    }catch(err){
+        alert(err.message || "Failed to load invoice details");
+    }
+}
+
+async function printPDF(){
+    if(!latestInvoiceData){
+        alert("Invoice preview is not ready yet.");
+        return;
+    }
+    try{
+        // Use the same render profile as preview so font sizes match exactly.
+        const image = await drawInvoice(latestInvoiceData, "image/jpeg", { width: BASE_W, height: BASE_H });
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: "p", unit: "pt", format: "a4", compress: true });
+        const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
+        const margin = 18;
+        const maxW = pageW - margin * 2;
+        const maxH = pageH - margin * 2;
+        const ratio = 1754 / 1240;
+
+        let imgW = maxW;
+        let imgH = imgW * ratio;
+        if(imgH > maxH){
+            imgH = maxH;
+            imgW = imgH / ratio;
+        }
+        const x = (pageW - imgW) / 2;
+        const y = (pageH - imgH) / 2;
+
+        doc.addImage(image, "JPEG", x, y, imgW, imgH, undefined, "MEDIUM");
+        const invoiceNo = String(latestInvoiceData.invoice.invoice_no || "Details").trim();
+        const customerName = String((latestInvoiceData.customer && latestInvoiceData.customer.name) || "Customer").trim();
+        const safeCustomer = customerName.replace(/[\\/:*?"<>|]/g, "_");
+        const safeInvoiceNo = invoiceNo.replace(/[\\/:*?"<>|]/g, "_");
+        doc.save(`Invoice_${safeInvoiceNo}_${safeCustomer}.pdf`);
+    }catch(err){
+        alert(err.message || "Failed to export PDF");
+    }
+}
+
+async function emailInvoice(){
+    if(!latestInvoiceData){
+        alert("Invoice details are not ready yet.");
+        return;
+    }
+
+    const invoiceId = new URLSearchParams(window.location.search).get("id");
+    if(!invoiceId){
+        alert("Invoice id is missing.");
+        return;
+    }
+
+    try{
+        const res = await request(`/invoices/${invoiceId}/send-email`, "POST");
+        if(typeof showMessageBox === "function"){
+            showMessageBox(res.message || "Invoice email sent");
+        }else{
+            alert(res.message || "Invoice email sent");
+        }
+    }catch(err){
+        alert(err.message || "Failed to send invoice email");
+    }
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+    initAddressControls();
+    initSignControl();
+    initSignVControl();
+    initSealControl();
+    initSealVControl();
+    renderInvoice();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finance - PULMO TECHNOLOGIES</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<style>
+    .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;}
+    .toolbar input,
+    .toolbar select{
+        width: auto;
+        min-width: 170px;
+    }
+    .grid-3{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:12px;margin-bottom:14px;}
+    .card-block{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:12px;}
+    .card-block h3{font-size:.95rem;color:#3e5871;margin-bottom:6px;}
+    .finance-value{font-size:1.25rem;font-weight:800;color:#0f6abf;}
+    .section{margin-bottom:14px;}
+    .section h3{margin-bottom:8px;}
+    .section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+    .section-actions{display:flex;gap:8px;flex-wrap:wrap;}
+    @media (max-width: 980px){.grid-3{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>PULMO TECHNOLOGIES</span>
+    </div>
+    <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../products/product-list.html">Products</a></li>
+        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../customers/customer-list.html">Customers</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../reports/sales-report.html">Reports</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+        <li><a href="finance.html">Finance</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header><h2>Finance</h2></header>
+
+    <div class="toolbar">
+        <a class="btn" href="payments.html">Payments</a>
+        <button type="button" onclick="loadFinanceOverview()">Refresh</button>
+    </div>
+
+    <div class="grid-3">
+        <div class="card-block">
+            <h3>Total Sales (Month)</h3>
+            <p class="finance-value" id="totalSales">0.00</p>
+        </div>
+        <div class="card-block">
+            <h3>Total Expenses (Month)</h3>
+            <p class="finance-value" id="totalExpense">0.00</p>
+        </div>
+        <div class="card-block">
+            <h3>Net Profit (Month)</h3>
+            <p class="finance-value" id="netProfit">0.00</p>
+        </div>
+    </div>
+
+    <div class="form-container section">
+        <div class="section-head">
+            <h3>Expense Entries Used for Total Expenses (Month)</h3>
+            <div class="section-actions">
+                <button type="button" onclick="exportMonthExpensePDF()">Save PDF</button>
+                <button type="button" onclick="exportMonthExpenseXlsx()">Save XLSX</button>
+            </div>
+        </div>
+        <table id="monthExpenseTable">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Title</th>
+                    <th>Customer</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody id="monthExpenseBody"></tbody>
+        </table>
+    </div>
+
+    <div class="form-container section">
+        <div class="section-head">
+            <h3>Total Sales / Expenses / Net Profit (Week, Month, Annual)</h3>
+            <div class="section-actions">
+                <button type="button" onclick="exportSummaryPDF()">Save PDF</button>
+                <button type="button" onclick="exportSummaryXlsx()">Save XLSX</button>
+            </div>
+        </div>
+        <table id="summaryTable">
+            <thead>
+                <tr>
+                    <th>Period</th>
+                    <th>Total Sales</th>
+                    <th>Total Expenses</th>
+                    <th>Net Profit</th>
+                </tr>
+            </thead>
+            <tbody id="summaryBody"></tbody>
+        </table>
+    </div>
+
+    <div class="form-container section">
+        <div class="section-head">
+            <h3>Support Technicians Invoice Percentage Amount (Technician Wise, Month Wise)</h3>
+            <div class="section-actions">
+                <button type="button" onclick="exportTechnicianPDF()">Save PDF</button>
+                <button type="button" onclick="exportTechnicianXlsx()">Save XLSX</button>
+            </div>
+        </div>
+        <table id="technicianTable">
+            <thead>
+                <tr>
+                    <th>Technician</th>
+                    <th>Invoices</th>
+                    <th>Total Sales</th>
+                    <th>Avg %</th>
+                    <th>Percentage Amount</th>
+                </tr>
+            </thead>
+            <tbody id="technicianBody"></tbody>
+        </table>
+    </div>
+
+    <div class="form-container section">
+        <div class="section-head">
+            <h3>Sold Product Selling Price (Week, Month, Annual)</h3>
+            <div class="section-actions">
+                <button type="button" onclick="exportSoldPricePDF()">Save PDF</button>
+                <button type="button" onclick="exportSoldPriceXlsx()">Save XLSX</button>
+            </div>
+        </div>
+        <table id="soldPriceTable">
+            <thead>
+                <tr>
+                    <th>Period</th>
+                    <th>Total Amount</th>
+                </tr>
+            </thead>
+            <tbody id="soldPriceBody"></tbody>
+        </table>
+    </div>
+
+    <div class="form-container section">
+        <div class="section-head">
+            <h3>Vendor Buy Products Dealer Price (Week, Month, Annual)</h3>
+            <div class="section-actions">
+                <button type="button" onclick="exportVendorPDF()">Save PDF</button>
+                <button type="button" onclick="exportVendorXlsx()">Save XLSX</button>
+            </div>
+        </div>
+        <table id="vendorTotalTable">
+            <thead>
+                <tr>
+                    <th>Period</th>
+                    <th>Total Dealer Amount</th>
+                </tr>
+            </thead>
+            <tbody id="vendorTotalBody"></tbody>
+        </table>
+        <h3 style="margin-top:10px;">Vendor Wise Detail (Selected Period)</h3>
+        <table id="vendorDetailTable">
+            <thead>
+                <tr>
+                    <th>Vendor</th>
+                    <th>Qty</th>
+                    <th>Total Dealer Amount</th>
+                </tr>
+            </thead>
+            <tbody id="vendorDetailBody"></tbody>
+        </table>
+    </div>
+
+    <div class="form-container section">
+        <div class="section-head">
+            <h3>Rental Consumables Total Amount (Month Wise / Annual Wise / Customer Wise)</h3>
+            <div class="section-actions">
+                <button type="button" onclick="exportRentalConsumablesPDF()">Save PDF</button>
+                <button type="button" onclick="exportRentalConsumablesXlsx()">Save XLSX</button>
+            </div>
+        </div>
+        <h3>Month Wise</h3>
+        <table id="rcMonthTable">
+            <thead><tr><th>Month</th><th>Total Amount</th></tr></thead>
+            <tbody id="rcMonthBody"></tbody>
+        </table>
+        <h3 style="margin-top:10px;">Annual Wise</h3>
+        <table id="rcYearTable">
+            <thead><tr><th>Year</th><th>Total Amount</th></tr></thead>
+            <tbody id="rcYearBody"></tbody>
+        </table>
+        <h3 style="margin-top:10px;">Customer Wise</h3>
+        <table id="rcCustomerTable">
+            <thead><tr><th>Customer</th><th>Total Qty</th><th>Total Amount</th></tr></thead>
+            <tbody id="rcCustomerBody"></tbody>
+        </table>
+    </div>
+
+    <div class="form-container section">
+        <div class="section-head">
+            <h3>Rental Count Machines with Customers (Month Wise)</h3>
+            <div class="section-actions">
+                <button type="button" onclick="exportRentalCountPDF()">Save PDF</button>
+                <button type="button" onclick="exportRentalCountXlsx()">Save XLSX</button>
+            </div>
+        </div>
+        <table id="rentalCountTable">
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Customer</th>
+                    <th>Machine ID</th>
+                    <th>Serial No</th>
+                    <th>Transactions</th>
+                    <th>Latest Updated Count</th>
+                    <th>Price (Rs.)</th>
+                    <th>Latest Entry</th>
+                </tr>
+            </thead>
+            <tbody id="rentalCountBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const role = (localStorage.getItem("role") || "").toLowerCase();
+if(role !== "admin" && role !== "manager"){
+    alert("Only Admin and Manager can access Finance.");
+    window.location.href = "../dashboard.html";
+}
+
+function asNumber(v){
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+}
+
+function fmt(v){
+    return asNumber(v).toFixed(2);
+}
+
+let lastFinanceData = null;
+
+function putRows(tbodyId, rows, emptyCols){
+    const tbody = document.getElementById(tbodyId);
+    tbody.innerHTML = "";
+    if(!rows || !rows.length){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td colspan="${emptyCols}">No data found.</td>`;
+        tbody.appendChild(tr);
+        return;
+    }
+    rows.forEach((trHtml) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = trHtml;
+        tbody.appendChild(tr);
+    });
+}
+
+async function loadFinanceOverview(){
+    try{
+        const baseDate = "";
+        const techMonth = "";
+        const query = `?date=${encodeURIComponent(baseDate)}&techMonth=${encodeURIComponent(techMonth)}`;
+        const data = await request(`/reports/finance-overview${query}`, "GET");
+        lastFinanceData = data;
+
+        const monthSummary = data.summary_by_period?.month || { total_sales:0, total_expenses:0, net_profit:0 };
+        document.getElementById("totalSales").innerText = fmt(monthSummary.total_sales);
+        document.getElementById("totalExpense").innerText = fmt(monthSummary.total_expenses);
+        document.getElementById("netProfit").innerText = fmt(monthSummary.net_profit);
+
+        let monthExpenseSource = Array.isArray(data.month_expense_rows) ? data.month_expense_rows : null;
+        if(!monthExpenseSource){
+            const allExpenses = await request("/expenses", "GET");
+            const ref = baseDate ? new Date(`${baseDate}T00:00:00`) : new Date();
+            const y = ref.getFullYear();
+            const m = ref.getMonth();
+            monthExpenseSource = (Array.isArray(allExpenses) ? allExpenses : []).filter((e) => {
+                const dt = new Date(e.date || e.createdAt || e.updatedAt);
+                return !Number.isNaN(dt.getTime()) && dt.getFullYear() === y && dt.getMonth() === m;
+            });
+        }
+
+        const monthExpenseRows = (monthExpenseSource || []).map((r) => `
+            <td>${r.date ? new Date(r.date).toLocaleDateString() : ""}</td>
+            <td>${r.title || ""}</td>
+            <td>${r.customer || ""}</td>
+            <td>${r.category || ""}</td>
+            <td>${fmt(r.amount)}</td>
+        `);
+        putRows("monthExpenseBody", monthExpenseRows, 5);
+
+        const summaryRows = ["week","month","year"].map((k) => {
+            const s = data.summary_by_period?.[k] || {};
+            return `
+                <td>${s.period || k}</td>
+                <td>${fmt(s.total_sales)}</td>
+                <td>${fmt(s.total_expenses)}</td>
+                <td>${fmt(s.net_profit)}</td>
+            `;
+        });
+        putRows("summaryBody", summaryRows, 4);
+
+        const techRows = (data.technician_monthly?.rows || []).map((r) => `
+            <td>${r.technician || ""}</td>
+            <td>${Number(r.invoices_count || 0)}</td>
+            <td>${fmt(r.total_sales)}</td>
+            <td>${fmt(r.average_percentage)}</td>
+            <td>${fmt(r.percentage_amount)}</td>
+        `);
+        putRows("technicianBody", techRows, 5);
+
+        const soldRows = (data.sold_product_selling_price_by_period || []).map((r) => `
+            <td>${r.period || ""}</td>
+            <td>${fmt(r.total_amount)}</td>
+        `);
+        putRows("soldPriceBody", soldRows, 2);
+
+        const vendorTotalRows = (data.vendor_dealer_price_by_period || []).map((r) => `
+            <td>${r.period || ""}</td>
+            <td>${fmt(r.total_amount)}</td>
+        `);
+        putRows("vendorTotalBody", vendorTotalRows, 2);
+
+        const vendorPeriod = "month";
+        const vendorDetails = data.vendor_dealer_details_by_period?.[vendorPeriod] || [];
+        const vendorDetailRows = vendorDetails.map((r) => `
+            <td>${r.vendor || ""}</td>
+            <td>${Number(r.qty || 0)}</td>
+            <td>${fmt(r.total_dealer_amount)}</td>
+        `);
+        putRows("vendorDetailBody", vendorDetailRows, 3);
+
+        const rcMonthRows = (data.rental_consumables?.month_wise || []).map((r) => `
+            <td>${r.month_name || ""}</td>
+            <td>${fmt(r.total_amount)}</td>
+        `);
+        putRows("rcMonthBody", rcMonthRows, 2);
+
+        const rcYearRows = (data.rental_consumables?.year_wise || []).map((r) => `
+            <td>${r.year_name || ""}</td>
+            <td>${fmt(r.total_amount)}</td>
+        `);
+        putRows("rcYearBody", rcYearRows, 2);
+
+        const rcCustomerRows = (data.rental_consumables?.customer_wise || []).map((r) => `
+            <td>${r.customer_name || ""}</td>
+            <td>${Number(r.total_qty || 0)}</td>
+            <td>${fmt(r.total_amount)}</td>
+        `);
+        putRows("rcCustomerBody", rcCustomerRows, 3);
+
+        const rmcRows = (data.rental_count_month_wise || []).map((r) => `
+            <td>${r.month_name || ""}</td>
+            <td>${r.customer_name || ""}</td>
+            <td>${r.machine_id || ""}</td>
+            <td>${r.serial_no || ""}</td>
+            <td>${Number(r.transactions || 0)}</td>
+            <td>${Number(r.latest_updated_count || 0)}</td>
+            <td>${fmt(r.total_price)}</td>
+            <td>${r.latest_entry_at ? new Date(r.latest_entry_at).toLocaleDateString() : ""}</td>
+        `);
+        putRows("rentalCountBody", rmcRows, 8);
+    }catch(err){
+        putRows("summaryBody", [`<td colspan="4">${err.message || "Failed to load finance overview"}</td>`], 4);
+        putRows("monthExpenseBody", [`<td colspan="5">${err.message || "Failed to load month expense entries"}</td>`], 5);
+    }
+}
+
+function csvEscape(value){
+    const text = String(value ?? "");
+    if(text.includes(",") || text.includes("\"") || text.includes("\n")){
+        return `"${text.replace(/"/g, "\"\"")}"`;
+    }
+    return text;
+}
+
+function downloadFile(name, content, type){
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+}
+
+function exportFinanceExcel(){
+    if(!lastFinanceData){
+        alert("Load finance data first.");
+        return;
+    }
+    const lines = [];
+    lines.push("Summary By Period");
+    lines.push("Period,Total Sales,Total Expenses,Net Profit");
+    ["week","month","year"].forEach((k) => {
+        const s = lastFinanceData.summary_by_period?.[k] || {};
+        lines.push([s.period || k, fmt(s.total_sales), fmt(s.total_expenses), fmt(s.net_profit)].map(csvEscape).join(","));
+    });
+
+    lines.push("");
+    lines.push("Technician Monthly Percentage");
+    lines.push("Technician,Invoices,Total Sales,Avg %,Percentage Amount");
+    (lastFinanceData.technician_monthly?.rows || []).forEach((r) => {
+        lines.push([r.technician, r.invoices_count, fmt(r.total_sales), fmt(r.average_percentage), fmt(r.percentage_amount)].map(csvEscape).join(","));
+    });
+
+    lines.push("");
+    lines.push("Sold Product Selling Price By Period");
+    lines.push("Period,Total Amount");
+    (lastFinanceData.sold_product_selling_price_by_period || []).forEach((r) => {
+        lines.push([r.period, fmt(r.total_amount)].map(csvEscape).join(","));
+    });
+
+    lines.push("");
+    lines.push("Vendor Dealer Price By Period");
+    lines.push("Period,Total Dealer Amount");
+    (lastFinanceData.vendor_dealer_price_by_period || []).forEach((r) => {
+        lines.push([r.period, fmt(r.total_amount)].map(csvEscape).join(","));
+    });
+
+    lines.push("");
+    lines.push("Rental Consumables - Month Wise");
+    lines.push("Month,Total Amount");
+    (lastFinanceData.rental_consumables?.month_wise || []).forEach((r) => {
+        lines.push([r.month_name, fmt(r.total_amount)].map(csvEscape).join(","));
+    });
+
+    lines.push("");
+    lines.push("Rental Consumables - Annual Wise");
+    lines.push("Year,Total Amount");
+    (lastFinanceData.rental_consumables?.year_wise || []).forEach((r) => {
+        lines.push([r.year_name, fmt(r.total_amount)].map(csvEscape).join(","));
+    });
+
+    lines.push("");
+    lines.push("Rental Consumables - Customer Wise");
+    lines.push("Customer,Total Qty,Total Amount");
+    (lastFinanceData.rental_consumables?.customer_wise || []).forEach((r) => {
+        lines.push([r.customer_name, r.total_qty, fmt(r.total_amount)].map(csvEscape).join(","));
+    });
+
+    lines.push("");
+    lines.push("Rental Count Month Wise");
+    lines.push("Month,Customer,Machine ID,Serial No,Transactions,Latest Updated Count,Latest Entry");
+    (lastFinanceData.rental_count_month_wise || []).forEach((r) => {
+        lines.push([r.month_name, r.customer_name, r.machine_id, r.serial_no, r.transactions, r.latest_updated_count, r.latest_entry_at ? new Date(r.latest_entry_at).toLocaleDateString() : ""].map(csvEscape).join(","));
+    });
+
+    downloadFile("Finance_Overview.csv", lines.join("\n"), "text/csv;charset=utf-8;");
+}
+
+function exportFinancePDF(){
+    if(!lastFinanceData){
+        alert("Load finance data first.");
+        return;
+    }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ format: "a4" });
+    let y = 12;
+    const line = (text) => {
+        if(y > 285){
+            doc.addPage();
+            y = 12;
+        }
+        doc.text(String(text), 10, y);
+        y += 6;
+    };
+
+    line("Finance Overview");
+    line("");
+    line("Summary By Period");
+    ["week","month","year"].forEach((k) => {
+        const s = lastFinanceData.summary_by_period?.[k] || {};
+        line(`${s.period || k}: Sales ${fmt(s.total_sales)} | Expenses ${fmt(s.total_expenses)} | Net ${fmt(s.net_profit)}`);
+    });
+    line("");
+    line("Technician Monthly Percentage");
+    (lastFinanceData.technician_monthly?.rows || []).forEach((r) => {
+        line(`${r.technician || ""} | Invoices ${r.invoices_count || 0} | Sales ${fmt(r.total_sales)} | Avg% ${fmt(r.average_percentage)} | Amount ${fmt(r.percentage_amount)}`);
+    });
+    line("");
+    line("Sold Product Selling Price By Period");
+    (lastFinanceData.sold_product_selling_price_by_period || []).forEach((r) => {
+        line(`${r.period || ""}: ${fmt(r.total_amount)}`);
+    });
+    line("");
+    line("Vendor Dealer Price By Period");
+    (lastFinanceData.vendor_dealer_price_by_period || []).forEach((r) => {
+        line(`${r.period || ""}: ${fmt(r.total_amount)}`);
+    });
+    line("");
+    line("Rental Consumables Month Wise");
+    (lastFinanceData.rental_consumables?.month_wise || []).forEach((r) => {
+        line(`${r.month_name || ""}: ${fmt(r.total_amount)}`);
+    });
+    line("");
+    line("Rental Count Month Wise");
+    (lastFinanceData.rental_count_month_wise || []).forEach((r) => {
+        line(`${r.month_name || ""} | ${r.customer_name || ""} | ${r.machine_id || ""} | Txn ${r.transactions || 0} | Updated ${r.latest_updated_count || 0}`);
+    });
+
+    doc.save("Finance_Overview.pdf");
+}
+
+function exportMonthExpensePDF(){
+    exportTablePDF("monthExpenseTable", "Expense Entries Used for Total Expenses (Month)", "Finance_Month_Expense.pdf");
+}
+function exportMonthExpenseXlsx(){
+    exportTableXlsx("monthExpenseTable", "Finance_Month_Expense.xlsx");
+}
+
+function exportSummaryPDF(){
+    exportTablePDF("summaryTable", "Total Sales / Expenses / Net Profit (Week, Month, Annual)", "Finance_Summary_By_Period.pdf");
+}
+function exportSummaryXlsx(){
+    exportTableXlsx("summaryTable", "Finance_Summary_By_Period.xlsx");
+}
+
+function exportTechnicianPDF(){
+    exportTablePDF("technicianTable", "Support Technicians Invoice Percentage Amount (Technician Wise, Month Wise)", "Finance_Technician_Percentage.pdf");
+}
+function exportTechnicianXlsx(){
+    exportTableXlsx("technicianTable", "Finance_Technician_Percentage.xlsx");
+}
+
+function exportSoldPricePDF(){
+    exportTablePDF("soldPriceTable", "Sold Product Selling Price (Week, Month, Annual)", "Finance_Sold_Product_Price.pdf");
+}
+function exportSoldPriceXlsx(){
+    exportTableXlsx("soldPriceTable", "Finance_Sold_Product_Price.xlsx");
+}
+
+function exportVendorPDF(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ format: "a4" });
+    doc.setFontSize(12);
+    doc.text("Vendor Buy Products Dealer Price", 14, 20);
+    let y = 28;
+
+    y = writeTableToDoc(doc, "Vendor Buy Products Dealer Price (Week, Month, Annual)", "vendorTotalTable", y);
+    if(y === -1){
+        alert("No data to export. Please click Refresh first.");
+        return;
+    }
+    y += 6;
+    writeTableToDoc(doc, "Vendor Wise Detail (Selected Period)", "vendorDetailTable", y);
+    doc.save("Finance_Vendor_Dealer_Price.pdf");
+}
+
+function exportRentalConsumablesPDF(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ format: "a4" });
+    doc.setFontSize(12);
+    doc.text("Rental Consumables Total Amount", 14, 20);
+    let y = 28;
+
+    y = writeTableToDoc(doc, "Month Wise", "rcMonthTable", y);
+    if(y === -1){
+        alert("No data to export. Please click Refresh first.");
+        return;
+    }
+    y += 6;
+    y = writeTableToDoc(doc, "Annual Wise", "rcYearTable", y);
+    y += 6;
+    writeTableToDoc(doc, "Customer Wise", "rcCustomerTable", y);
+    doc.save("Finance_Rental_Consumables.pdf");
+}
+function exportRentalConsumablesXlsx(){
+    exportMultiTableXlsx(
+        [
+            { title: "Month Wise", tableId: "rcMonthTable" },
+            { title: "Annual Wise", tableId: "rcYearTable" },
+            { title: "Customer Wise", tableId: "rcCustomerTable" }
+        ],
+        "Finance_Rental_Consumables.xlsx"
+    );
+}
+
+function exportRentalCountPDF(){
+    exportTablePDF("rentalCountTable", "Rental Count Machines with Customers (Month Wise)", "Finance_Rental_Count.pdf");
+}
+function exportRentalCountXlsx(){
+    exportTableXlsx("rentalCountTable", "Finance_Rental_Count.xlsx");
+}
+
+function exportVendorXlsx(){
+    exportMultiTableXlsx(
+        [
+            { title: "Vendor Buy Products Dealer Price (Week, Month, Annual)", tableId: "vendorTotalTable" },
+            { title: "Vendor Wise Detail (Selected Period)", tableId: "vendorDetailTable" }
+        ],
+        "Finance_Vendor_Dealer_Price.xlsx"
+    );
+}
+
+function exportTablePDF(tableId, title, fileName){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ format: "a4" });
+    doc.setFontSize(12);
+    doc.text(title, 14, 20);
+    const endY = writeTableToDoc(doc, "", tableId, 28);
+    if(endY === -1){
+        alert("No data to export. Please click Refresh first.");
+        return;
+    }
+    doc.save(fileName);
+}
+
+function getTableRowsAsCsvLines(tableId){
+    const table = document.getElementById(tableId);
+    if(!table) return [];
+    const rows = Array.from(table.querySelectorAll("tr"));
+    return rows.map((row) => {
+        const cells = Array.from(row.children).map((cell) => csvEscape(cell.innerText.trim()));
+        return cells.join(",");
+    });
+}
+
+function exportTableXlsx(tableId, fileName){
+    const lines = getTableRowsAsCsvLines(tableId);
+    if(!lines.length){
+        alert("No data to export. Please click Refresh first.");
+        return;
+    }
+    downloadFile(
+        fileName,
+        lines.join("\n"),
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8;"
+    );
+}
+
+function exportMultiTableXlsx(sections, fileName){
+    const lines = [];
+    sections.forEach((section, index) => {
+        const rows = getTableRowsAsCsvLines(section.tableId);
+        if(!rows.length) return;
+        if(index > 0 && lines.length){
+            lines.push("");
+        }
+        lines.push(csvEscape(section.title || ""));
+        lines.push(...rows);
+    });
+    if(!lines.length){
+        alert("No data to export. Please click Refresh first.");
+        return;
+    }
+    downloadFile(
+        fileName,
+        lines.join("\n"),
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8;"
+    );
+}
+
+function writeTableToDoc(doc, sectionTitle, tableId, startY){
+    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+    if(!rows.length){
+        return -1;
+    }
+
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const maxWidth = doc.internal.pageSize.getWidth() - 28;
+    let y = startY;
+
+    if(sectionTitle){
+        doc.setFontSize(11);
+        doc.text(sectionTitle, 14, y);
+        y += 8;
+    }
+
+    doc.setFontSize(9);
+    rows.forEach((row) => {
+        const cells = Array.from(row.children).map((td) => td.innerText.trim());
+        const line = cells.join(" | ");
+        const wrapped = doc.splitTextToSize(line, maxWidth);
+        const nextY = y + (wrapped.length * 5);
+        if(nextY > pageHeight - 10){
+            doc.addPage();
+            y = 15;
+        }
+        doc.text(wrapped, 14, y);
+        y += (wrapped.length * 5) + 3;
+    });
+
+    return y;
+}
+
+function logout(){
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href="../login.html";
+}
+
+loadFinanceOverview();
+</script>
+</body>
+</html>

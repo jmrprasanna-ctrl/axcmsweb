@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sales Report - PULMO TECHNOLOGIES</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<style>
+.report-block{
+    border: 1px solid #d9e6f3;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 14px;
+    background: #fff;
+}
+.report-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:10px;
+}
+.report-controls{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    flex-wrap:wrap;
+}
+.report-controls input,
+.report-controls select{
+    width:auto;
+    min-width:120px;
+}
+.mini-note{
+    color:#4f6276;
+    font-size:0.88rem;
+}
+.table-scroll-wrap{
+    width: 100%;
+}
+
+.table-scroll-wrap.scroll-enabled{
+    overflow-y: auto;
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>PULMO TECHNOLOGIES</span>
+    </div>
+        <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../products/product-list.html">Products</a></li>
+        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../customers/customer-list.html">Customers</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../reports/sales-report.html">Reports</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header><h2>Sales Report</h2></header>
+
+    <div class="form-container">
+        <div class="report-block">
+            <div class="report-head">
+                <h3>Sales Report (Week / Month / Annual)</h3>
+                <div class="report-controls">
+                    <select id="salesPeriod">
+                        <option value="week">Week Wise</option>
+                        <option value="month" selected>Month Wise</option>
+                        <option value="year">Annual Wise</option>
+                        <option value="all">All</option>
+                    </select>
+                    <input type="date" id="salesDate">
+                    <button type="button" onclick="loadSales()">Load</button>
+                    <button type="button" onclick="exportSalesPDF()">Export PDF</button>
+                </div>
+            </div>
+            <p class="mini-note" id="salesSummary"></p>
+            <div class="table-scroll-wrap">
+                <table id="salesTable">
+                    <thead>
+                        <tr>
+                            <th>Invoice No</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th>Total Amount (Dealer Price)</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="report-block admin-manager-only" id="technicianReportBlock">
+            <div class="report-head">
+                <h3>Technicians Attended Invoices (Month Wise)</h3>
+                <div class="report-controls">
+                    <input type="month" id="techMonth">
+                    <button type="button" onclick="loadTechnicianReport()">Load</button>
+                    <button type="button" onclick="exportTechnicianPDF()">Export PDF</button>
+                </div>
+            </div>
+            <div class="table-scroll-wrap">
+                <table id="technicianSummaryTable">
+                    <thead>
+                        <tr>
+                            <th>Technician</th>
+                            <th>Invoices</th>
+                            <th>Total Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="report-block admin-manager-only" id="stockReportBlock">
+            <div class="report-head">
+                <h3>Stock Reports (Minimum 2)</h3>
+                <div class="report-controls">
+                    <label for="minStockLevel">Low Stock Level</label>
+                    <input type="number" id="minStockLevel" min="1" value="2">
+                    <button type="button" onclick="loadStockReports()">Load</button>
+                    <button type="button" onclick="exportStockReportsPDF()">Export PDF</button>
+                </div>
+            </div>
+            <h4>Low Stock Products</h4>
+            <div class="table-scroll-wrap">
+                <table id="lowStockTable">
+                    <thead>
+                        <tr>
+                            <th>Product ID</th>
+                            <th>Description</th>
+                            <th>Model</th>
+                            <th>Qty</th>
+                            <th>Category</th>
+                            <th>Vendor</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <h4 style="margin-top:10px;">Out of Stock Products</h4>
+            <div class="table-scroll-wrap">
+                <table id="outStockTable">
+                    <thead>
+                        <tr>
+                            <th>Product ID</th>
+                            <th>Description</th>
+                            <th>Model</th>
+                            <th>Qty</th>
+                            <th>Category</th>
+                            <th>Vendor</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="report-block">
+            <div class="report-head">
+                <h3>Vendor Wise Product Report</h3>
+                <div class="report-controls">
+                    <button type="button" onclick="loadVendorProductsReport()">Load</button>
+                    <button type="button" onclick="exportVendorProductsPDF()">Export PDF</button>
+                </div>
+            </div>
+            <div class="table-scroll-wrap">
+                <table id="vendorProductsTable">
+                    <thead>
+                        <tr>
+                            <th>Vendor</th>
+                            <th>Product ID</th>
+                            <th>Description</th>
+                            <th>Model</th>
+                            <th>Category</th>
+                            <th>Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="report-block">
+            <div class="report-head">
+                <h3>Rental Consumables Report</h3>
+                <div class="report-controls">
+                    <button type="button" onclick="loadRentalConsumablesReport()">Load</button>
+                    <button type="button" onclick="exportRentalConsumablesPDF()">Export PDF</button>
+                </div>
+            </div>
+            <div class="table-scroll-wrap">
+                <table id="rentalConsumablesTable">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Machine ID</th>
+                            <th>Model</th>
+                            <th>Serial No</th>
+                            <th>Updated Copy Count</th>
+                            <th>Total Qty</th>
+                            <th>Total Amount</th>
+                            <th>Latest Entry</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="report-block">
+            <div class="report-head">
+                <h3>Rental Count Report (Customer Wise + Machine Wise)</h3>
+                <div class="report-controls">
+                    <button type="button" onclick="loadRentalCountReport()">Load</button>
+                    <button type="button" onclick="exportRentalCountPDF()">Export PDF</button>
+                </div>
+            </div>
+            <div class="table-scroll-wrap">
+                <table id="rentalCountTable">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Machine ID</th>
+                            <th>Model</th>
+                            <th>Serial No</th>
+                            <th>Start Count</th>
+                            <th>Last Input Count</th>
+                            <th>Updated Copy Count</th>
+                            <th>Transactions</th>
+                            <th>Last Transaction ID</th>
+                            <th>Latest Entry</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const role = (localStorage.getItem("role") || "").toLowerCase();
+const isAdminManager = role === "admin" || role === "manager";
+
+document.querySelectorAll(".admin-manager-only").forEach((el) => {
+    if(!isAdminManager){
+        el.style.display = "none";
+    }
+});
+
+function applyTableScrollLimit(tableId, visibleRows = 10){
+    const table = document.getElementById(tableId);
+    if(!table) return;
+    const wrap = table.closest(".table-scroll-wrap");
+    const tbody = table.querySelector("tbody");
+    if(!wrap || !tbody) return;
+
+    const rows = Array.from(tbody.querySelectorAll("tr"));
+    if(rows.length <= visibleRows){
+        wrap.classList.remove("scroll-enabled");
+        wrap.style.maxHeight = "";
+        return;
+    }
+
+    const headerHeight = table.querySelector("thead")?.offsetHeight || 0;
+    const rowHeights = rows.slice(0, visibleRows).reduce((sum, row) => sum + row.offsetHeight, 0);
+    wrap.style.maxHeight = `${headerHeight + rowHeights + 4}px`;
+    wrap.classList.add("scroll-enabled");
+}
+
+async function loadSales(){
+    try{
+        const period = document.getElementById("salesPeriod").value;
+        const date = document.getElementById("salesDate").value;
+        const query = `?period=${encodeURIComponent(period)}&date=${encodeURIComponent(date)}`;
+        const response = await request(`/reports/sales${query}`,"GET");
+        const sales = Array.isArray(response) ? response : (response.rows || []);
+        const tbody = document.querySelector("#salesTable tbody");
+        tbody.innerHTML = "";
+        sales.forEach(s=>{
+            const tr = document.createElement("tr");
+            const dateText = s.date ? new Date(s.date).toLocaleDateString() : "";
+            tr.innerHTML = `
+                <td>${s.invoice_no}</td>
+                <td>${s.customer_name}</td>
+                <td>${dateText}</td>
+                <td>${s.total_amount}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+        applyTableScrollLimit("salesTable");
+
+        const summary = document.getElementById("salesSummary");
+        if(summary && response && !Array.isArray(response)){
+            summary.innerText = `Invoices: ${response.totalInvoices || sales.length} | Total Sales: ${Number(response.totalSales || 0).toFixed(2)}`;
+        }else if(summary){
+            const total = sales.reduce((sum, row) => sum + Number(row.total_amount || 0), 0);
+            summary.innerText = `Invoices: ${sales.length} | Total Sales: ${total.toFixed(2)}`;
+        }
+    }catch(err){
+        alert("Failed to load sales");
+    }
+}
+
+function exportSalesPDF(){
+    exportTablePDF("salesTable", "Sales Report", "Sales_Report.pdf");
+}
+
+function exportTechnicianPDF(){
+    exportTablePDF("technicianSummaryTable", "Technicians Attended Invoices (Month Wise)", "Technician_Invoices_Report.pdf");
+}
+
+function exportStockReportsPDF(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ format: "a4" });
+    doc.setFontSize(12);
+    doc.text("Stock Reports", 14, 20);
+    let y = 28;
+
+    y = writeTableToDoc(doc, "Low Stock Products", "lowStockTable", y);
+    y += 6;
+    writeTableToDoc(doc, "Out of Stock Products", "outStockTable", y);
+
+    doc.save("Stock_Reports.pdf");
+}
+
+function exportVendorProductsPDF(){
+    exportTablePDF("vendorProductsTable", "Vendor Wise Product Report", "Vendor_Product_Report.pdf");
+}
+
+function exportRentalConsumablesPDF(){
+    exportTablePDF("rentalConsumablesTable", "Rental Consumables Report", "Rental_Consumables_Report.pdf");
+}
+
+function exportRentalCountPDF(){
+    exportTablePDF("rentalCountTable", "Rental Count Report", "Rental_Count_Report.pdf");
+}
+
+function exportTablePDF(tableId, reportTitle, fileName){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ format: "a4" });
+    doc.setFontSize(12);
+    doc.text(reportTitle, 14, 20);
+    const endY = writeTableToDoc(doc, "", tableId, 28);
+    if(endY === -1){
+        alert("No data to export. Please click Load first.");
+        return;
+    }
+    doc.save(fileName);
+}
+
+function writeTableToDoc(doc, sectionTitle, tableId, startY){
+    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+    if(!rows.length){
+        return -1;
+    }
+
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const maxWidth = doc.internal.pageSize.getWidth() - 28;
+    let y = startY;
+
+    if(sectionTitle){
+        doc.setFontSize(11);
+        doc.text(sectionTitle, 14, y);
+        y += 8;
+    }
+
+    doc.setFontSize(9);
+    rows.forEach((row) => {
+        const cells = Array.from(row.children).map((td) => td.innerText.trim());
+        const line = cells.join(" | ");
+        const wrapped = doc.splitTextToSize(line, maxWidth);
+        const nextY = y + (wrapped.length * 5);
+        if(nextY > pageHeight - 10){
+            doc.addPage();
+            y = 15;
+        }
+        doc.text(wrapped, 14, y);
+        y += (wrapped.length * 5) + 3;
+    });
+
+    return y;
+}
+
+async function loadTechnicianReport(){
+    if(!isAdminManager) return;
+    try{
+        const monthVal = document.getElementById("techMonth").value;
+        let year = new Date().getFullYear();
+        let month = new Date().getMonth() + 1;
+        if(monthVal){
+            const parts = monthVal.split("-");
+            year = Number(parts[0]) || year;
+            month = Number(parts[1]) || month;
+        }
+        const data = await request(`/reports/technician-invoices-monthly?year=${year}&month=${month}`,"GET");
+        const tbody = document.querySelector("#technicianSummaryTable tbody");
+        tbody.innerHTML = "";
+        (data.summary || []).forEach((row) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${row.technician || ""}</td>
+                <td>${row.invoices_count || 0}</td>
+                <td>${Number(row.total_amount || 0).toFixed(2)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+        applyTableScrollLimit("technicianSummaryTable");
+    }catch(err){
+        alert(err.message || "Failed to load technician report");
+    }
+}
+
+async function loadStockReports(){
+    if(!isAdminManager) return;
+    try{
+        const min = Number(document.getElementById("minStockLevel").value) || 2;
+        const [low, out] = await Promise.all([
+            request(`/reports/stock-low?min=${min}`,"GET"),
+            request("/reports/stock-out","GET")
+        ]);
+
+        const lowBody = document.querySelector("#lowStockTable tbody");
+        lowBody.innerHTML = "";
+        (low.rows || []).forEach((row) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${row.product_id || ""}</td>
+                <td>${row.description || ""}</td>
+                <td>${row.model || ""}</td>
+                <td>${row.count || 0}</td>
+                <td>${row.category || ""}</td>
+                <td>${row.vendor || ""}</td>
+            `;
+            lowBody.appendChild(tr);
+        });
+        applyTableScrollLimit("lowStockTable");
+
+        const outBody = document.querySelector("#outStockTable tbody");
+        outBody.innerHTML = "";
+        (out.rows || []).forEach((row) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${row.product_id || ""}</td>
+                <td>${row.description || ""}</td>
+                <td>${row.model || ""}</td>
+                <td>${row.count || 0}</td>
+                <td>${row.category || ""}</td>
+                <td>${row.vendor || ""}</td>
+            `;
+            outBody.appendChild(tr);
+        });
+        applyTableScrollLimit("outStockTable");
+    }catch(err){
+        alert(err.message || "Failed to load stock reports");
+    }
+}
+
+async function loadVendorProductsReport(){
+    try{
+        const data = await request("/reports/vendor-products","GET");
+        const tbody = document.querySelector("#vendorProductsTable tbody");
+        tbody.innerHTML = "";
+        (data.rows || []).forEach((row) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${row.vendor || ""}</td>
+                <td>${row.product_id || ""}</td>
+                <td>${row.description || ""}</td>
+                <td>${row.model || ""}</td>
+                <td>${row.category || ""}</td>
+                <td>${row.count || 0}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+        applyTableScrollLimit("vendorProductsTable");
+    }catch(err){
+        alert(err.message || "Failed to load vendor-wise products report");
+    }
+}
+
+async function loadRentalConsumablesReport(){
+    try{
+        const data = await request("/reports/rental-consumables","GET");
+        const tbody = document.querySelector("#rentalConsumablesTable tbody");
+        tbody.innerHTML = "";
+        (data.rows || []).forEach((row) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${row.customer_name || ""}</td>
+                <td>${row.machine_id || ""}</td>
+                <td>${row.machine_model || ""}</td>
+                <td>${row.serial_no || ""}</td>
+                <td>${Number(row.updated_copy_count || 0)}</td>
+                <td>${Number(row.total_consumable_qty || 0)}</td>
+                <td>${Number(row.total_amount || 0).toFixed(2)}</td>
+                <td>${row.latest_entry_at ? new Date(row.latest_entry_at).toLocaleDateString() : ""}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+        applyTableScrollLimit("rentalConsumablesTable");
+    }catch(err){
+        alert(err.message || "Failed to load rental consumables report");
+    }
+}
+
+async function loadRentalCountReport(){
+    try{
+        const data = await request("/reports/rental-counts","GET");
+        const tbody = document.querySelector("#rentalCountTable tbody");
+        tbody.innerHTML = "";
+        (data.rows || []).forEach((row) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${row.customer_name || ""}</td>
+                <td>${row.machine_id || ""}</td>
+                <td>${row.machine_model || ""}</td>
+                <td>${row.serial_no || ""}</td>
+                <td>${Number(row.start_count || 0)}</td>
+                <td>${Number(row.last_input_count || 0)}</td>
+                <td>${Number(row.updated_copy_count || 0)}</td>
+                <td>${Number(row.total_transactions || 0)}</td>
+                <td>${row.last_transaction_id || ""}</td>
+                <td>${row.latest_entry_at ? new Date(row.latest_entry_at).toLocaleDateString() : ""}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+        applyTableScrollLimit("rentalCountTable");
+    }catch(err){
+        alert(err.message || "Failed to load rental count report");
+    }
+}
+
+function logout(){
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href="../login.html";
+}
+
+document.getElementById("salesDate").value = new Date().toISOString().slice(0,10);
+document.getElementById("techMonth").value = new Date().toISOString().slice(0,7);
+loadSales();
+loadVendorProductsReport();
+loadRentalConsumablesReport();
+loadRentalCountReport();
+if(isAdminManager){
+    loadTechnicianReport();
+    loadStockReports();
+}
+</script>
+</body>
+</html>
+

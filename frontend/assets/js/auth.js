@@ -1,0 +1,1 @@
+// Frontend auth helpers placeholder

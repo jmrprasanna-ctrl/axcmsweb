@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technician List - PULMO TECHNOLOGIES</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../../assets/css/technicians.css">
+</head>
+<body>
+    <div id="sidebar-container"></div>
+    <div id="navbar-container"></div>
+
+    <div class="main-content">
+        <header><h2>Technician List</h2></header>
+        <div class="form-actions">
+            <button class="btn btn-primary" onclick="window.location.href='add-technician.html'">Add Technician</button>
+            <a class="btn btn-secondary" href="user-list.html">Back</a>
+        </div>
+        <div class="card">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Technician Name</th>
+                        <th>Company</th>
+                        <th>Department</th>
+                        <th>Telephone</th>
+                        <th>Email</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="technician-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="../../assets/js/api.js"></script>
+    <script>
+        async function loadTechnicians(){
+            try{
+                const rows = await request("/technicians","GET");
+                const tbody = document.getElementById("technician-table-body");
+                tbody.innerHTML = "";
+
+                rows.forEach((t) => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td>${t.id}</td>
+                        <td>${t.technician_name || ""}</td>
+                        <td>${t.company || ""}</td>
+                        <td>${t.department || ""}</td>
+                        <td>${t.telephone || ""}</td>
+                        <td>${t.email || ""}</td>
+                        <td>
+                            <a class="btn btn-inline" href="edit-technician.html?id=${t.id}">Edit</a>
+                            <button class="btn btn-danger btn-inline" type="button" onclick="deleteTechnician(${t.id})">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }catch(err){
+                alert(err.message || "Failed to load technicians");
+            }
+        }
+
+        async function deleteTechnician(id){
+            if(!confirm("Delete this technician?")) return;
+            try{
+                await request(`/technicians/${id}`,"DELETE");
+                showMessageBox("Technician deleted");
+                loadTechnicians();
+            }catch(err){
+                alert(err.message || "Failed to delete technician");
+            }
+        }
+
+        window.addEventListener("DOMContentLoaded", loadTechnicians);
+    </script>
+</body>
+</html>
