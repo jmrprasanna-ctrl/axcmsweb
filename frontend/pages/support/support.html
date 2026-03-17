@@ -6,6 +6,22 @@
 <title>Support - PULMO TECHNOLOGIES</title>
 <link rel="stylesheet" href="../../assets/css/style.css">
 <link rel="stylesheet" href="../../assets/css/dashboard.css">
+<style>
+    .support-action-row{
+        display:flex;
+        gap:8px;
+        align-items:center;
+        flex-wrap:nowrap;
+        white-space:nowrap;
+    }
+    .support-action-btn{
+        width:84px;
+        min-width:84px;
+        height:36px;
+        margin-top:0;
+        padding:0 12px;
+    }
+</style>
 </head>
 <body>
 <div class="sidebar">
@@ -77,8 +93,10 @@ async function loadSupportImportants(){
         rows.forEach((row) => {
             const encText = encodeURIComponent(String(row.important_text || ""));
             const actions = canManage()
-                ? `<button class="btn btn-inline" type="button" onclick="editImportant(${row.id}, '${encText}')">Edit</button>
-                   <button class="btn btn-danger btn-inline" type="button" onclick="deleteImportant(${row.id})">Delete</button>`
+                ? `<div class="support-action-row">
+                     <button class="btn btn-inline support-action-btn" type="button" onclick="editImportant(${row.id}, '${encText}')">Edit</button>
+                     <button class="btn btn-danger btn-inline support-action-btn" type="button" onclick="deleteImportant(${row.id})">Delete</button>
+                   </div>`
                 : `<span>-</span>`;
             const tr = document.createElement("tr");
             tr.innerHTML = `
