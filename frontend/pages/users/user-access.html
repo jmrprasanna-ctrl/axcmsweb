@@ -191,6 +191,7 @@
             try{
                 const res = await request("/users/databases", "GET");
                 const rows = Array.isArray(res.databases) ? res.databases : [];
+                const currentDb = String(res.current || "").trim();
                 databaseSelectEl.innerHTML = `<option value="">Select database</option>`;
                 rows.forEach((db) => {
                     const opt = document.createElement("option");
@@ -198,6 +199,9 @@
                     opt.textContent = String(db);
                     databaseSelectEl.appendChild(opt);
                 });
+                if(currentDb){
+                    databaseSelectEl.value = currentDb;
+                }
             }catch(err){
                 alert(err.message || "Failed to load databases");
             }
