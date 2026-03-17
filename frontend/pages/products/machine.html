@@ -13,6 +13,27 @@
         margin-left: 8px;
         margin-top: 0;
     }
+    .machine-shell{
+        overflow: visible !important;
+    }
+    .machine-table-wrap{
+        width: 100%;
+        overflow-x: auto;
+        margin-top: 12px;
+    }
+    .machine-action-row{
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: nowrap;
+        white-space: nowrap;
+    }
+    .machine-action-btn{
+        width: 84px;
+        min-width: 84px;
+        margin-top: 0;
+        margin-left: 0;
+    }
     .search-inline{
         width: 320px;
         max-width: 100%;
@@ -20,6 +41,16 @@
         margin-left: 8px;
         display: inline-block;
         vertical-align: middle;
+    }
+    @media (max-width: 900px){
+        .machine-action-row{
+            flex-direction: row !important;
+            align-items: center !important;
+            flex-wrap: nowrap !important;
+        }
+        .machine-action-row > *{
+            width: auto !important;
+        }
     }
 </style>
 </head>
@@ -46,28 +77,30 @@
 <div class="main-content">
     <header><h2>Rental Machines</h2></header>
 
-    <div class="form-container">
+    <div class="form-container machine-shell">
         <a class="btn" href="add-rental-machine.html" id="addMachineBtn">Add</a>
         <a class="btn" href="general-machine.html">General Machines</a>
         <a class="btn" href="add-rental-count.html" id="rentalCountBtn">Rental Count</a>
         <a class="btn" href="add-rental-consumable.html" id="consumablesBtn">Consumables</a>
         <button onclick="savePDF()">Save as PDF</button>
         <input type="text" id="machineSearch" class="search-inline" placeholder="Search Machine ID, Customer Name, Serial No">
-        <table id="machineTable">
-            <thead>
-                <tr>
-                    <th>Machine ID</th>
-                    <th>Customer Name</th>
-                    <th>Address</th>
-                    <th>Model</th>
-                    <th>Machine Title</th>
-                    <th>Serial No</th>
-                    <th>Start Count</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        <div class="machine-table-wrap">
+            <table id="machineTable">
+                <thead>
+                    <tr>
+                        <th>Machine ID</th>
+                        <th>Customer Name</th>
+                        <th>Address</th>
+                        <th>Model</th>
+                        <th>Machine Title</th>
+                        <th>Serial No</th>
+                        <th>Start Count</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -119,8 +152,10 @@ function renderMachines(machines){
         if(!isReadOnlyUser){
             tr.innerHTML += `
                 <td>
-                    <a class="btn" href="edit-rental-machine.html?id=${m.id}">Edit</a>
-                    <button class="btn btn-danger btn-inline" type="button" onclick="deleteMachine(${m.id})">Delete</button>
+                    <div class="machine-action-row">
+                        <a class="btn machine-action-btn" href="edit-rental-machine.html?id=${m.id}">Edit</a>
+                        <button class="btn btn-danger btn-inline machine-action-btn" type="button" onclick="deleteMachine(${m.id})">Delete</button>
+                    </div>
                 </td>
             `;
         }

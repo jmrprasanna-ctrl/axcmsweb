@@ -17,7 +17,8 @@
         display:flex;
         gap:8px;
         align-items:center;
-        flex-wrap:wrap;
+        flex-wrap:nowrap;
+        white-space:nowrap;
     }
     .consumables-shell{
         margin-bottom: 16px;
@@ -29,6 +30,42 @@
     }
     .pending-actions{
         margin-top: 10px;
+    }
+    .consumable-table-wrap{
+        width: 100%;
+        overflow-x: auto;
+        margin-top: 10px;
+    }
+    .consumable-action-row{
+        display:flex;
+        gap:8px;
+        align-items:center;
+        flex-wrap:nowrap;
+        white-space:nowrap;
+    }
+    .consumable-action-btn{
+        width:84px;
+        min-width:84px;
+        margin-top:0;
+        margin-left:0;
+    }
+    @media (max-width: 900px){
+        .controls-row{
+            flex-direction: row !important;
+            align-items: center !important;
+            flex-wrap: nowrap !important;
+        }
+        .controls-row > *{
+            width: auto !important;
+        }
+        .consumable-action-row{
+            flex-direction: row !important;
+            align-items: center !important;
+            flex-wrap: nowrap !important;
+        }
+        .consumable-action-row > *{
+            width: auto !important;
+        }
     }
 </style>
 </head>
@@ -94,18 +131,20 @@
         </form>
 
         <h3 class="section-title">Pending Consumables (Current Entry)</h3>
-        <table id="pendingTable">
-            <thead>
-                <tr>
-                    <th>Consumables</th>
-                    <th>Quantity</th>
-                    <th>Price</th>
-                    <th>Count</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        <div class="consumable-table-wrap">
+            <table id="pendingTable">
+                <thead>
+                    <tr>
+                        <th>Consumables</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Count</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
         <div class="controls-row pending-actions">
             <button type="button" id="saveEntryBtn">Save</button>
             <button type="button" onclick="window.location.href='machine.html'">Back</button>
@@ -117,21 +156,23 @@
             <h3 class="section-title" style="margin: 0;">Added Consumables</h3>
             <button type="button" class="btn-inline" onclick="saveAddedConsumablesPDF()">Save as PDF</button>
         </div>
-        <table id="consumableTable">
-            <thead>
-                <tr>
-                    <th>Entry</th>
-                    <th>Machine ID</th>
-                    <th>Rental Customer</th>
-                    <th>Consumables</th>
-                    <th>Quantity</th>
-                    <th>Price</th>
-                    <th>Count</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        <div class="consumable-table-wrap">
+            <table id="consumableTable">
+                <thead>
+                    <tr>
+                        <th>Entry</th>
+                        <th>Machine ID</th>
+                        <th>Rental Customer</th>
+                        <th>Consumables</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Count</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -207,7 +248,11 @@ function renderPending(){
             <td>${item.quantity}</td>
             <td>${Number(item.total_price || 0).toFixed(2)}</td>
             <td>${item.count ?? 0}</td>
-            <td><button class="btn btn-danger btn-inline" type="button" onclick="removePending(${index})">Remove</button></td>
+            <td>
+                <div class="consumable-action-row">
+                    <button class="btn btn-danger btn-inline consumable-action-btn" type="button" onclick="removePending(${index})">Remove</button>
+                </div>
+            </td>
         `;
         tbody.appendChild(tr);
     });
@@ -286,7 +331,11 @@ async function loadAddedConsumables(){
                 <td>${g.totalQty}</td>
                 <td>${Number(g.totalPrice || 0).toFixed(2)}</td>
                 <td>${g.counts.length ? g.counts.join(", ") : "-"}</td>
-                <td><button class="btn btn-danger btn-inline" type="button" onclick="deleteAddedEntry('${String(g.entry).replace(/'/g, "\\'")}')">Delete</button></td>
+                <td>
+                    <div class="consumable-action-row">
+                        <button class="btn btn-danger btn-inline consumable-action-btn" type="button" onclick="deleteAddedEntry('${String(g.entry).replace(/'/g, "\\'")}')">Delete</button>
+                    </div>
+                </td>
             `;
             tbody.appendChild(tr);
         });
