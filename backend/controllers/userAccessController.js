@@ -18,6 +18,7 @@ const ACCESS_PAGE_OPTIONS = [
   { path: "/vendors/list-vendor.html", label: "Vendors List" },
   { path: "/vendors/add-vendor.html", label: "Add Vendor" },
   { path: "/expenses/expense-list.html", label: "Expenses List" },
+  { path: "/expenses/add-expense.html", label: "Add Expense" },
   { path: "/invoices/invoice-list.html", label: "Invoice List" },
   { path: "/invoices/create-invoice.html", label: "Create Invoice" },
   { path: "/invoices/view-invoice.html", label: "Invoice Details" },
