@@ -7,6 +7,7 @@ const {
   saveUserAccess,
   getMyAccess
 } = require("../controllers/userAccessController");
+const { getLoginLogs } = require("../controllers/userLogController");
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 
@@ -21,6 +22,7 @@ router.use(roleMiddleware(["admin"]));
 
 router.get("/access-pages", getAccessPages);
 router.get("/databases", getDatabases);
+router.get("/logs", getLoginLogs);
 router.get("/access/:userId", getUserAccess);
 router.put("/access/:userId", saveUserAccess);
 router.get("/", getUsers);

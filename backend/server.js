@@ -30,6 +30,7 @@ const CategoryModelOption = require("./models/CategoryModelOption");
 const UiSetting = require("./models/UiSetting");
 const EmailSetup = require("./models/EmailSetup");
 const UserAccess = require("./models/UserAccess");
+const UserLoginLog = require("./models/UserLoginLog");
 
 // Routes
 const dashboardRoutes = require("./routes/dashboardRoutes");

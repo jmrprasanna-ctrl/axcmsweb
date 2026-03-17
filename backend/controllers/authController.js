@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const UserLoginLog = require("../models/UserLoginLog");
 const { Op } = require("sequelize");
 
 const isBcryptHash = (value = "") => /^\$2[aby]\$\d{2}\$/.test(value);
@@ -43,6 +44,18 @@ exports.login = async (req, res) => {
       process.env.JWT_SECRET || "supersecretjwtkey",
       { expiresIn: process.env.JWT_EXPIRES_IN || "8h" }
     );
+
+    const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+    const ipAddress = forwarded || req.socket?.remoteAddress || req.ip || null;
+    const userAgent = String(req.headers["user-agent"] || "").trim() || null;
+    await UserLoginLog.create({
+      user_id: user.id,
+      username: user.username,
+      role: user.role,
+      login_time: new Date(),
+      ip_address: ipAddress,
+      user_agent: userAgent
+    });
 
     res.json({
       token,
