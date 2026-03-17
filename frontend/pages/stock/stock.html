@@ -7,12 +7,42 @@
 <link rel="stylesheet" href="../../assets/css/style.css">
 <link rel="stylesheet" href="../../assets/css/dashboard.css">
 <style>
+    .report-block{
+        border: 1px solid #d9e6f3;
+        border-radius: 14px;
+        padding: 14px;
+        margin-bottom: 14px;
+        background: #fff;
+    }
+    .report-head{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:10px;
+        flex-wrap:wrap;
+        margin-bottom:10px;
+    }
+    .report-controls{
+        display:flex;
+        gap:8px;
+        align-items:center;
+        flex-wrap:wrap;
+    }
+    .mini-note{
+        color:#4f6276;
+        font-size:0.88rem;
+        margin-bottom:10px;
+    }
+    .table-scroll-wrap{
+        width: 100%;
+        overflow-x: auto;
+    }
     .filters-inline{
         display: flex;
         gap: 10px;
         align-items: center;
         flex-wrap: wrap;
-        margin-bottom: 10px;
+        margin-bottom: 0;
     }
     .model-filter{
         width: 260px;
@@ -49,6 +79,12 @@
         padding: 0 10px;
     }
     @media (max-width: 900px){
+        .report-head{
+            align-items:flex-start;
+        }
+        .report-controls{
+            width:100%;
+        }
         .stock-actions{
             flex-direction: row !important;
             align-items: center !important;
@@ -83,31 +119,37 @@
     <header><h2>Stock Management</h2></header>
 
     <div class="form-container">
-        <div class="filters-inline">
-            <select id="stockSourceFilter" class="model-filter">
-                <option value="PULMO">PULMO</option>
-                <option value="VENDER">Vender</option>
-                <option value="OTHER">Other</option>
-            </select>
-            <select id="stockModelFilter" class="model-filter">
-                <option value="">All Models</option>
-            </select>
-            <input type="text" id="stockSearch" class="search-inline" placeholder="Search Product ID, Description, Category, Model">
-        </div>
-        <div class="card" style="margin-top:12px;">
-            <table id="stockTable">
-                <thead>
-                    <tr>
-                        <th>Product ID</th>
-                        <th>Description</th>
-                        <th>Model</th>
-                        <th>Category</th>
-                        <th>Current Stock</th>
-                        <th>Manage Stock</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+        <div class="report-block">
+            <div class="report-head">
+                <h3>Stock Overview</h3>
+                <div class="report-controls filters-inline">
+                    <select id="stockSourceFilter" class="model-filter">
+                        <option value="PULMO">PULMO</option>
+                        <option value="VENDER">Vender</option>
+                        <option value="OTHER">Other</option>
+                    </select>
+                    <select id="stockModelFilter" class="model-filter">
+                        <option value="">All Models</option>
+                    </select>
+                    <input type="text" id="stockSearch" class="search-inline" placeholder="Search Product ID, Description, Category, Model">
+                </div>
+            </div>
+            <p class="mini-note">Filter stock by source, model, or keyword. Manage stock directly from each row.</p>
+            <div class="table-scroll-wrap">
+                <table id="stockTable">
+                    <thead>
+                        <tr>
+                            <th>Product ID</th>
+                            <th>Description</th>
+                            <th>Model</th>
+                            <th>Category</th>
+                            <th>Current Stock</th>
+                            <th>Manage Stock</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
