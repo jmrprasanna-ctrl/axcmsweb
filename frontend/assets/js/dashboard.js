@@ -117,9 +117,14 @@ async function fetchSummary(){
         document.getElementById("totalVendors").querySelector("p").innerText = summary.totalVendors || 0;
         const salesVal = summary.totalSalesPeriod ?? summary.totalSales ?? 0;
         const expenseVal = summary.totalExpensesPeriod ?? summary.totalExpenses ?? 0;
-        const profitVal = summary.netProfitPeriod ?? summary.netProfit ?? (Number(salesVal) - Number(expenseVal));
+        const technicianPaidVal = summary.technicianPaidPeriod ?? summary.technicianPaid ?? 0;
+        const profitVal = summary.netProfitPeriod ?? summary.netProfit ?? (Number(salesVal) - Number(expenseVal) - Number(technicianPaidVal));
         document.getElementById("totalSales").querySelector("p").innerText = Number(salesVal || 0).toFixed(2);
         document.getElementById("totalExpenses").querySelector("p").innerText = Number(expenseVal || 0).toFixed(2);
+        const technicianPaidEl = document.getElementById("technicianPaid");
+        if(technicianPaidEl){
+            technicianPaidEl.querySelector("p").innerText = Number(technicianPaidVal || 0).toFixed(2);
+        }
         document.getElementById("netProfit").querySelector("p").innerText = Number(profitVal || 0).toFixed(2);
         const labelEl = document.getElementById("summaryRangeLabel");
         if(labelEl){
@@ -129,6 +134,8 @@ async function fetchSummary(){
                 labelEl.innerText = dateText ? `Week of ${dateText}` : "This Week";
             }else if(periodName === "month"){
                 labelEl.innerText = dateText ? `Month of ${dateText.slice(0,7)}` : "This Month";
+            }else if(periodName === "year"){
+                labelEl.innerText = dateText ? `Year: ${dateText.slice(0,4)}` : "This Year";
             }else{
                 labelEl.innerText = dateText ? `Day: ${dateText}` : "Today";
             }
