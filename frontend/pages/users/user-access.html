@@ -219,7 +219,9 @@
             try{
                 const res = await request(`/users/access/${userId}`, "GET");
                 setCheckedPages(res.allowed_pages || []);
-                databaseSelectEl.value = res.database_name || "";
+                if(res.database_name){
+                    databaseSelectEl.value = res.database_name;
+                }
                 showMessageBox("Access loaded");
             }catch(err){
                 alert(err.message || "Failed to load access settings");
