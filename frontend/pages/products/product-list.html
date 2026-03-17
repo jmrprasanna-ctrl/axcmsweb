@@ -17,12 +17,29 @@
         width: 84px;
         min-width: 84px;
     }
+    .product-action-row{
+        display:flex;
+        gap:8px;
+        align-items:center;
+        flex-wrap:nowrap;
+        white-space:nowrap;
+    }
     .search-inline{
         width: 280px;
         max-width: 100%;
         margin-top: 0;
         display: inline-block;
         vertical-align: middle;
+    }
+    @media (max-width: 900px){
+        .product-action-row{
+            flex-direction: row !important;
+            align-items: center !important;
+            flex-wrap: nowrap !important;
+        }
+        .product-action-row > *{
+            width: auto !important;
+        }
     }
 </style>
 </head>
@@ -117,8 +134,10 @@ function renderProducts(products){
             const count = Number(p.count || 0);
             tr.innerHTML += `
                 <td>
-                    <a class="btn action-btn" href="edit-product.html?id=${p.id}">Edit</a>
-                    <button class="btn btn-danger btn-inline action-btn" type="button" onclick="deleteProduct(${p.id}, ${count})">Delete</button>
+                    <div class="product-action-row">
+                        <a class="btn action-btn" href="edit-product.html?id=${p.id}">Edit</a>
+                        <button class="btn btn-danger btn-inline action-btn" type="button" onclick="deleteProduct(${p.id}, ${count})">Delete</button>
+                    </div>
                 </td>
             `;
         }
