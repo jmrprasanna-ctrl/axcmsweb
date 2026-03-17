@@ -7,6 +7,9 @@
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="../../assets/css/dashboard.css">
     <style>
+        .log-shell{
+            overflow: visible !important;
+        }
         .log-toolbar{
             display:flex;
             gap:10px;
@@ -29,11 +32,19 @@
             gap:8px;
             flex-wrap:wrap;
             align-items:center;
+            margin-left:auto;
         }
         .log-table-wrap{
             width:100%;
             overflow-x:auto;
             margin-top:12px;
+        }
+        #loggedTable{
+            min-width: 900px;
+        }
+        #loggedTable th,
+        #loggedTable td{
+            padding: 11px 12px;
         }
         @media (max-width: 900px){
             .log-toolbar{
@@ -43,6 +54,9 @@
             .log-filter,
             .log-actions{
                 width:100%;
+            }
+            .log-filter{
+                min-width: 0;
             }
             .log-actions > *{
                 width:100%;
@@ -73,7 +87,7 @@
     <div class="main-content">
         <header><h2>User Logged Times</h2></header>
 
-        <div class="form-container">
+        <div class="form-container log-shell">
             <div class="log-toolbar">
                 <div class="log-filter">
                     <label for="periodSelect">Summary Period</label>

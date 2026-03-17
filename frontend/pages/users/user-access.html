@@ -46,6 +46,7 @@
             align-items:center;
             flex-wrap:wrap;
             margin-top: 12px;
+            margin-left: auto;
         }
         .access-actions .btn{
             margin-top:0;
@@ -65,11 +66,19 @@
                 grid-template-columns: 1fr;
             }
             .access-actions{
-                flex-direction:row !important;
-                flex-wrap:nowrap !important;
+                width:100%;
+                flex-direction:column !important;
+                align-items:stretch !important;
             }
             .access-actions > *{
-                width:auto !important;
+                width:100% !important;
+                margin-left:0 !important;
+            }
+            .access-pages{
+                max-height: 320px;
+            }
+            .access-row{
+                padding:10px 6px;
             }
         }
     </style>
@@ -131,6 +140,7 @@
         const databaseSelectEl = document.getElementById("databaseSelect");
         const accessPagesEl = document.getElementById("accessPages");
         let pageOptions = [];
+        let defaultDatabaseName = "";
 
         function getSelectedPageValues(){
             return Array.from(accessPagesEl.querySelectorAll("input[type='checkbox']:checked"))
@@ -201,9 +211,11 @@
                 });
                 const hasInventory = rows.some((db) => String(db).toLowerCase() === "inventory");
                 if(hasInventory){
-                    databaseSelectEl.value = "inventory";
+                    defaultDatabaseName = "inventory";
+                    databaseSelectEl.value = defaultDatabaseName;
                 }else if(currentDb){
-                    databaseSelectEl.value = currentDb;
+                    defaultDatabaseName = currentDb;
+                    databaseSelectEl.value = defaultDatabaseName;
                 }
             }catch(err){
                 alert(err.message || "Failed to load databases");
@@ -263,7 +275,7 @@
                 editAccess();
             }else{
                 clearPages();
-                databaseSelectEl.value = "";
+                databaseSelectEl.value = defaultDatabaseName || "";
             }
         });
 
