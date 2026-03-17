@@ -13,6 +13,7 @@
     padding: 14px;
     margin-bottom: 14px;
     background: #fff;
+    overflow: visible;
 }
 .report-head{
     display:flex;
@@ -39,10 +40,17 @@
 }
 .table-scroll-wrap{
     width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
 .table-scroll-wrap.scroll-enabled{
+    overflow-x: auto;
     overflow-y: auto;
+}
+
+.form-container{
+    overflow-x: visible !important;
 }
 </style>
 </head>
