@@ -69,7 +69,7 @@
         <ul class="nav-links">
         <li><a href="../dashboard.html">Dashboard</a></li>
         <li><a href="../products/product-list.html">Products</a></li>
-        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../products/general-machine.html">Machines</a></li>
         <li><a href="../customers/customer-list.html">Customers</a></li>
         <li><a href="../invoices/invoice-list.html">Invoices</a></li>
         <li><a href="../vendors/list-vendor.html">Vendors</a></li>
@@ -99,7 +99,7 @@
             </div>
             <a class="btn" href="add-expense.html" id="addExpenseBtn">Add</a>
             <button onclick="exportPDF()">Export as PDF</button>
-            <input type="text" id="expenseSearch" class="search-inline" placeholder="Search Title, Category">
+            <input type="text" id="expenseSearch" class="search-inline" placeholder="Search Title, Customer, Category">
         </div>
         <div class="summary-row">
             <div class="summary-box">
@@ -115,18 +115,21 @@
                 <div class="value" id="filterInfo">Month</div>
             </div>
         </div>
-        <table id="expenseTable">
-            <thead>
-                <tr>
-                    <th>Title</th>
-                    <th>Amount</th>
-                    <th>Date</th>
-                    <th>Category</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        <div class="card" style="margin-top:12px;">
+            <table id="expenseTable">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Customer</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Category</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -222,7 +225,7 @@ function renderExpenses(expenses){
     tbody.innerHTML = "";
     if(!expenses.length){
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td colspan="${isUser ? 4 : 5}">No data found.</td>`;
+        tr.innerHTML = `<td colspan="${isUser ? 5 : 6}">No data found.</td>`;
         tbody.appendChild(tr);
         return;
     }
@@ -231,6 +234,7 @@ function renderExpenses(expenses){
         const dateText = expenseDateValue(exp) ? new Date(expenseDateValue(exp)).toLocaleDateString() : "";
         tr.innerHTML = `
             <td>${exp.title}</td>
+            <td>${exp.customer || ""}</td>
             <td>${Number(exp.amount || 0).toFixed(2)}</td>
             <td>${dateText}</td>
             <td>${exp.category}</td>
@@ -262,7 +266,7 @@ function applyExpenseFilters(){
     let filtered = filterExpensesByPeriod(allExpenses);
     if(query){
         filtered = filtered.filter(exp =>
-            [exp.title, exp.category, expenseDateValue(exp)].some(v => String(v || "").toLowerCase().includes(query))
+            [exp.title, exp.customer, exp.category, expenseDateValue(exp)].some(v => String(v || "").toLowerCase().includes(query))
         );
     }
     renderExpenses(filtered);
@@ -281,7 +285,7 @@ function exportPDF(){
     let y = 34;
     const rows = document.querySelectorAll("#expenseTable tbody tr");
     rows.forEach(r=>{
-        const cells = Array.from(r.children).slice(0, 4).map(td=>td.innerText);
+        const cells = Array.from(r.children).slice(0, 5).map(td=>td.innerText);
         doc.text(cells.join(" | "),14,y);
         y+=8;
     });

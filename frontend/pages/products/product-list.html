@@ -33,7 +33,7 @@
         <ul class="nav-links">
         <li><a href="../dashboard.html">Dashboard</a></li>
         <li><a href="../products/product-list.html">Products</a></li>
-        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../products/general-machine.html">Machines</a></li>
         <li><a href="../customers/customer-list.html">Customers</a></li>
         <li><a href="../invoices/invoice-list.html">Invoices</a></li>
         <li><a href="../vendors/list-vendor.html">Vendors</a></li>
@@ -50,22 +50,24 @@
         <a class="btn" href="add-product.html" id="addProductBtn">Add</a>
         <button onclick="exportPDF()">Export as PDF</button>
         <input type="text" id="productSearch" class="search-inline" placeholder="Search Product ID, Description, Category, Model, Serial No">
-        <table id="productTable">
-            <thead>
-                <tr>
-                    <th>Product ID</th>
-                    <th>Description</th>
-                    <th>Category</th>
-                    <th>Model</th>
-                    <th>Serial No</th>
-                    <th>Count</th>
-                    <th>Selling Price</th>
-                    <th>Vendor</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        <div class="card" style="margin-top:12px;">
+            <table id="productTable">
+                <thead>
+                    <tr>
+                        <th>Product ID</th>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th>Model</th>
+                        <th>Serial No</th>
+                        <th>Count</th>
+                        <th>Selling Price</th>
+                        <th>Vendor</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
 </div>
 

@@ -62,7 +62,7 @@
 }
 .product-picker-wrap {
     position: relative;
-    min-width: 280px;
+    min-width: 0;
     z-index: 50;
 }
 .product-search {
@@ -122,6 +122,29 @@
         grid-column: auto;
     }
 }
+@media (max-width: 900px) {
+    .product-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .product-toolbar .btn-inline-add {
+        width: 100%;
+    }
+    .product-row {
+        grid-template-columns: 1fr;
+    }
+    .compact-input {
+        min-width: 0;
+    }
+    .invoice-action-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    #supportImportantSelect {
+        min-width: 0 !important;
+        width: 100%;
+    }
+}
 </style>
 </head>
 <body>
@@ -135,7 +158,7 @@
         <ul class="nav-links">
         <li><a href="../dashboard.html">Dashboard</a></li>
         <li><a href="../products/product-list.html">Products</a></li>
-        <li><a href="../products/machine.html">Machines</a></li>
+        <li><a href="../products/general-machine.html">Machines</a></li>
         <li><a href="../customers/customer-list.html">Customers</a></li>
         <li><a href="../invoices/invoice-list.html">Invoices</a></li>
         <li><a href="../vendors/list-vendor.html">Vendors</a></li>

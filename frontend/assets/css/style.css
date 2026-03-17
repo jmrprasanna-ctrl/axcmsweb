@@ -40,6 +40,7 @@ body {
     linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
   line-height: 1.45;
   padding-bottom: 56px;
+  overflow-x: hidden;
 }
 
 a {
@@ -337,7 +338,8 @@ body.app-has-sidebar-footer .app-global-footer {
 
   button,
   .btn {
-    width: 100%;
+    width: auto;
+    max-width: 100%;
   }
 
   .mobile-nav-toggle {
@@ -360,11 +362,23 @@ body.app-has-sidebar-footer .app-global-footer {
   .main-content > h2 {
     padding-left: 50px;
   }
+
+  .search-inline {
+    width: 100% !important;
+    margin-left: 0 !important;
+    display: block !important;
+  }
 }
 
 @media (max-width: 640px) {
   table,
   .table {
-    min-width: 540px;
+    min-width: 500px;
+  }
+
+  th,
+  td {
+    padding: 9px 10px;
+    font-size: 0.88rem;
   }
 }

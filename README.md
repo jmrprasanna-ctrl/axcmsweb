@@ -98,5 +98,10 @@ pulmotech_inhouse/
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/pulmotech_inhouse.git
-cd pulmotech_inhouse
+🚀 Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/jmrprasanna-ctrl/pulmo_web.git
+cd pulmo_web

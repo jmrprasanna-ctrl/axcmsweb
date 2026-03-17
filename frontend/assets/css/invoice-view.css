@@ -89,6 +89,15 @@ body {
     padding: 12px;
   }
 
+  .invoice-address-controls {
+    gap: 12px;
+  }
+
+  .invoice-address-controls label {
+    min-width: 120px;
+    flex: 1 1 140px;
+  }
+
   .invoice-image-wrap {
     padding: 8px;
   }
