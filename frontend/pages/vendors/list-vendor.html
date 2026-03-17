@@ -33,6 +33,14 @@
         display: inline-block;
         vertical-align: middle;
     }
+    .vendor-shell{
+        overflow: visible !important;
+    }
+    .vendor-table-wrap{
+        width:100%;
+        overflow-x:auto;
+        margin-top:12px;
+    }
 </style>
 </head>
 <body>
@@ -59,21 +67,23 @@
 <div class="main-content">
     <header><h2>Vendors List</h2></header>
 
-    <div class="form-container">
+    <div class="form-container vendor-shell">
         <a class="btn" href="add-vendor.html" id="addVendorBtn">Add</a>
         <button onclick="exportPDF()">Export as PDF</button>
         <input type="text" id="vendorSearch" class="search-inline" placeholder="Search Name, Product Category">
-        <table id="vendorTable">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Address</th>
-                    <th>Product Category</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        <div class="vendor-table-wrap">
+            <table id="vendorTable">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Address</th>
+                        <th>Product Category</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
