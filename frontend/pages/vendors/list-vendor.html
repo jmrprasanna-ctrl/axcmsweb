@@ -13,6 +13,19 @@
         margin-left: 8px;
         margin-top: 0;
     }
+    .vendor-action-row{
+        display:flex;
+        gap:8px;
+        align-items:center;
+        flex-wrap:nowrap;
+        white-space:nowrap;
+    }
+    .vendor-action-btn{
+        width:84px;
+        min-width:84px;
+        margin-top:0;
+        margin-left:0;
+    }
     .search-inline{
         width: 280px;
         max-width: 100%;
@@ -102,8 +115,10 @@ function renderVendors(vendors){
         if(!isUser){
             tr.innerHTML += `
                 <td>
-                    <a class="btn" href="edit-vendor.html?id=${v.id}">Edit</a>
-                    <button class="btn btn-danger btn-inline" type="button" onclick="deleteVendor(${v.id})">Delete</button>
+                    <div class="vendor-action-row">
+                        <a class="btn vendor-action-btn" href="edit-vendor.html?id=${v.id}">Edit</a>
+                        <button class="btn btn-danger btn-inline vendor-action-btn" type="button" onclick="deleteVendor(${v.id})">Delete</button>
+                    </div>
                 </td>
             `;
         }
