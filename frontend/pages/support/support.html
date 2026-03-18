@@ -46,7 +46,7 @@
     <header><h2>Support</h2></header>
 
     <div class="card" style="margin-bottom:12px;">
-        <a class="btn btn-primary" href="../users/add-technician.html">Add Technician</a>
+        <a id="addTechnicianBtn" class="btn btn-primary" href="../users/add-technician.html">Add Technician</a>
     </div>
 
     <div class="card">
@@ -101,6 +101,11 @@ function isTrainingUser(){
 function canManage(){
     const role = getRole();
     return role === "admin" || role === "manager" || isTrainingUser();
+}
+
+function canAddTechnician(){
+    const role = getRole();
+    return role === "admin" || role === "manager";
 }
 
 async function loadSupportImportants(){
@@ -167,6 +172,10 @@ async function editImportant(id, encodedText){
 
 window.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("supportImportantForm");
+    const addTechnicianBtn = document.getElementById("addTechnicianBtn");
+    if(addTechnicianBtn && !canAddTechnician()){
+        addTechnicianBtn.style.display = "none";
+    }
     if(!canManage()){
         form.style.display = "none";
     }
