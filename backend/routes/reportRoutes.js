@@ -16,6 +16,6 @@ router.get("/vendor-products", roleMiddleware(["admin","manager","user"]), repor
 router.get("/rental-consumables", roleMiddleware(["admin","manager","user"]), reportController.rentalConsumablesMachineCustomerReport);
 router.get("/rental-counts", roleMiddleware(["admin","manager","user"]), reportController.rentalCountMachineCustomerReport);
 router.get("/rental-machines-copy-count", roleMiddleware(["admin","manager","user"]), reportController.rentalMachineCopyCountPriceReport);
-router.get("/finance-overview", roleMiddleware(["admin","manager"]), reportController.financeOverview);
+router.get("/finance-overview", roleMiddleware(["admin","manager","user"]), reportController.financeOverview);
 
 module.exports = router;

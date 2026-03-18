@@ -2,6 +2,8 @@ const { Client } = require("pg");
 const { spawn } = require("child_process");
 const User = require("../models/User");
 const UserAccess = require("../models/UserAccess");
+const DEMO_DB_NAME = "demo";
+const ALLOWED_DBS = new Set(["inventory", DEMO_DB_NAME]);
 
 const ACCESS_PAGE_OPTIONS = [
   { path: "/dashboard.html", label: "Dashboard" },
@@ -56,6 +58,37 @@ function parseAllowedPages(row) {
   }
 }
 
+function normalizeDatabaseName(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!normalized) return null;
+  if (!ALLOWED_DBS.has(normalized)) return null;
+  return normalized;
+}
+
+async function findAccessFromMainDb(userId) {
+  const cfg = getDbConfig();
+  const client = new Client({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: cfg.database || "inventory",
+  });
+  try {
+    await client.connect();
+    const rs = await client.query(
+      "SELECT allowed_pages_json, database_name FROM user_accesses WHERE user_id = $1 LIMIT 1",
+      [userId]
+    );
+    if (!rs.rowCount) return null;
+    return rs.rows[0];
+  } catch (_err) {
+    return null;
+  } finally {
+    await client.end().catch(() => {});
+  }
+}
+
 function getDbConfig() {
   return {
     host: process.env.DB_HOST || "localhost",
@@ -104,11 +137,11 @@ async function ensureDemoDatabaseSchema() {
   try {
     const check = await admin.query(
       "SELECT 1 FROM pg_database WHERE datname = $1 LIMIT 1",
-      ["Demo"]
+      [DEMO_DB_NAME]
     );
     demoExists = check.rowCount > 0;
     if (!demoExists) {
-      await admin.query('CREATE DATABASE "Demo"');
+      await admin.query(`CREATE DATABASE "${DEMO_DB_NAME}"`);
     }
   } finally {
     await admin.end();
@@ -121,10 +154,10 @@ async function ensureDemoDatabaseSchema() {
   const pgDumpPath = (process.env.PG_DUMP_PATH || "pg_dump").trim();
   const psqlPath = (process.env.PSQL_PATH || "psql").trim();
   const sourceDb = String(cfg.database || "").trim();
-  if (!sourceDb) return { demoExists: true, schemaCloned: false };
+  if (!sourceDb || sourceDb.toLowerCase() === DEMO_DB_NAME) return { demoExists: true, schemaCloned: false };
 
   const escapedSource = `'${sourceDb.replace(/'/g, "'\\''")}'`;
-  const escapedDemo = "'Demo'";
+  const escapedDemo = `'${DEMO_DB_NAME}'`;
   const escapedHost = `'${String(cfg.host).replace(/'/g, "'\\''")}'`;
   const escapedPort = `'${String(cfg.port).replace(/'/g, "'\\''")}'`;
   const escapedUser = `'${String(cfg.user).replace(/'/g, "'\\''")}'`;
@@ -175,9 +208,23 @@ exports.getDatabases = async (_req, res) => {
     const rows = await client.query(
       "SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname ASC"
     );
-    const names = rows.rows.map((r) => String(r.datname || "")).filter(Boolean);
-    if (!names.includes("Demo")) names.push("Demo");
-    res.json({ current: cfg.database, databases: names.sort((a, b) => a.localeCompare(b)) });
+    const names = rows.rows.map((r) => String(r.datname || "").trim()).filter(Boolean);
+    const linked = new Set([String(cfg.database || "").trim().toLowerCase(), DEMO_DB_NAME]);
+    const filtered = [];
+    const seen = new Set();
+
+    names.forEach((n) => {
+      const lowered = n.toLowerCase();
+      if (!linked.has(lowered) || seen.has(lowered)) return;
+      filtered.push(lowered);
+      seen.add(lowered);
+    });
+
+    if (!seen.has(DEMO_DB_NAME)) {
+      filtered.push(DEMO_DB_NAME);
+    }
+
+    res.json({ current: cfg.database, databases: filtered.sort((a, b) => a.localeCompare(b)) });
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to list databases." });
   } finally {
@@ -200,7 +247,7 @@ exports.getUserAccess = async (req, res) => {
   res.json({
     user,
     allowed_pages: parseAllowedPages(row),
-    database_name: row?.database_name || null
+    database_name: normalizeDatabaseName(row?.database_name)
   });
 };
 
@@ -220,7 +267,7 @@ exports.saveUserAccess = async (req, res) => {
   }
 
   const allowedPages = normalizePages(req.body.allowed_pages);
-  const databaseName = String(req.body.database_name || "").trim() || null;
+  const databaseName = normalizeDatabaseName(req.body.database_name);
 
   let row = await UserAccess.findOne({ where: { user_id: userId } });
   if (!row) {
@@ -247,9 +294,14 @@ exports.getMyAccess = async (req, res) => {
   if (!Number.isFinite(userId) || userId <= 0) {
     return res.status(401).json({ message: "Invalid token user" });
   }
-  const row = await UserAccess.findOne({ where: { user_id: userId } });
+  // Access permissions are treated as global user settings stored in main DB.
+  // Data DB (inventory/demo) can switch per user, but access config must remain stable.
+  let row = await findAccessFromMainDb(userId);
+  if (!row) {
+    row = await UserAccess.findOne({ where: { user_id: userId } });
+  }
   res.json({
     allowed_pages: parseAllowedPages(row),
-    database_name: row?.database_name || null
+    database_name: normalizeDatabaseName(row?.database_name)
   });
 };

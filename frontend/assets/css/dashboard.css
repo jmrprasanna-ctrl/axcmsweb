@@ -16,7 +16,7 @@ body {
   color: #f6fbff;
   background:
     radial-gradient(circle at 15% -10%, rgba(255, 255, 255, 0.25) 0%, transparent 35%),
-    linear-gradient(180deg, #0f6abf 0%, #0b4a86 62%, #083c6d 100%);
+    linear-gradient(180deg, var(--primary) 0%, var(--primary-2) 62%, var(--sidebar-deep) 100%);
   box-shadow: 10px 0 30px rgba(8, 45, 81, 0.24);
 }
 
@@ -127,7 +127,7 @@ body {
   place-items: center;
   color: #fff;
   font-weight: 700;
-  background: linear-gradient(135deg, #0f6abf 0%, #0a4f91 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%);
 }
 
 .user-meta {
@@ -317,7 +317,7 @@ body {
 .card p {
   font-size: 1.46rem;
   font-weight: 800;
-  color: #0f6abf;
+  color: var(--primary);
 }
 
 .charts {

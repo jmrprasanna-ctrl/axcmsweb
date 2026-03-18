@@ -65,12 +65,15 @@ const USER_DEFAULT_ALLOWED_PATHS = [
     "/sales-report.html"
 ];
 let USER_ALLOWED_PATHS_RUNTIME = [...USER_DEFAULT_ALLOWED_PATHS];
+const USER_ALLOWED_CACHE_KEY = "userAllowedPathsRuntime";
 
 const MANAGER_BLOCKED_PATHS = [
     "/users/add-user.html",
     "/users/user-list.html",
+    "/users/preference.html",
     "/add-user.html",
-    "/user-list.html"
+    "/user-list.html",
+    "/preference.html"
 ];
 
 function buildPagesPath(fileName){
@@ -138,7 +141,11 @@ function applyUserNavRestrictions(){
         let normalized = href.replace(/\\/g,"/");
         if(!normalized.startsWith("/")) normalized = "/" + normalized;
         const isAllowed = allowed.some(suffix => normalized.endsWith(suffix));
-        if(!isAllowed){
+        const financeAliasAllowed = normalized.endsWith("/finance.html") && hasUserGrantedPath("/finance/finance.html");
+        const supportAliasAllowed = normalized.endsWith("/support.html") && hasUserGrantedPath("/support/support.html");
+        const stockAliasAllowed = normalized.endsWith("/stock.html") && hasUserGrantedPath("/stock/stock.html");
+        const allowThisLink = isAllowed || financeAliasAllowed || supportAliasAllowed || stockAliasAllowed;
+        if(!allowThisLink){
             const li = a.closest("li");
             if(li){
                 li.style.display = "none";
@@ -147,6 +154,7 @@ function applyUserNavRestrictions(){
             }
         }
     });
+
 }
 
 function applyManagerNavRestrictions(){
@@ -211,7 +219,8 @@ function getStockLink(fileName){
 
 function applyFinanceNav(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
-    if(role !== "admin" && role !== "manager") return;
+    const isUserAllowed = role === "user" && hasUserGrantedPath("/finance/finance.html");
+    if(role !== "admin" && role !== "manager" && !isUserAllowed) return;
 
     document.querySelectorAll(".sidebar .nav-links, .sidebar ul").forEach(nav => {
         const hasFinance = Array.from(nav.querySelectorAll("a")).some(a => {
@@ -229,7 +238,8 @@ function applyFinanceNav(){
 
 function applySupportNav(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
-    if(role !== "admin" && role !== "manager") return;
+    const isUserAllowed = role === "user" && hasUserGrantedPath("/support/support.html");
+    if(role !== "admin" && role !== "manager" && !isUserAllowed) return;
 
     document.querySelectorAll(".sidebar .nav-links, .sidebar ul").forEach(nav => {
         const hasSupport = Array.from(nav.querySelectorAll("a")).some(a => {
@@ -275,7 +285,8 @@ function applyAdminUsersNav(){
 
 function applyStockNav(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
-    if(role !== "admin" && role !== "manager") return;
+    const isUserAllowed = role === "user" && hasUserGrantedPath("/stock/stock.html");
+    if(role !== "admin" && role !== "manager" && !isUserAllowed) return;
 
     document.querySelectorAll(".sidebar .nav-links, .sidebar ul").forEach(nav => {
         const hasStock = Array.from(nav.querySelectorAll("a")).some(a => {
@@ -358,13 +369,52 @@ function ensureMobileSidebar(){
     document.body.appendChild(backdrop);
 }
 
+function normalizeHexColor(value, fallback){
+    const raw = String(value || "").trim();
+    const six = /^#([0-9a-fA-F]{6})$/;
+    const three = /^#([0-9a-fA-F]{3})$/;
+    if(six.test(raw)) return raw.toLowerCase();
+    if(three.test(raw)){
+        const m = raw.slice(1).toLowerCase();
+        return `#${m[0]}${m[0]}${m[1]}${m[1]}${m[2]}${m[2]}`;
+    }
+    return fallback;
+}
+
+function darkenHex(hex, amount){
+    const normalized = normalizeHexColor(hex, "#0f6abf");
+    const r = Math.max(0, Math.min(255, parseInt(normalized.slice(1,3), 16) - amount));
+    const g = Math.max(0, Math.min(255, parseInt(normalized.slice(3,5), 16) - amount));
+    const b = Math.max(0, Math.min(255, parseInt(normalized.slice(5,7), 16) - amount));
+    const toHex = (n) => n.toString(16).padStart(2, "0");
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
 function applyUiSettingsToPage(settings){
     if(!settings) return;
     if(settings.primary_color){
-        document.documentElement.style.setProperty("--primary", String(settings.primary_color));
+        const primary = normalizeHexColor(settings.primary_color, "#0f6abf");
+        document.documentElement.style.setProperty("--primary", primary);
+        document.documentElement.style.setProperty("--primary-2", darkenHex(primary, 25));
+        document.documentElement.style.setProperty("--sidebar-deep", darkenHex(primary, 45));
     }
     if(settings.accent_color){
         document.documentElement.style.setProperty("--accent", String(settings.accent_color));
+    }
+    if(settings.background_color){
+        const bg = normalizeHexColor(settings.background_color, "#edf3fb");
+        document.documentElement.style.setProperty("--page-bg", bg);
+        document.documentElement.style.setProperty("--page-bg-soft", darkenHex(bg, -12));
+    }
+    if(settings.button_color){
+        const btn = normalizeHexColor(settings.button_color, "#0f6abf");
+        document.documentElement.style.setProperty("--button-color", btn);
+        document.documentElement.style.setProperty("--button-color-2", darkenHex(btn, 22));
+    }
+    if(settings.mode_theme){
+        const mode = String(settings.mode_theme || "").trim().toLowerCase();
+        document.body.classList.remove("theme-dark", "theme-light");
+        document.body.classList.add(mode === "dark" ? "theme-dark" : "theme-light");
     }
     if(settings.app_name){
         const appName = String(settings.app_name);
@@ -375,6 +425,17 @@ function applyUiSettingsToPage(settings){
         if(document.title && !document.title.toLowerCase().includes(normalizedAppName.toLowerCase())){
             document.title = `${document.title} | ${normalizedAppName}`;
         }
+    }
+    if(settings.logo_url){
+        const apiOrigin = BASE_URL.replace(/\/api$/,"");
+        const logoPath = String(settings.logo_url || "").trim();
+        const absoluteLogoUrl = /^https?:\/\//i.test(logoPath)
+            ? logoPath
+            : `${apiOrigin}${logoPath.startsWith("/") ? "" : "/"}${logoPath}`;
+        const logoVersion = settings.logo_updated_at ? `?v=${encodeURIComponent(String(settings.logo_updated_at))}` : "";
+        document.querySelectorAll(".sidebar .logo img").forEach((img) => {
+            img.src = `${absoluteLogoUrl}${logoVersion}`;
+        });
     }
     if(settings.footer_text){
         const footer = document.getElementById("app-global-footer");
@@ -407,11 +468,20 @@ async function loadUserAccessPermissions(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
     if(role !== "user"){
         USER_ALLOWED_PATHS_RUNTIME = [...USER_DEFAULT_ALLOWED_PATHS];
+        localStorage.removeItem(USER_ALLOWED_CACHE_KEY);
         return;
+    }
+    const cachedRaw = localStorage.getItem(USER_ALLOWED_CACHE_KEY);
+    if(cachedRaw){
+        try{
+            const cached = JSON.parse(cachedRaw);
+            if(Array.isArray(cached) && cached.length){
+                USER_ALLOWED_PATHS_RUNTIME = Array.from(new Set(cached.map((x)=>String(x || "").trim()).filter(Boolean)));
+            }
+        }catch(_e){}
     }
     const token = localStorage.getItem("token");
     if(!token){
-        USER_ALLOWED_PATHS_RUNTIME = [...USER_DEFAULT_ALLOWED_PATHS];
         return;
     }
     try{
@@ -419,7 +489,6 @@ async function loadUserAccessPermissions(){
             headers: { "Authorization": `Bearer ${token}` }
         });
         if(!res.ok){
-            USER_ALLOWED_PATHS_RUNTIME = [...USER_DEFAULT_ALLOWED_PATHS];
             return;
         }
         const data = await res.json();
@@ -431,13 +500,14 @@ async function loadUserAccessPermissions(){
             ...dynamicPages
         ]);
         USER_ALLOWED_PATHS_RUNTIME = Array.from(merged);
+        localStorage.setItem(USER_ALLOWED_CACHE_KEY, JSON.stringify(USER_ALLOWED_PATHS_RUNTIME));
         if(data.database_name){
             localStorage.setItem("selectedDatabaseName", String(data.database_name));
         }else{
-            localStorage.removeItem("selectedDatabaseName");
+            // keep previous selected DB to avoid accidental runtime DB drift on transient API failures
         }
     }catch(_err){
-        USER_ALLOWED_PATHS_RUNTIME = [...USER_DEFAULT_ALLOWED_PATHS];
+        // keep cached or current runtime permissions
     }
 }
 
@@ -509,6 +579,10 @@ async function request(endpoint, method="GET", data=null){
     }
     const headers = {"Content-Type":"application/json"};
     if(token) headers["Authorization"] = "Bearer "+token;
+    const selectedDb = String(localStorage.getItem("selectedDatabaseName") || "").trim().toLowerCase();
+    if(selectedDb){
+        headers["X-Database-Name"] = selectedDb;
+    }
 
     const options = {
         method,
@@ -569,6 +643,11 @@ async function login(){
         localStorage.setItem("token",res.token);
         localStorage.setItem("role",res.user.role);
         localStorage.setItem("userId", res.user.id);
+        if(res.user && res.user.database_name){
+            localStorage.setItem("selectedDatabaseName", String(res.user.database_name).trim().toLowerCase());
+        }else{
+            localStorage.removeItem("selectedDatabaseName");
+        }
         window.location.href = "dashboard.html";
     }catch(err){
         alert(err.message);
@@ -584,5 +663,18 @@ async function forgotPassword(){
         alert("Password reset email sent. Check your inbox.");
     }catch(err){
         alert(err.message);
+    }
+}
+function hasUserGrantedPath(path){
+    const target = String(path || "").trim().toLowerCase();
+    if(!target) return false;
+    if(USER_ALLOWED_PATHS_RUNTIME.some((x) => String(x || "").trim().toLowerCase() === target)){
+        return true;
+    }
+    try{
+        const cached = JSON.parse(localStorage.getItem(USER_ALLOWED_CACHE_KEY) || "[]");
+        return Array.isArray(cached) && cached.some((x) => String(x || "").trim().toLowerCase() === target);
+    }catch(_err){
+        return false;
     }
 }

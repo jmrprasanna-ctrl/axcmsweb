@@ -35,6 +35,19 @@ function logout(){
 let salesChartInstance = null;
 let profitChartInstance = null;
 
+function formatDateWithWeekday(dateText){
+    const fallbackDate = new Date();
+    const d = dateText ? new Date(`${dateText}T00:00:00`) : fallbackDate;
+    if(Number.isNaN(d.getTime())){
+        const safe = fallbackDate.toISOString().slice(0,10);
+        const weekday = fallbackDate.toLocaleDateString("en-US", { weekday: "long" });
+        return `${safe} ${weekday}`;
+    }
+    const safe = dateText || d.toISOString().slice(0,10);
+    const weekday = d.toLocaleDateString("en-US", { weekday: "long" });
+    return `${safe} ${weekday}`;
+}
+
 // Fetch summary data
 async function fetchSummary(){
     try{
@@ -67,7 +80,7 @@ async function fetchSummary(){
             }else if(periodName === "month"){
                 labelEl.innerText = dateText ? `Month of ${dateText.slice(0,7)}` : "This Month";
             }else{
-                labelEl.innerText = dateText ? `Day: ${dateText}` : "Today";
+                labelEl.innerText = formatDateWithWeekday(dateText);
             }
         }
 

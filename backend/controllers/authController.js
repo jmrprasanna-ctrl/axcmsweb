@@ -1,23 +1,36 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { Client } = require("pg");
 const User = require("../models/User");
-const UserLoginLog = require("../models/UserLoginLog");
 const { Op } = require("sequelize");
 
 const isBcryptHash = (value = "") => /^\$2[aby]\$\d{2}\$/.test(value);
+const AUTH_DB_NAME = String(process.env.DB_NAME || "inventory").trim() || "inventory";
+
+function getAuthDbClient() {
+  return new Client({
+    host: process.env.DB_HOST || "localhost",
+    port: Number(process.env.DB_PORT || 5432),
+    user: process.env.DB_USER || "postgres",
+    password: process.env.DB_PASSWORD || "",
+    database: AUTH_DB_NAME,
+  });
+}
 
 exports.login = async (req, res) => {
   const { email, password } = req.body;
 
+  const client = getAuthDbClient();
   try {
-    const user = await User.findOne({
-      where: {
-        [Op.or]: [
-          { email },
-          { username: email }
-        ]
-      }
-    });
+    await client.connect();
+    const userRs = await client.query(
+      `SELECT id, username, email, role, password
+       FROM users
+       WHERE email = $1 OR username = $1
+       LIMIT 1`,
+      [String(email || "").trim()]
+    );
+    const user = userRs.rows[0];
     if (!user) {
       return res.status(400).json({ message: "User not found" });
     }
@@ -30,8 +43,8 @@ exports.login = async (req, res) => {
       // Support legacy plain-text seeded passwords and upgrade on login.
       isMatch = password === user.password;
       if (isMatch) {
-        user.password = await bcrypt.hash(password, 10);
-        await user.save();
+        const hashed = await bcrypt.hash(password, 10);
+        await client.query("UPDATE users SET password = $1 WHERE id = $2", [hashed, user.id]);
       }
     }
 
@@ -39,8 +52,20 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: "Invalid password" });
     }
 
+    let databaseName = null;
+    if (String(user.role || "").toLowerCase() === "user") {
+      const accessRs = await client.query(
+        "SELECT database_name FROM user_accesses WHERE user_id = $1 LIMIT 1",
+        [user.id]
+      );
+      const normalized = String(accessRs.rows[0]?.database_name || "").trim().toLowerCase();
+      if (normalized === "demo" || normalized === "inventory") {
+        databaseName = normalized;
+      }
+    }
+
     const token = jwt.sign(
-      { id: user.id, role: user.role },
+      { id: user.id, role: user.role, database_name: databaseName },
       process.env.JWT_SECRET || "supersecretjwtkey",
       { expiresIn: process.env.JWT_EXPIRES_IN || "8h" }
     );
@@ -48,14 +73,11 @@ exports.login = async (req, res) => {
     const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
     const ipAddress = forwarded || req.socket?.remoteAddress || req.ip || null;
     const userAgent = String(req.headers["user-agent"] || "").trim() || null;
-    await UserLoginLog.create({
-      user_id: user.id,
-      username: user.username,
-      role: user.role,
-      login_time: new Date(),
-      ip_address: ipAddress,
-      user_agent: userAgent
-    });
+    await client.query(
+      `INSERT INTO user_login_logs (user_id, username, role, login_time, ip_address, user_agent, "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, NOW(), $4, $5, NOW(), NOW())`,
+      [user.id, user.username, user.role, ipAddress, userAgent]
+    );
 
     res.json({
       token,
@@ -64,11 +86,14 @@ exports.login = async (req, res) => {
         username: user.username,
         email: user.email,
         role: user.role,
+        database_name: databaseName,
       },
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
+  } finally {
+    await client.end().catch(() => {});
   }
 };
 

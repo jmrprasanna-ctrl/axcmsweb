@@ -142,7 +142,18 @@ const expenseSearchEl = document.getElementById("expenseSearch");
 filterDateEl.value = new Date().toISOString().slice(0,10);
 const role = (localStorage.getItem("role") || "").toLowerCase();
 const isUser = role === "user";
-const canAddExpense = role === "admin" || role === "manager";
+const allowedPaths = (() => {
+    try{
+        const rows = JSON.parse(localStorage.getItem("userAllowedPathsRuntime") || "[]");
+        return new Set((Array.isArray(rows) ? rows : []).map((x) => String(x || "").trim().toLowerCase()));
+    }catch(_err){
+        return new Set();
+    }
+})();
+const canAccessPath = (path) => (role === "admin" || role === "manager")
+    ? true
+    : (role === "user" && allowedPaths.has(String(path || "").trim().toLowerCase()));
+const canAddExpense = canAccessPath("/expenses/add-expense.html");
 let allExpenses = [];
 
 const addExpenseBtn = document.getElementById("addExpenseBtn");

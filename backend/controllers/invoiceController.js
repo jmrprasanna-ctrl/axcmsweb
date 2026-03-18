@@ -7,6 +7,7 @@ const Sequelize = require("sequelize");
 const fs = require("fs");
 const path = require("path");
 const EmailSetup = require("../models/EmailSetup");
+const UiSetting = require("../models/UiSetting");
 const { sendEmail } = require("../services/emailService");
 const Op = Sequelize.Op;
 
@@ -132,6 +133,61 @@ function normalizePaymentStatus(value){
     const raw = String(value || "").trim().toLowerCase();
     if(raw === "received" || raw === "recieved") return "Received";
     return "Pending";
+}
+
+async function resolveTemplatePath(dbColumn, envVariableName, defaultPath){
+    let dbPath = "";
+    try{
+        const row = await UiSetting.findOne({ order: [["id", "ASC"]], attributes: [dbColumn] });
+        dbPath = String(row?.[dbColumn] || "").trim();
+    }catch(_err){
+        dbPath = "";
+    }
+
+    const envPath = String(process.env[envVariableName] || "").trim();
+    const fallbackPath = String(defaultPath || "").trim();
+    const candidates = [dbPath, envPath, fallbackPath].filter(Boolean);
+
+    for(const candidate of candidates){
+        const resolved = path.resolve(candidate);
+        if(fs.existsSync(resolved)){
+            return resolved;
+        }
+    }
+
+    return path.resolve(candidates[0] || fallbackPath);
+}
+
+async function resolveImagePath(dbColumn, envVariableName, defaultPath, fallbackPath = ""){
+    let dbPath = "";
+    try{
+        const row = await UiSetting.findOne({ order: [["id", "ASC"]], attributes: [dbColumn] });
+        dbPath = String(row?.[dbColumn] || "").trim();
+    }catch(_err){
+        dbPath = "";
+    }
+
+    const envPath = String(process.env[envVariableName] || "").trim();
+    const baseDefault = String(defaultPath || "").trim();
+    const baseFallback = String(fallbackPath || "").trim();
+    const candidates = [dbPath, envPath, baseDefault, baseFallback].filter(Boolean);
+
+    for(const candidate of candidates){
+        const resolved = path.resolve(candidate);
+        if(fs.existsSync(resolved)){
+            return resolved;
+        }
+    }
+
+    return path.resolve(candidates[0] || baseDefault || baseFallback);
+}
+
+function getImageMimeType(filePath){
+    const ext = path.extname(String(filePath || "").toLowerCase());
+    if(ext === ".gif") return "image/gif";
+    if(ext === ".bmp") return "image/bmp";
+    if(ext === ".png") return "image/png";
+    return "image/jpeg";
 }
 
 exports.listInvoices = async (req,res)=>{
@@ -270,11 +326,11 @@ exports.generateInvoiceNo = async (req,res)=>{
 
 exports.getInvoiceTemplatePdf = async (req,res)=>{
     try{
-        const configured = process.env.INVOICE_TEMPLATE_PDF;
-        const templatePath = configured && configured.trim()
-            ? configured.trim()
-            : "D:\\26XX001 PUL1V INVOICE V.pdf";
-        const resolved = path.resolve(templatePath);
+        const resolved = await resolveTemplatePath(
+            "invoice_template_pdf_path",
+            "INVOICE_TEMPLATE_PDF",
+            "D:\\26XX001 PUL1V INVOICE V.pdf"
+        );
         if(!fs.existsSync(resolved)){
             return res.status(404).json({
                 message: `Invoice template PDF not found at ${resolved}`
@@ -290,11 +346,11 @@ exports.getInvoiceTemplatePdf = async (req,res)=>{
 
 exports.getQuotationTemplatePdf = async (req,res)=>{
     try{
-        const configured = process.env.QUOTATION_TEMPLATE_PDF;
-        const templatePath = configured && configured.trim()
-            ? configured.trim()
-            : "D:\\26XX001 PUL1V QUATATION.pdf";
-        const resolved = path.resolve(templatePath);
+        const resolved = await resolveTemplatePath(
+            "quotation_template_pdf_path",
+            "QUOTATION_TEMPLATE_PDF",
+            "D:\\26XX001 PUL1V QUATATION.pdf"
+        );
         if(!fs.existsSync(resolved)){
             return res.status(404).json({
                 message: `Quotation template PDF not found at ${resolved}`
@@ -310,11 +366,11 @@ exports.getQuotationTemplatePdf = async (req,res)=>{
 
 exports.getQuotation2TemplatePdf = async (req,res)=>{
     try{
-        const configured = process.env.QUOTATION2_TEMPLATE_PDF;
-        const templatePath = configured && configured.trim()
-            ? configured.trim()
-            : "D:\\26XX001 PUL1V QUATATION 2.pdf";
-        const resolved = path.resolve(templatePath);
+        const resolved = await resolveTemplatePath(
+            "quotation2_template_pdf_path",
+            "QUOTATION2_TEMPLATE_PDF",
+            "D:\\26XX001 PUL1V QUATATION 2.pdf"
+        );
         if(!fs.existsSync(resolved)){
             return res.status(404).json({
                 message: `Quotation 2 template PDF not found at ${resolved}`
@@ -330,13 +386,15 @@ exports.getQuotation2TemplatePdf = async (req,res)=>{
 
 exports.getSign1Image = async (req,res)=>{
     try{
-        const configured = process.env.INVOICE_SIGN1_IMAGE;
-        const defaultPath = path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-1.png");
-        const signPath = configured && configured.trim() ? path.resolve(configured.trim()) : defaultPath;
+        const signPath = await resolveImagePath(
+            "sign_c_path",
+            "INVOICE_SIGN1_IMAGE",
+            path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-1.png")
+        );
         if(!fs.existsSync(signPath)){
             return res.status(404).json({ message: `Sign 1 image not found at ${signPath}` });
         }
-        res.setHeader("Content-Type", "image/png");
+        res.setHeader("Content-Type", getImageMimeType(signPath));
         res.sendFile(signPath);
     }catch(err){
         console.error(err);
@@ -346,15 +404,16 @@ exports.getSign1Image = async (req,res)=>{
 
 exports.getSignVImage = async (req,res)=>{
     try{
-        const configured = process.env.INVOICE_SIGNV_IMAGE;
-        const explicitPath = configured && configured.trim() ? path.resolve(configured.trim()) : "";
-        const defaultVPath = path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-v.png");
-        const fallbackCPath = path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-1.png");
-        const signPath = [explicitPath, defaultVPath, fallbackCPath].find((p) => p && fs.existsSync(p));
+        const signPath = await resolveImagePath(
+            "sign_v_path",
+            "INVOICE_SIGNV_IMAGE",
+            path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-v.png"),
+            path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-1.png")
+        );
         if(!signPath){
             return res.status(404).json({ message: "Sign V image not found. Expected frontend/assets/images/pulmo-sign-v.png" });
         }
-        res.setHeader("Content-Type", "image/png");
+        res.setHeader("Content-Type", getImageMimeType(signPath));
         res.sendFile(signPath);
     }catch(err){
         console.error(err);
@@ -364,13 +423,15 @@ exports.getSignVImage = async (req,res)=>{
 
 exports.getSeal1Image = async (req,res)=>{
     try{
-        const configured = process.env.INVOICE_SEAL1_IMAGE;
-        const defaultPath = path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-1.png");
-        const sealPath = configured && configured.trim() ? path.resolve(configured.trim()) : defaultPath;
+        const sealPath = await resolveImagePath(
+            "seal_c_path",
+            "INVOICE_SEAL1_IMAGE",
+            path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-1.png")
+        );
         if(!fs.existsSync(sealPath)){
             return res.status(404).json({ message: `Seal 1 image not found at ${sealPath}` });
         }
-        res.setHeader("Content-Type", "image/png");
+        res.setHeader("Content-Type", getImageMimeType(sealPath));
         res.sendFile(sealPath);
     }catch(err){
         console.error(err);
@@ -380,15 +441,16 @@ exports.getSeal1Image = async (req,res)=>{
 
 exports.getSealVImage = async (req,res)=>{
     try{
-        const configured = process.env.INVOICE_SEALV_IMAGE;
-        const explicitPath = configured && configured.trim() ? path.resolve(configured.trim()) : "";
-        const defaultVPath = path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-v.png");
-        const fallbackCPath = path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-1.png");
-        const sealPath = [explicitPath, defaultVPath, fallbackCPath].find((p) => p && fs.existsSync(p));
+        const sealPath = await resolveImagePath(
+            "seal_v_path",
+            "INVOICE_SEALV_IMAGE",
+            path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-v.png"),
+            path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-1.png")
+        );
         if(!sealPath){
             return res.status(404).json({ message: "Seal V image not found. Expected frontend/assets/images/pulmo-seal-v.png" });
         }
-        res.setHeader("Content-Type", "image/png");
+        res.setHeader("Content-Type", getImageMimeType(sealPath));
         res.sendFile(sealPath);
     }catch(err){
         console.error(err);

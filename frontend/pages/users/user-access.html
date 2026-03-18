@@ -201,20 +201,27 @@
             try{
                 const res = await request("/users/databases", "GET");
                 const rows = Array.isArray(res.databases) ? res.databases : [];
+                const normalizedRows = Array.from(
+                    new Set(
+                        rows
+                            .map((db) => String(db || "").trim().toLowerCase())
+                            .filter((db) => db === "inventory" || db === "demo")
+                    )
+                );
                 const currentDb = String(res.current || "").trim();
                 databaseSelectEl.innerHTML = `<option value="">Select database</option>`;
-                rows.forEach((db) => {
+                normalizedRows.forEach((db) => {
                     const opt = document.createElement("option");
-                    opt.value = String(db);
-                    opt.textContent = String(db);
+                    opt.value = db;
+                    opt.textContent = db;
                     databaseSelectEl.appendChild(opt);
                 });
-                const hasInventory = rows.some((db) => String(db).toLowerCase() === "inventory");
+                const hasInventory = normalizedRows.includes("inventory");
                 if(hasInventory){
                     defaultDatabaseName = "inventory";
                     databaseSelectEl.value = defaultDatabaseName;
                 }else if(currentDb){
-                    defaultDatabaseName = currentDb;
+                    defaultDatabaseName = String(currentDb).toLowerCase();
                     databaseSelectEl.value = defaultDatabaseName;
                 }
             }catch(err){

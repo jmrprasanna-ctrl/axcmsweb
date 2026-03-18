@@ -57,6 +57,7 @@ const categoryModelOptionRoutes = require("./routes/categoryModelOptionRoutes");
 const uiSettingsRoutes = require("./routes/uiSettingsRoutes");
 const emailSetupRoutes = require("./routes/emailSetupRoutes");
 const systemBackupRoutes = require("./routes/systemBackupRoutes");
+const preferenceRoutes = require("./routes/preferenceRoutes");
 
 const authRoutes = require("./routes/authRoutes"); // login, forgot password
 const userRoutes = require("./routes/userRoutes"); // admin only user management
@@ -263,6 +264,7 @@ app.use("/api/category-model-options", categoryModelOptionRoutes);
 app.use("/api/ui-settings", uiSettingsRoutes);
 app.use("/api/email-setup", emailSetupRoutes);
 app.use("/api/system-backup", systemBackupRoutes);
+app.use("/api/preferences", preferenceRoutes);
 
 // Test route
 app.get("/",(req,res)=>res.send("PULMO TECHNOLOGIES is running"));

@@ -45,6 +45,10 @@
 <div class="main-content">
     <header><h2>Support</h2></header>
 
+    <div class="card" style="margin-bottom:12px;">
+        <a class="btn btn-primary" href="../users/add-technician.html">Add Technician</a>
+    </div>
+
     <div class="card">
         <h3>Add Important</h3>
         <form id="supportImportantForm">
@@ -75,6 +79,15 @@
 
 <script src="../../assets/js/api.js"></script>
 <script>
+function getAllowedPathSet(){
+    try{
+        const rows = JSON.parse(localStorage.getItem("userAllowedPathsRuntime") || "[]");
+        return new Set((Array.isArray(rows) ? rows : []).map((x) => String(x || "").trim().toLowerCase()));
+    }catch(_err){
+        return new Set();
+    }
+}
+
 function getRole(){
     return (localStorage.getItem("role") || "").toLowerCase();
 }

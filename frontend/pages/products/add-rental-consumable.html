@@ -184,10 +184,6 @@ if(!localStorage.getItem("token")){
 }
 
 const role = (localStorage.getItem("role") || "").toLowerCase();
-if(role !== "admin" && role !== "manager"){
-    alert("Only Admin and Manager can add consumables.");
-    window.location.href = "machine.html";
-}
 
 let consumableProducts = [];
 let pendingItems = [];

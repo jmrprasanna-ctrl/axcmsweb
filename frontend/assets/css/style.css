@@ -3,6 +3,8 @@
 :root {
   --bg: #edf3fb;
   --bg-soft: #e3eefb;
+  --page-bg: var(--bg);
+  --page-bg-soft: var(--bg-soft);
   --surface: #ffffff;
   --surface-2: #f7fbff;
   --text: #102235;
@@ -10,6 +12,9 @@
   --line: #d8e5f4;
   --primary: #0f6abf;
   --primary-2: #0a4f91;
+  --button-color: #0f6abf;
+  --button-color-2: #0a4f91;
+  --sidebar-deep: #083c6d;
   --accent: #11a36f;
   --danger: #d64545;
   --warning: #f59e0b;
@@ -37,7 +42,7 @@ body {
   background:
     radial-gradient(circle at 8% -10%, #cbe0fb 0%, transparent 35%),
     radial-gradient(circle at 95% 110%, #cde6de 0%, transparent 28%),
-    linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
+    linear-gradient(180deg, var(--page-bg) 0%, var(--page-bg-soft) 100%);
   line-height: 1.45;
   padding-bottom: 56px;
   overflow-x: hidden;
@@ -161,7 +166,7 @@ button,
   min-height: 42px;
   padding: 0 18px;
   margin-top: 12px;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%);
+  background: linear-gradient(135deg, var(--button-color) 0%, var(--button-color-2) 100%);
   color: #fff;
   font-weight: 700;
   font-size: 0.92rem;
@@ -192,7 +197,7 @@ button:active,
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%);
+  background: linear-gradient(135deg, var(--button-color) 0%, var(--button-color-2) 100%);
 }
 
 .btn-danger {
@@ -416,4 +421,23 @@ body.app-has-sidebar-footer .app-global-footer {
     padding: 9px 10px;
     font-size: 0.88rem;
   }
+}
+
+body.theme-dark {
+  --page-bg: #0f1721;
+  --page-bg-soft: #1c2733;
+  --surface: #1f2b38;
+  --surface-2: #273646;
+  --text: #edf4ff;
+  --muted: #b6c7d8;
+  --line: #33495e;
+  --shadow-sm: 0 8px 20px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 18px 38px rgba(0, 0, 0, 0.45);
+}
+
+body.theme-dark {
+  background:
+    radial-gradient(circle at 8% -10%, rgba(66, 94, 124, 0.45) 0%, transparent 35%),
+    radial-gradient(circle at 95% 110%, rgba(57, 88, 78, 0.35) 0%, transparent 28%),
+    linear-gradient(180deg, var(--page-bg) 0%, var(--page-bg-soft) 100%);
 }

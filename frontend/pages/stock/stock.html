@@ -124,6 +124,7 @@
                 <h3>Stock Overview</h3>
                 <div class="report-controls filters-inline">
                     <select id="stockSourceFilter" class="model-filter">
+                        <option value="ALL" selected>All Sources</option>
                         <option value="PULMO">PULMO</option>
                         <option value="VENDER">Vender</option>
                         <option value="OTHER">Other</option>
@@ -157,7 +158,18 @@
 <script src="../../assets/js/api.js"></script>
 <script>
 const role = (localStorage.getItem("role") || "").toLowerCase();
-if(role !== "admin" && role !== "manager"){
+const allowedPaths = (() => {
+    try{
+        const rows = JSON.parse(localStorage.getItem("userAllowedPathsRuntime") || "[]");
+        return new Set((Array.isArray(rows) ? rows : []).map((x) => String(x || "").trim().toLowerCase()));
+    }catch(_err){
+        return new Set();
+    }
+})();
+const canAccessStock = (role === "admin" || role === "manager")
+    ? true
+    : (role === "user" && allowedPaths.has("/stock/stock.html"));
+if(!canAccessStock){
     window.location.href = "../dashboard.html";
 }
 
@@ -175,15 +187,17 @@ function classifyVendorSource(vendorName){
 }
 
 function getSourceProducts(){
-    const source = String(stockSourceFilterEl.value || "PULMO").toUpperCase();
+    const source = String(stockSourceFilterEl.value || "ALL").toUpperCase();
+    if(source === "ALL"){
+        return allStockProducts.slice();
+    }
     return allStockProducts.filter((p) => classifyVendorSource(p?.Vendor?.name) === source);
 }
 
 function renderStocks(rows){
     const tbody = document.querySelector("#stockTable tbody");
     tbody.innerHTML = "";
-    const selectedSource = String(stockSourceFilterEl.value || "PULMO").toUpperCase();
-    const canManage = selectedSource === "PULMO";
+    const canManage = true;
     rows.forEach((p) => {
         const tr = document.createElement("tr");
         const categoryName = p.Category ? p.Category.name : "";
@@ -269,12 +283,6 @@ async function loadStocks(){
 }
 
 async function adjustStock(productId, action){
-    const selectedSource = String(stockSourceFilterEl.value || "PULMO").toUpperCase();
-    if(selectedSource !== "PULMO"){
-        alert("Stock manage allowed only for Vender: PULMO.");
-        return;
-    }
-
     const qtyEl = document.getElementById(`qty-${productId}`);
     const quantity = Number(qtyEl ? qtyEl.value : 0);
     if(!Number.isFinite(quantity) || quantity < 0){

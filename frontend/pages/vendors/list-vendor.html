@@ -96,7 +96,18 @@ if(!localStorage.getItem("token")){
 
 const isUser = (localStorage.getItem("role") || "").toLowerCase() === "user";
 const role = (localStorage.getItem("role") || "").toLowerCase();
-const canAddVendor = role === "admin" || role === "manager";
+const allowedPaths = (() => {
+    try{
+        const rows = JSON.parse(localStorage.getItem("userAllowedPathsRuntime") || "[]");
+        return new Set((Array.isArray(rows) ? rows : []).map((x) => String(x || "").trim().toLowerCase()));
+    }catch(_err){
+        return new Set();
+    }
+})();
+const canAccessPath = (path) => (role === "admin" || role === "manager")
+    ? true
+    : (role === "user" && allowedPaths.has(String(path || "").trim().toLowerCase()));
+const canAddVendor = canAccessPath("/vendors/add-vendor.html");
 const vendorSearchEl = document.getElementById("vendorSearch");
 let allVendors = [];
 

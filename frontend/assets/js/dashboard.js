@@ -17,52 +17,6 @@ if (initialEl) {
 }
 
 const userRole = (storedRole || "").toLowerCase();
-if(userRole === "user"){
-    const totalUsersCard = document.getElementById("totalUsers");
-    if(totalUsersCard){
-        totalUsersCard.style.display = "none";
-    }
-    const allowed = [
-        "/dashboard.html",
-        "/products/add-product.html",
-        "/products/product-list.html",
-        "/add-product.html",
-        "/product-list.html",
-        "/customers/add-customer.html",
-        "/customers/customer-list.html",
-        "/add-customer.html",
-        "/customer-list.html",
-        "/vendors/add-vendor.html",
-        "/vendors/list-vendor.html",
-        "/add-vendor.html",
-        "/list-vendor.html",
-        "/expenses/add-expense.html",
-        "/expenses/expense-list.html",
-        "/add-expense.html",
-        "/expense-list.html",
-        "/invoices/invoice-list.html",
-        "/invoices/create-invoice.html",
-        "/invoice-list.html",
-        "/create-invoice.html",
-        "/reports/sales-report.html",
-        "/sales-report.html"
-    ];
-    document.querySelectorAll(".sidebar a").forEach(a=>{
-        const href = (a.getAttribute("href") || "").trim();
-        if(!href || href.startsWith("#") || href.toLowerCase().includes("logout")) return;
-        let normalized = href.replace(/\\/g,"/");
-        if(!normalized.startsWith("/")) normalized = "/" + normalized;
-        const isAllowed = allowed.some(suffix => normalized.endsWith(suffix));
-        if(!isAllowed){
-            const li = a.closest("li");
-            if(li){
-                li.style.display = "none";
-            }else{
-                a.style.display = "none";
-            }
-        }
-    });
-}
 
 if(userRole === "manager"){
     document.querySelectorAll(".sidebar a").forEach(a=>{
@@ -96,6 +50,19 @@ function logout(){
 
 let salesChartInstance = null;
 let profitChartInstance = null;
+
+function formatDateWithWeekday(dateText){
+    const fallbackDate = new Date();
+    const d = dateText ? new Date(`${dateText}T00:00:00`) : fallbackDate;
+    if(Number.isNaN(d.getTime())){
+        const safe = fallbackDate.toISOString().slice(0,10);
+        const weekday = fallbackDate.toLocaleDateString("en-US", { weekday: "long" });
+        return `${safe} ${weekday}`;
+    }
+    const safe = dateText || d.toISOString().slice(0,10);
+    const weekday = d.toLocaleDateString("en-US", { weekday: "long" });
+    return `${safe} ${weekday}`;
+}
 
 // Fetch summary data
 async function fetchSummary(){
@@ -142,7 +109,7 @@ async function fetchSummary(){
             }else if(periodName === "year"){
                 labelEl.innerText = dateText ? `Year: ${dateText.slice(0,4)}` : "This Year";
             }else{
-                labelEl.innerText = dateText ? `Day: ${dateText}` : "Today";
+                labelEl.innerText = formatDateWithWeekday(dateText);
             }
         }
 
@@ -418,25 +385,21 @@ function renderTodos(todos){
 const todoForm = document.getElementById("todoForm");
 if(todoForm){
     const role = (localStorage.getItem("role") || "").toLowerCase();
-    if(role === "user"){
-        todoForm.style.display = "none";
-    }else{
-        todoForm.addEventListener("submit", async (e)=>{
-            e.preventDefault();
-            const input = document.getElementById("todoInput");
-            const assignSelect = document.getElementById("todoAssign");
-            const title = (input.value || "").trim();
-            if(!title) return;
-            try{
-                const assigned_to = assignSelect && assignSelect.value ? Number(assignSelect.value) : null;
-                await request("/todos","POST",{ title, assigned_to });
-                input.value = "";
-                loadTodos();
-            }catch(err){
-                showMessageBox(err.message || "Failed to add to-do","error");
-            }
-        });
-    }
+    todoForm.addEventListener("submit", async (e)=>{
+        e.preventDefault();
+        const input = document.getElementById("todoInput");
+        const assignSelect = document.getElementById("todoAssign");
+        const title = (input.value || "").trim();
+        if(!title) return;
+        try{
+            const assigned_to = assignSelect && assignSelect.value ? Number(assignSelect.value) : null;
+            await request("/todos","POST",{ title, assigned_to });
+            input.value = "";
+            loadTodos();
+        }catch(err){
+            showMessageBox(err.message || "Failed to add to-do","error");
+        }
+    });
 }
 
 loadTodoAssignees();

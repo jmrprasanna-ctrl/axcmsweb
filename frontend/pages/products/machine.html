@@ -108,7 +108,20 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 const role = (localStorage.getItem("role") || "").toLowerCase();
-const canAddMachine = role === "admin" || role === "manager";
+const allowedPaths = (() => {
+    try{
+        const rows = JSON.parse(localStorage.getItem("userAllowedPathsRuntime") || "[]");
+        return new Set((Array.isArray(rows) ? rows : []).map((x) => String(x || "").trim().toLowerCase()));
+    }catch(_err){
+        return new Set();
+    }
+})();
+const canAccessPath = (path) => (role === "admin" || role === "manager")
+    ? true
+    : (role === "user" && allowedPaths.has(String(path || "").trim().toLowerCase()));
+const canAddMachine = canAccessPath("/products/add-rental-machine.html");
+const canAddRentalCount = canAccessPath("/products/add-rental-count.html");
+const canAddConsumables = canAccessPath("/products/add-rental-consumable.html");
 const isReadOnlyUser = role === "user";
 const addMachineBtn = document.getElementById("addMachineBtn");
 const rentalCountBtn = document.getElementById("rentalCountBtn");
@@ -119,10 +132,10 @@ let allMachines = [];
 if(addMachineBtn && !canAddMachine){
     addMachineBtn.style.display = "none";
 }
-if(consumablesBtn && !canAddMachine){
+if(consumablesBtn && !canAddConsumables){
     consumablesBtn.style.display = "none";
 }
-if(rentalCountBtn && !canAddMachine){
+if(rentalCountBtn && !canAddRentalCount){
     rentalCountBtn.style.display = "none";
 }
 

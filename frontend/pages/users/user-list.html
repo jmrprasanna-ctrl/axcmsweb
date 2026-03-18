@@ -66,8 +66,9 @@
         <header><h2>User List</h2></header>
         <div class="form-actions">
             <button class="btn btn-primary" onclick="window.location.href='add-user.html'">Add User</button>
+            <button class="btn btn-primary" onclick="window.location.href='preference.html'">Preference</button>
+            <button class="btn btn-primary" onclick="window.location.href='user-access.html'">Access</button>
             <button class="btn btn-primary" onclick="window.location.href='user-logged.html'">Logged</button>
-            <button class="btn btn-primary" onclick="window.location.href='technician-list.html'">Technicians</button>
             <button class="btn btn-primary" onclick="window.location.href='../support/email-setup.html'">email</button>
             <button class="btn btn-primary" type="button" onclick="checkBackupTools()">Check Tools</button>
             <button class="btn btn-primary" type="button" onclick="downloadSystemBackup()">Backup</button>
@@ -114,7 +115,6 @@
                         <td>
                             <div class="user-action-row">
                                 <a class="btn btn-inline action-btn" href="edit-user.html?id=${u.id}">Edit</a>
-                                <button class="btn btn-primary btn-inline action-btn" type="button" onclick="openAccess(${u.id})">Access</button>
                                 <button class="btn btn-danger btn-inline action-btn" type="button" onclick="deleteUser(${u.id})">Delete</button>
                             </div>
                         </td>
@@ -135,10 +135,6 @@
             }catch(err){
                 alert(err.message || "Failed to delete user");
             }
-        }
-
-        function openAccess(id){
-            window.location.href = `user-access.html?userId=${id}`;
         }
 
         async function downloadSystemBackup(){

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preference - PULMO TECHNOLOGIES</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <style>
+        .preference-grid{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .preference-card{
+            background: #fff;
+            border: 1px solid #d8e7f6;
+            border-radius: 12px;
+            padding: 16px;
+        }
+        .preference-card h3{
+            margin: 0 0 10px;
+            color: #0b4f93;
+        }
+        .preference-card p{
+            margin: 0 0 12px;
+            color: #5d6f85;
+            font-size: 14px;
+        }
+        .preference-card input[type="file"]{
+            margin-bottom: 12px;
+        }
+        .pref-status{
+            margin-top: 8px;
+            font-size: 13px;
+            color: #344a66;
+            word-break: break-all;
+        }
+        .form-actions{
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+        .btn-secondary{
+            background: #e9f3fc;
+            color: #0b4f93;
+            border: 1px solid #cfe1f5;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar-container"></div>
+    <div id="navbar-container"></div>
+
+    <div class="main-content">
+        <header><h2>Preference</h2></header>
+
+        <div class="preference-grid">
+            <div class="preference-card">
+                <h3>System Logo</h3>
+                <p>Allowed formats: .jpg, .jpeg, .bmp, .gif</p>
+                <input id="logoFile" type="file" accept=".jpg,.jpeg,.bmp,.gif">
+                <button class="btn btn-primary" type="button" onclick="uploadLogo()">Save Logo</button>
+                <div class="pref-status" id="logoStatus">Current: -</div>
+            </div>
+
+            <div class="preference-card">
+                <h3>Invoice PDF</h3>
+                <p>Upload Invoice Details template (.pdf)</p>
+                <input id="invoiceTemplateFile" type="file" accept=".pdf">
+                <button class="btn btn-primary" type="button" onclick="uploadTemplate('invoice')">Save Invoice</button>
+                <div class="pref-status" id="invoiceStatus">Current: -</div>
+            </div>
+
+            <div class="preference-card">
+                <h3>Quotation PDF</h3>
+                <p>Upload Quotation template (.pdf)</p>
+                <input id="quotationTemplateFile" type="file" accept=".pdf">
+                <button class="btn btn-primary" type="button" onclick="uploadTemplate('quotation')">Save Quotation</button>
+                <div class="pref-status" id="quotationStatus">Current: -</div>
+            </div>
+
+            <div class="preference-card">
+                <h3>Quotation 2 PDF</h3>
+                <p>Upload Quotation 2 template (.pdf)</p>
+                <input id="quotation2TemplateFile" type="file" accept=".pdf">
+                <button class="btn btn-primary" type="button" onclick="uploadTemplate('quotation2')">Save Quotation 2</button>
+                <div class="pref-status" id="quotation2Status">Current: -</div>
+            </div>
+
+            <div class="preference-card">
+                <h3>SIGN C</h3>
+                <p>Upload SIGN C image to linked system path.</p>
+                <input id="signCFile" type="file" accept=".jpg,.jpeg,.bmp,.gif,.png">
+                <button class="btn btn-primary" type="button" onclick="uploadBrandImage('sign_c')">Save SIGN C</button>
+                <div class="pref-status" id="signCStatus">Current: -</div>
+            </div>
+
+            <div class="preference-card">
+                <h3>SIGN V</h3>
+                <p>Upload SIGN V image to linked system path.</p>
+                <input id="signVFile" type="file" accept=".jpg,.jpeg,.bmp,.gif,.png">
+                <button class="btn btn-primary" type="button" onclick="uploadBrandImage('sign_v')">Save SIGN V</button>
+                <div class="pref-status" id="signVStatus">Current: -</div>
+            </div>
+
+            <div class="preference-card">
+                <h3>SEAL C</h3>
+                <p>Upload SEAL C image to linked system path.</p>
+                <input id="sealCFile" type="file" accept=".jpg,.jpeg,.bmp,.gif,.png">
+                <button class="btn btn-primary" type="button" onclick="uploadBrandImage('seal_c')">Save SEAL C</button>
+                <div class="pref-status" id="sealCStatus">Current: -</div>
+            </div>
+
+            <div class="preference-card">
+                <h3>SEAL V</h3>
+                <p>Upload SEAL V image to linked system path.</p>
+                <input id="sealVFile" type="file" accept=".jpg,.jpeg,.bmp,.gif,.png">
+                <button class="btn btn-primary" type="button" onclick="uploadBrandImage('seal_v')">Save SEAL V</button>
+                <div class="pref-status" id="sealVStatus">Current: -</div>
+            </div>
+
+            <div class="preference-card">
+                <h3>Theme Settings</h3>
+                <p>Dashboard color, background color, button color and mode.</p>
+
+                <label for="dashboardColorPreset">Dashboard Color (8 presets)</label>
+                <select id="dashboardColorPreset">
+                    <option value="#0f6abf">Default Blue</option>
+                    <option value="#0b7285">Teal Blue</option>
+                    <option value="#146c43">Emerald Green</option>
+                    <option value="#7a4cc9">Royal Purple</option>
+                    <option value="#9b6b22">Golden Brown</option>
+                    <option value="#a33a3a">Crimson Red</option>
+                    <option value="#3f5d7d">Steel Blue</option>
+                    <option value="#2c3e50">Slate Navy</option>
+                </select>
+
+                <label for="backgroundColorInput">Background Color</label>
+                <input id="backgroundColorInput" type="color" value="#edf3fb">
+
+                <label for="buttonColorInput">Buttons Color</label>
+                <input id="buttonColorInput" type="color" value="#0f6abf">
+
+                <label for="modeThemeSelect">Mode</label>
+                <select id="modeThemeSelect">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                </select>
+
+                <button class="btn btn-primary" type="button" onclick="saveThemeSettings()">Save Theme</button>
+                <div class="pref-status" id="themeStatus">Current: -</div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a class="btn btn-secondary" href="user-list.html">Back</a>
+        </div>
+    </div>
+
+    <script src="../../assets/js/api.js"></script>
+    <script>
+        function fileToDataUrl(file){
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(String(reader.result || ""));
+                reader.onerror = () => reject(new Error("Failed to read file."));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function setStatuses(pref){
+            document.getElementById("logoStatus").textContent = `Current: ${pref.logo_file_name || "-"}`;
+            document.getElementById("invoiceStatus").textContent = `Current: ${pref.invoice_template_pdf_file_name || "-"}`;
+            document.getElementById("quotationStatus").textContent = `Current: ${pref.quotation_template_pdf_file_name || "-"}`;
+            document.getElementById("quotation2Status").textContent = `Current: ${pref.quotation2_template_pdf_file_name || "-"}`;
+            document.getElementById("signCStatus").textContent = `Current: ${pref.sign_c_file_name || "-"} | Path: ${pref.sign_c_path || "-"}`;
+            document.getElementById("signVStatus").textContent = `Current: ${pref.sign_v_file_name || "-"} | Path: ${pref.sign_v_path || "-"}`;
+            document.getElementById("sealCStatus").textContent = `Current: ${pref.seal_c_file_name || "-"} | Path: ${pref.seal_c_path || "-"}`;
+            document.getElementById("sealVStatus").textContent = `Current: ${pref.seal_v_file_name || "-"} | Path: ${pref.seal_v_path || "-"}`;
+        }
+
+        function normalizeHex(value, fallback){
+            const raw = String(value || "").trim();
+            if(/^#[0-9a-fA-F]{6}$/.test(raw)) return raw.toLowerCase();
+            return fallback;
+        }
+
+        function applyThemeForm(settings){
+            const dashboard = normalizeHex(settings.primary_color, "#0f6abf");
+            const bg = normalizeHex(settings.background_color, "#edf3fb");
+            const button = normalizeHex(settings.button_color, dashboard);
+            const mode = String(settings.mode_theme || "light").toLowerCase() === "dark" ? "dark" : "light";
+
+            document.getElementById("dashboardColorPreset").value = dashboard;
+            document.getElementById("backgroundColorInput").value = bg;
+            document.getElementById("buttonColorInput").value = button;
+            document.getElementById("modeThemeSelect").value = mode;
+            document.getElementById("themeStatus").textContent = `Current: Dashboard ${dashboard}, Background ${bg}, Buttons ${button}, Mode ${mode}`;
+        }
+
+        async function loadPreferences(){
+            const pref = await request("/preferences", "GET");
+            setStatuses(pref);
+            const ui = await fetch(`${window.BASE_URL}/ui-settings/public`).then((r) => r.ok ? r.json() : null);
+            if(ui){
+                applyThemeForm(ui);
+            }
+        }
+
+        async function uploadLogo(){
+            const input = document.getElementById("logoFile");
+            const file = input.files && input.files[0];
+            if(!file){
+                alert("Please choose a logo file.");
+                return;
+            }
+            const ext = "." + String(file.name.split(".").pop() || "").toLowerCase();
+            const allowed = [".jpg", ".jpeg", ".bmp", ".gif"];
+            if(!allowed.includes(ext)){
+                alert("Allowed logo formats: .jpg, .jpeg, .bmp, .gif");
+                return;
+            }
+            const fileDataBase64 = await fileToDataUrl(file);
+            await request("/preferences/logo", "POST", {
+                fileName: file.name,
+                fileDataBase64
+            });
+            showMessageBox("System logo updated");
+            input.value = "";
+            await loadPreferences();
+        }
+
+        function getTemplateInput(templateType){
+            if(templateType === "invoice") return document.getElementById("invoiceTemplateFile");
+            if(templateType === "quotation") return document.getElementById("quotationTemplateFile");
+            return document.getElementById("quotation2TemplateFile");
+        }
+
+        async function uploadTemplate(templateType){
+            const input = getTemplateInput(templateType);
+            const file = input.files && input.files[0];
+            if(!file){
+                alert("Please choose a PDF file.");
+                return;
+            }
+            if(!String(file.name || "").toLowerCase().endsWith(".pdf")){
+                alert("Only PDF files are allowed.");
+                return;
+            }
+            const fileDataBase64 = await fileToDataUrl(file);
+            await request("/preferences/template", "POST", {
+                templateType,
+                fileName: file.name,
+                fileDataBase64
+            });
+            showMessageBox(`${templateType} template updated`);
+            input.value = "";
+            await loadPreferences();
+        }
+
+        function getBrandImageInput(imageType){
+            if(imageType === "sign_c") return document.getElementById("signCFile");
+            if(imageType === "sign_v") return document.getElementById("signVFile");
+            if(imageType === "seal_c") return document.getElementById("sealCFile");
+            return document.getElementById("sealVFile");
+        }
+
+        async function uploadBrandImage(imageType){
+            const input = getBrandImageInput(imageType);
+            const file = input.files && input.files[0];
+            if(!file){
+                alert("Please choose an image file.");
+                return;
+            }
+            const lower = String(file.name || "").toLowerCase();
+            if(!(/\.(jpg|jpeg|bmp|gif|png)$/i.test(lower))){
+                alert("Only .jpg, .jpeg, .bmp, .gif, .png files are allowed.");
+                return;
+            }
+            const fileDataBase64 = await fileToDataUrl(file);
+            await request("/preferences/brand-image", "POST", {
+                imageType,
+                fileName: file.name,
+                fileDataBase64
+            });
+            showMessageBox(`${imageType} image updated`);
+            input.value = "";
+            await loadPreferences();
+        }
+
+        async function saveThemeSettings(){
+            const dashboardColor = document.getElementById("dashboardColorPreset").value;
+            const backgroundColor = document.getElementById("backgroundColorInput").value;
+            const buttonColor = document.getElementById("buttonColorInput").value;
+            const modeTheme = document.getElementById("modeThemeSelect").value;
+
+            await request("/ui-settings", "PUT", {
+                primary_color: dashboardColor,
+                background_color: backgroundColor,
+                button_color: buttonColor,
+                mode_theme: modeTheme
+            });
+
+            showMessageBox("Theme settings updated");
+            await loadPreferences();
+        }
+
+        window.addEventListener("DOMContentLoaded", async () => {
+            const role = String(localStorage.getItem("role") || "").toLowerCase();
+            if(role !== "admin"){
+                window.location.href = "../dashboard.html";
+                return;
+            }
+            try{
+                await loadPreferences();
+            }catch(err){
+                alert(err.message || "Failed to load preferences");
+            }
+        });
+    </script>
+</body>
+</html>

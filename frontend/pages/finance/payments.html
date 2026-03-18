@@ -130,8 +130,19 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 const role = (localStorage.getItem("role") || "").toLowerCase();
-if(role !== "admin" && role !== "manager"){
-    alert("Only Admin and Manager can access Payments.");
+const allowedPaths = (() => {
+    try{
+        const rows = JSON.parse(localStorage.getItem("userAllowedPathsRuntime") || "[]");
+        return new Set((Array.isArray(rows) ? rows : []).map((x) => String(x || "").trim().toLowerCase()));
+    }catch(_err){
+        return new Set();
+    }
+})();
+const canAccessFinance = (role === "admin" || role === "manager")
+    ? true
+    : (role === "user" && allowedPaths.has("/finance/finance.html"));
+if(!canAccessFinance){
+    alert("You don't have access to Payments.");
     window.location.href = "../dashboard.html";
 }
 
