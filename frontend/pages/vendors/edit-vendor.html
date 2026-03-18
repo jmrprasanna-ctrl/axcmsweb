@@ -86,43 +86,39 @@
             <label>Product Category</label>
             <div class="category-grid" id="category">
                 <label class="check">
-                    <input type="checkbox" value="Photocopier">
+                    <input type="radio" name="vendorCategory" value="Photocopier">
                     <span>Photocopier</span>
                 </label>
                 <label class="check">
-                    <input type="checkbox" value="Printer">
+                    <input type="radio" name="vendorCategory" value="Printer">
                     <span>Printer</span>
                 </label>
                 <label class="check">
-                    <input type="checkbox" value="Plotter">
+                    <input type="radio" name="vendorCategory" value="Plotter">
                     <span>Plotter</span>
                 </label>
                 <label class="check">
-                    <input type="checkbox" value="Computer">
+                    <input type="radio" name="vendorCategory" value="Computer">
                     <span>Computer</span>
                 </label>
                 <label class="check">
-                    <input type="checkbox" value="Laptop">
+                    <input type="radio" name="vendorCategory" value="Laptop">
                     <span>Laptop</span>
                 </label>
                 <label class="check">
-                    <input type="checkbox" value="Accessory">
+                    <input type="radio" name="vendorCategory" value="Accessory">
                     <span>Accessory</span>
                 </label>
                 <label class="check">
-                    <input type="checkbox" value="Consumable">
+                    <input type="radio" name="vendorCategory" value="Consumable">
                     <span>Consumable</span>
                 </label>
                 <label class="check">
-                    <input type="checkbox" value="Machine">
+                    <input type="radio" name="vendorCategory" value="Machine">
                     <span>Machine</span>
                 </label>
-                <label class="check">
-                    <input type="checkbox" value="Service">
-                    <span>Service</span>
-                </label>
             </div>
-            <p class="helper-text">Select one or more categories.</p>
+            <p class="helper-text">Select one category.</p>
 
             <div class="form-actions">
                 <button type="submit">Update Vendor</button>
@@ -142,12 +138,14 @@ if(!vendorId){
     window.location.href = "list-vendor.html";
 }
 
-function setCheckedCategories(categoryText){
-    if(!categoryText) return;
-    const selected = categoryText.split(",").map(c => c.trim()).filter(Boolean);
-    const checks = document.querySelectorAll("#category input[type='checkbox']");
+function setCheckedCategory(categoryText){
+    const selected = String(categoryText || "")
+        .split(",")
+        .map(c => c.trim())
+        .find(Boolean) || "";
+    const checks = document.querySelectorAll("#category input[type='radio']");
     checks.forEach(ch => {
-        ch.checked = selected.includes(ch.value);
+        ch.checked = (ch.value === selected);
     });
 }
 
@@ -156,7 +154,7 @@ async function loadVendor(){
         const vendor = await request(`/vendors/${vendorId}`,"GET");
         document.getElementById("name").value = vendor.name || "";
         document.getElementById("address").value = vendor.address || "";
-        setCheckedCategories(vendor.category || "");
+        setCheckedCategory(vendor.category || "");
     }catch(err){
         alert(err.message || "Failed to load vendor");
         window.location.href = "list-vendor.html";
@@ -165,9 +163,11 @@ async function loadVendor(){
 
 document.getElementById("vendorForm").addEventListener("submit", async function(e){
     e.preventDefault();
-    const selected = Array.from(document.querySelectorAll("#category input[type='checkbox']:checked"))
-        .map(input => input.value)
-        .filter(Boolean);
+    const selected = document.querySelector("#category input[type='radio']:checked")?.value || "";
+    if(!selected){
+        alert("Please select a product category.");
+        return;
+    }
     const data = {
         name: document.getElementById("name").value.trim(),
         address: document.getElementById("address").value.trim(),

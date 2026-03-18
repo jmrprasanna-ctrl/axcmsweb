@@ -16,6 +16,8 @@
     .action-btn{
         width: 84px;
         min-width: 84px;
+        margin-top: 0;
+        margin-left: 0;
     }
     .product-action-row{
         display:flex;
@@ -23,6 +25,11 @@
         align-items:center;
         flex-wrap:nowrap;
         white-space:nowrap;
+    }
+    .product-action-row > .btn,
+    .product-action-row > button{
+        margin-top: 0;
+        margin-left: 0;
     }
     .search-inline{
         width: 280px;
@@ -96,7 +103,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 const role = (localStorage.getItem("role") || "").toLowerCase();
-const isUser = role === "user";
+const selectedDb = (localStorage.getItem("selectedDatabaseName") || "").toLowerCase();
+const isTrainingUser = role === "user" && selectedDb === "demo";
+const canManage = role === "admin" || role === "manager" || isTrainingUser;
 const allowedPaths = (() => {
     try{
         const rows = JSON.parse(localStorage.getItem("userAllowedPathsRuntime") || "[]");
@@ -105,7 +114,7 @@ const allowedPaths = (() => {
         return new Set();
     }
 })();
-const canAccessPath = (path) => (role === "admin" || role === "manager")
+const canAccessPath = (path) => canManage
     ? true
     : (role === "user" && allowedPaths.has(String(path || "").trim().toLowerCase()));
 const canAddProduct = canAccessPath("/products/add-product.html");
@@ -117,7 +126,7 @@ if(addProductBtn && !canAddProduct){
     addProductBtn.style.display = "none";
 }
 
-if(isUser){
+if(!canManage){
     const actionHeader = document.querySelector("#productTable thead th:last-child");
     if(actionHeader && actionHeader.innerText.toLowerCase().includes("action")){
         actionHeader.remove();
@@ -141,7 +150,7 @@ function renderProducts(products){
             <td>${p.selling_price}</td>
             <td>${vendorName}</td>
         `;
-        if(!isUser){
+        if(canManage){
             const count = Number(p.count || 0);
             tr.innerHTML += `
                 <td>

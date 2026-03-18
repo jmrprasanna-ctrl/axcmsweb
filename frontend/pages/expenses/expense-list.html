@@ -141,7 +141,8 @@ const filterPeriodEl = document.getElementById("filterPeriod");
 const expenseSearchEl = document.getElementById("expenseSearch");
 filterDateEl.value = new Date().toISOString().slice(0,10);
 const role = (localStorage.getItem("role") || "").toLowerCase();
-const isUser = role === "user";
+const selectedDb = (localStorage.getItem("selectedDatabaseName") || "").toLowerCase();
+const isTrainingUser = role === "user" && selectedDb === "demo";
 const allowedPaths = (() => {
     try{
         const rows = JSON.parse(localStorage.getItem("userAllowedPathsRuntime") || "[]");
@@ -150,10 +151,12 @@ const allowedPaths = (() => {
         return new Set();
     }
 })();
-const canAccessPath = (path) => (role === "admin" || role === "manager")
+const canManage = role === "admin" || role === "manager" || isTrainingUser;
+const canAccessPath = (path) => (canManage)
     ? true
     : (role === "user" && allowedPaths.has(String(path || "").trim().toLowerCase()));
 const canAddExpense = canAccessPath("/expenses/add-expense.html");
+const isReadOnlyUser = !canManage;
 let allExpenses = [];
 
 const addExpenseBtn = document.getElementById("addExpenseBtn");
@@ -161,7 +164,7 @@ if(addExpenseBtn && !canAddExpense){
     addExpenseBtn.style.display = "none";
 }
 
-if(isUser){
+if(isReadOnlyUser){
     const actionHeader = document.querySelector("#expenseTable thead th:last-child");
     if(actionHeader && actionHeader.innerText.toLowerCase().includes("action")){
         actionHeader.remove();
@@ -236,7 +239,7 @@ function renderExpenses(expenses){
     tbody.innerHTML = "";
     if(!expenses.length){
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td colspan="${isUser ? 5 : 6}">No data found.</td>`;
+        tr.innerHTML = `<td colspan="${isReadOnlyUser ? 5 : 6}">No data found.</td>`;
         tbody.appendChild(tr);
         return;
     }
@@ -250,7 +253,7 @@ function renderExpenses(expenses){
             <td>${dateText}</td>
             <td>${exp.category}</td>
         `;
-        if(!isUser){
+        if(!isReadOnlyUser){
             tr.innerHTML += `
                 <td>
                     <a class="btn" href="edit-expense.html?id=${exp.id}">Edit</a>

@@ -579,9 +579,7 @@ ON CONFLICT DO NOTHING;
 -- creates hashed default users when missing.
 INSERT INTO users(username, company, department, telephone, email, role, password)
 VALUES
-('admin','IT Corp','IT','1234567890','admin@example.com','admin','admin123'),
-('manager','IT Corp','Sales','0987654321','manager@example.com','manager','manager123'),
-('user','IT Corp','Sales','0112233445','user@example.com','user','user123')
+('manager','IT Corp','Sales','0987654321','manager@example.com','manager','manager123')
 ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO ui_settings(app_name, footer_text, primary_color, accent_color)

@@ -104,7 +104,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 const role = (localStorage.getItem("role") || "").toLowerCase();
-const isUser = role === "user";
+const selectedDb = (localStorage.getItem("selectedDatabaseName") || "").toLowerCase();
+const isTrainingUser = role === "user" && selectedDb === "demo";
+const canManage = role === "admin" || role === "manager" || isTrainingUser;
 const allowedPaths = (() => {
     try{
         const rows = JSON.parse(localStorage.getItem("userAllowedPathsRuntime") || "[]");
@@ -113,7 +115,7 @@ const allowedPaths = (() => {
         return new Set();
     }
 })();
-const canAccessPath = (path) => (role === "admin" || role === "manager")
+const canAccessPath = (path) => canManage
     ? true
     : (role === "user" && allowedPaths.has(String(path || "").trim().toLowerCase()));
 const canAddCustomer = canAccessPath("/customers/add-customer.html");
@@ -125,7 +127,7 @@ if(addCustomerBtn && !canAddCustomer){
     addCustomerBtn.style.display = "none";
 }
 
-if(isUser){
+if(!canManage){
     const actionHeader = document.querySelector("#customerTable thead th:last-child");
     if(actionHeader && actionHeader.innerText.toLowerCase().includes("action")){
         actionHeader.remove();
@@ -145,7 +147,7 @@ function renderCustomers(customers){
             <td>${c.customer_type || ""}</td>
             <td>${String(c.vat_number || "").trim() ? "Yes" : "No"}</td>
         `;
-        if(!isUser){
+        if(canManage){
             tr.innerHTML += `
                 <td>
                     <div class="customer-action-row">

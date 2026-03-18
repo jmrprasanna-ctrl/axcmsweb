@@ -247,8 +247,7 @@ exports.vendorWiseProductsReport = async (req,res)=>{
             include: [
                 { model: Vendor, attributes: ["id", "name"] },
                 { model: Category, attributes: ["id", "name"] }
-            ],
-            order: [[Vendor, "name", "ASC"], ["product_id", "ASC"]]
+            ]
         });
 
         const rows = products.map((p) => ({
@@ -259,7 +258,12 @@ exports.vendorWiseProductsReport = async (req,res)=>{
             model: p.model,
             category: p.Category ? p.Category.name : "",
             count: Number(p.count || 0)
-        }));
+        }))
+        .sort((a, b) => {
+            const vendorCmp = String(a.vendor || "").localeCompare(String(b.vendor || ""));
+            if(vendorCmp !== 0) return vendorCmp;
+            return String(a.product_id || "").localeCompare(String(b.product_id || ""));
+        });
 
         res.json({ total: rows.length, rows });
     }catch(err){

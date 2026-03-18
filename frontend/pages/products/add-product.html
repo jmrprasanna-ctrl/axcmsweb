@@ -157,14 +157,16 @@ function normalizeCategories(text){
     if(!text) return [];
     return String(text)
         .split(",")
-        .map(c => c.trim())
+        .map(c => c.trim().toLowerCase())
         .filter(Boolean);
 }
 
 function renderVendorsByCategory(){
     const vendorSelect = document.getElementById("vendor");
     const categorySelect = document.getElementById("category");
-    const selectedCategory = categorySelect.selectedOptions[0]?.dataset?.name || "";
+    const selectedCategory = String(categorySelect.selectedOptions[0]?.dataset?.name || "")
+        .trim()
+        .toLowerCase();
     vendorSelect.innerHTML = `<option value="">Select Vendor</option>`;
 
     const filtered = selectedCategory
@@ -209,10 +211,11 @@ function renderCategories(list){
     const categorySelect = document.getElementById("category");
     categorySelect.innerHTML = `<option value="">Select Category</option>`;
     list.forEach((item) => {
+        const name = String(item.name || item || "").trim();
         const opt = document.createElement("option");
         opt.value = item.id ? String(item.id) : item;
-        opt.dataset.name = item.name || item;
-        opt.innerText = item.name || item;
+        opt.dataset.name = name;
+        opt.innerText = name;
         categorySelect.appendChild(opt);
     });
 }

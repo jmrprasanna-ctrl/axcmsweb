@@ -1,8 +1,39 @@
 const jwt = require("jsonwebtoken");
 const db = require("../config/database");
+const { Client } = require("pg");
 
 const DEFAULT_DB = db.normalizeDatabaseName(process.env.DB_NAME || "inventory") || "inventory";
 const ALLOWED_USER_DBS = new Set(["inventory", "demo"]);
+
+function getAuthDbClient() {
+  return new Client({
+    host: process.env.DB_HOST || "localhost",
+    port: Number(process.env.DB_PORT || 5432),
+    user: process.env.DB_USER || "postgres",
+    password: String(process.env.DB_PASSWORD || ""),
+    database: DEFAULT_DB,
+  });
+}
+
+async function resolveUserAssignedDatabase(userId) {
+  const client = getAuthDbClient();
+  try {
+    await client.connect();
+    const rs = await client.query(
+      "SELECT database_name FROM user_accesses WHERE user_id = $1 LIMIT 1",
+      [userId]
+    );
+    const selected = db.normalizeDatabaseName(rs.rows[0]?.database_name || "");
+    if (selected && ALLOWED_USER_DBS.has(selected)) {
+      return selected;
+    }
+    return DEFAULT_DB;
+  } catch (_err) {
+    return null;
+  } finally {
+    await client.end().catch(() => {});
+  }
+}
 
 const authMiddleware = async (req, res, next) => {
   const token = req.headers["authorization"]?.split(" ")[1];
@@ -14,21 +45,21 @@ const authMiddleware = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "supersecretjwtkey");
     let targetDb = DEFAULT_DB;
     const role = String(decoded?.role || "").toLowerCase();
-    const tokenDb = db.normalizeDatabaseName(decoded?.database_name || "");
-    const headerDb = db.normalizeDatabaseName(req.headers["x-database-name"] || "");
 
     if (role === "user") {
-      const selected = tokenDb || headerDb || DEFAULT_DB;
-      if (!ALLOWED_USER_DBS.has(selected)) {
-        return res.status(403).json({ message: "Invalid database access." });
+      const assignedDb = await resolveUserAssignedDatabase(Number(decoded?.id || 0));
+      if (!assignedDb) {
+        return res.status(503).json({ message: "Unable to resolve user database assignment." });
       }
-      targetDb = selected;
+      if (!ALLOWED_USER_DBS.has(assignedDb)) {
+        return res.status(403).json({ message: "Invalid assigned database access." });
+      }
+      targetDb = assignedDb;
     }
 
-    await db.switchDatabase(targetDb);
     req.user = decoded;
     req.databaseName = targetDb;
-    next();
+    return db.runWithDatabase(targetDb, () => next());
   } catch (err) {
     return res.status(401).json({ message: "Invalid token." });
   }

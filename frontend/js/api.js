@@ -75,9 +75,38 @@ const MANAGER_BLOCKED_PATHS = [
     "/preference.html"
 ];
 
+function buildPagesPath(fileName){
+    const path = window.location.pathname.replace(/\\/g, "/");
+    const idx = path.lastIndexOf("/pages/");
+    if(idx !== -1){
+        return path.slice(0, idx + 7) + fileName;
+    }
+    return `/${fileName}`;
+}
+
+function enforceAuthentication(){
+    const path = window.location.pathname.replace(/\\/g, "/").toLowerCase();
+    const isLoginPage = path.endsWith("/login.html") || path.endsWith("login.html");
+    const token = localStorage.getItem("token");
+
+    if(!token && !isLoginPage){
+        window.location.replace(buildPagesPath("login.html"));
+        return false;
+    }
+
+    if(token && isLoginPage){
+        window.location.replace(buildPagesPath("dashboard.html"));
+        return false;
+    }
+
+    return true;
+}
+
 function enforceUserAccess(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
     if(role !== "user") return;
+    const selectedDb = String(localStorage.getItem("selectedDatabaseName") || "").trim().toLowerCase();
+    if(selectedDb === "demo") return;
     const path = window.location.pathname.replace(/\\/g,"/");
     const allowed = USER_ALLOWED_PATHS.some(suffix => path.endsWith(suffix));
     if(allowed) return;
@@ -437,6 +466,7 @@ async function loadPublicUiSettings(){
 }
 
 window.addEventListener("DOMContentLoaded", () => {
+    if(!enforceAuthentication()) return;
     const role = (localStorage.getItem("role") || "").toLowerCase();
     if(role === "user"){
         const cachedRaw = localStorage.getItem(USER_ALLOWED_CACHE_KEY);
@@ -460,6 +490,20 @@ window.addEventListener("DOMContentLoaded", () => {
     ensureMobileSidebar();
     ensureGlobalFooter();
     loadPublicUiSettings();
+});
+
+window.addEventListener("pageshow", () => {
+    enforceAuthentication();
+});
+
+window.addEventListener("popstate", () => {
+    enforceAuthentication();
+});
+
+document.addEventListener("visibilitychange", () => {
+    if(document.visibilityState === "visible"){
+        enforceAuthentication();
+    }
 });
 
 function ensureMessageBoxStyles(){
@@ -510,6 +554,7 @@ async function request(endpoint, method="GET", data=null){
     const token = localStorage.getItem("token");
     const isAuthEndpoint = endpoint.startsWith("/auth/");
     if(!token && !isAuthEndpoint){
+        enforceAuthentication();
         throw new Error("Please login first.");
     }
     const headers = {"Content-Type":"application/json"};

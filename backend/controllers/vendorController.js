@@ -1,6 +1,26 @@
 const Vendor = require("../models/Vendor");
 const Product = require("../models/Product");
 
+const ALLOWED_VENDOR_CATEGORIES = new Set([
+    "Photocopier",
+    "Printer",
+    "Plotter",
+    "Computer",
+    "Laptop",
+    "Accessory",
+    "Consumable",
+    "Machine"
+]);
+
+function normalizeVendorCategory(input){
+    let category = input;
+    if(Array.isArray(category)){
+        category = category.map(c => String(c || "").trim()).find(Boolean) || "";
+    }
+    category = String(category || "").trim();
+    return category;
+}
+
 exports.getVendors = async (req,res)=>{
     const vendors = await Vendor.findAll();
     res.json(vendors);
@@ -31,14 +51,12 @@ exports.getVendorProducts = async (req,res)=>{
 exports.createVendor = async (req,res)=>{
     try{
         let { name, address, category } = req.body;
-        if(Array.isArray(category)){
-            category = category.map(c => String(c).trim()).filter(Boolean).join(", ");
-        }
-        if(typeof category === "string"){
-            category = category.trim();
-        }
+        category = normalizeVendorCategory(category);
         if(!name || !category){
             return res.status(400).json({ message: "Vendor name and category are required." });
+        }
+        if(!ALLOWED_VENDOR_CATEGORIES.has(category)){
+            return res.status(400).json({ message: "Invalid vendor category." });
         }
         const vendor = await Vendor.create({ name, address, category });
         res.status(201).json(vendor);
@@ -51,14 +69,12 @@ exports.updateVendor = async (req,res)=>{
     try{
         const { id } = req.params;
         let { name, address, category } = req.body;
-        if(Array.isArray(category)){
-            category = category.map(c => String(c).trim()).filter(Boolean).join(", ");
-        }
-        if(typeof category === "string"){
-            category = category.trim();
-        }
+        category = normalizeVendorCategory(category);
         if(!name || !category){
             return res.status(400).json({ message: "Vendor name and category are required." });
+        }
+        if(!ALLOWED_VENDOR_CATEGORIES.has(category)){
+            return res.status(400).json({ message: "Invalid vendor category." });
         }
         const vendor = await Vendor.findByPk(id);
         if(!vendor){

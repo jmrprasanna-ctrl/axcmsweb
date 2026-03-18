@@ -106,6 +106,8 @@ function enforceAuthentication(){
 function enforceUserAccess(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
     if(role !== "user") return;
+    const selectedDb = String(localStorage.getItem("selectedDatabaseName") || "").trim().toLowerCase();
+    if(selectedDb === "demo") return;
     const path = window.location.pathname.replace(/\\/g,"/");
     const allowed = USER_ALLOWED_PATHS_RUNTIME.some(suffix => path.endsWith(suffix));
     if(allowed) return;
@@ -527,6 +529,20 @@ window.addEventListener("DOMContentLoaded", async () => {
     loadPublicUiSettings();
 });
 
+window.addEventListener("pageshow", () => {
+    enforceAuthentication();
+});
+
+window.addEventListener("popstate", () => {
+    enforceAuthentication();
+});
+
+document.addEventListener("visibilitychange", () => {
+    if(document.visibilityState === "visible"){
+        enforceAuthentication();
+    }
+});
+
 function ensureMessageBoxStyles(){
     if(document.getElementById("message-box-styles")) return;
     const style = document.createElement("style");
@@ -575,6 +591,7 @@ async function request(endpoint, method="GET", data=null){
     const token = localStorage.getItem("token");
     const isAuthEndpoint = endpoint.startsWith("/auth/");
     if(!token && !isAuthEndpoint){
+        enforceAuthentication();
         throw new Error("Please login first.");
     }
     const headers = {"Content-Type":"application/json"};

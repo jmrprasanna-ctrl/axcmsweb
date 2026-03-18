@@ -1,5 +1,8 @@
 const bcrypt = require("bcrypt");
+const db = require("../config/database");
 const User = require("../models/User");
+const UserAccess = require("../models/UserAccess");
+const UserLoginLog = require("../models/UserLoginLog");
 
 exports.getUsers = async (req, res) => {
   try {
@@ -106,11 +109,29 @@ exports.updateUser = async (req, res) => {
 
 exports.deleteUser = async (req, res) => {
   const { id } = req.params;
+  const userId = Number(id);
+
+  if (!Number.isFinite(userId) || userId <= 0) {
+    return res.status(400).json({ message: "Invalid user id" });
+  }
 
   try {
-    await User.destroy({ where: { id } });
-    res.json({ message: "User deleted" });
+    await db.transaction(async (t) => {
+      const user = await User.findByPk(userId, { transaction: t });
+      if (!user) {
+        throw Object.assign(new Error("User not found"), { statusCode: 404 });
+      }
+
+      await UserLoginLog.destroy({ where: { user_id: userId }, transaction: t });
+      await UserAccess.destroy({ where: { user_id: userId }, transaction: t });
+      await User.destroy({ where: { id: userId }, transaction: t });
+    });
+
+    res.json({ message: "User deleted with linked access/log records" });
   } catch (err) {
+    if (err && err.statusCode === 404) {
+      return res.status(404).json({ message: "User not found" });
+    }
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }

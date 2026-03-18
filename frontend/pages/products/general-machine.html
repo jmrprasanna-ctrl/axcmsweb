@@ -93,6 +93,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 const role = (localStorage.getItem("role") || "").toLowerCase();
+const selectedDb = (localStorage.getItem("selectedDatabaseName") || "").toLowerCase();
+const isTrainingUser = role === "user" && selectedDb === "demo";
 const allowedPaths = (() => {
     try{
         const rows = JSON.parse(localStorage.getItem("userAllowedPathsRuntime") || "[]");
@@ -101,12 +103,12 @@ const allowedPaths = (() => {
         return new Set();
     }
 })();
-const canAccessPath = (path) => (role === "admin" || role === "manager")
+const canManage = role === "admin" || role === "manager" || isTrainingUser;
+const canAccessPath = (path) => (canManage)
     ? true
     : (role === "user" && allowedPaths.has(String(path || "").trim().toLowerCase()));
-const canManage = role === "admin" || role === "manager";
 const canAddGeneralMachine = canAccessPath("/products/add-general-machine.html");
-const isReadOnlyUser = role === "user";
+const isReadOnlyUser = !canManage;
 const addMachineBtn = document.getElementById("addMachineBtn");
 const machineSearchEl = document.getElementById("machineSearch");
 let allMachines = [];

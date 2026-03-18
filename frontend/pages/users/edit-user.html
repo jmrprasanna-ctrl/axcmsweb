@@ -25,17 +25,40 @@
         .input-wrap{
             position: relative;
         }
-        .toggle-pass{
+        .input-wrap input{
+            padding-right: 52px;
+        }
+        button.toggle-pass{
             position: absolute;
             right: 10px;
             top: 50%;
             transform: translateY(-50%);
+            margin-top: 0;
+            min-height: 0;
             border: 0;
             background: transparent;
-            color: #0b4f93;
-            font-weight: 700;
+            color: #7f8c98;
             cursor: pointer;
-            padding: 4px 6px;
+            padding: 6px;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: none;
+            filter: none;
+        }
+        button.toggle-pass:hover{
+            background:#eef3f8;
+            color:#4f7ea9;
+            transform: translateY(-50%);
+            box-shadow: none;
+            filter: none;
+        }
+        button.toggle-pass:focus{
+            outline:none;
+            box-shadow:0 0 0 3px rgba(79,126,169,0.2);
         }
         .hint{
             margin: 4px 0 12px;
@@ -78,7 +101,12 @@
                 <label for="password">New Password</label>
                 <div class="input-wrap">
                     <input type="password" id="password" placeholder="Leave blank to keep current password">
-                    <button type="button" class="toggle-pass" id="togglePassword" aria-label="Show password">Show</button>
+                    <button type="button" class="toggle-pass" id="togglePassword" aria-label="Show password" aria-pressed="false">
+                        <svg id="eyeIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M2 12C3.9 8 7.4 5.5 12 5.5C16.6 5.5 20.1 8 22 12C20.1 16 16.6 18.5 12 18.5C7.4 18.5 3.9 16 2 12Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                            <circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="1.8"/>
+                        </svg>
+                    </button>
                 </div>
                 <p class="hint">Leave password blank to keep the current password.</p>
 
@@ -123,6 +151,7 @@
             const companyInput = document.getElementById('company');
             const togglePassword = document.getElementById('togglePassword');
             const passwordInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eyeIcon');
 
             companyInput.style.textTransform = "uppercase";
             companyInput.addEventListener("input", () => {
@@ -158,8 +187,11 @@
             togglePassword.addEventListener("click", () => {
                 const isPassword = passwordInput.type === "password";
                 passwordInput.type = isPassword ? "text" : "password";
-                togglePassword.textContent = isPassword ? "Hide" : "Show";
                 togglePassword.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+                togglePassword.setAttribute("aria-pressed", isPassword ? "true" : "false");
+                eyeIcon.innerHTML = isPassword
+                    ? '<path d="M3 3L21 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M2 12C3.9 8 7.4 5.5 12 5.5C13.8 5.5 15.4 5.9 16.8 6.7M20.2 9.4C20.9 10.2 21.5 11 22 12C20.1 16 16.6 18.5 12 18.5C8.2 18.5 5.2 16.8 3.2 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="1.8"/>'
+                    : '<path d="M2 12C3.9 8 7.4 5.5 12 5.5C16.6 5.5 20.1 8 22 12C20.1 16 16.6 18.5 12 18.5C7.4 18.5 3.9 16 2 12Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="1.8"/>';
             });
 
             loadUser();

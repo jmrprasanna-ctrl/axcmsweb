@@ -35,9 +35,7 @@ CREATE TABLE users (
 -- Sample Admin & Manager Users
 INSERT INTO users(username, company, department, telephone, email, role, password)
 VALUES 
-('admin','IT Corp','IT','1234567890','admin@example.com','admin','admin123'),
-('manager','IT Corp','Sales','0987654321','manager@example.com','manager','manager123'),
-('user','IT Corp','Sales','0112233445','user@example.com','user','user123');
+('manager','IT Corp','Sales','0987654321','manager@example.com','manager','manager123');
 
 -- ==========================
 -- Categories Table
@@ -220,3 +218,27 @@ VALUES
 ('Goods once sold cannot be returned'),
 ('Warranty as per manufacturer terms'),
 ('All disputes subject to local jurisdiction');
+
+-- ==========================
+-- UI Settings Table
+-- ==========================
+CREATE TABLE IF NOT EXISTS ui_settings (
+    id SERIAL PRIMARY KEY,
+    app_name VARCHAR(120) NOT NULL DEFAULT 'PULMO TECHNOLOGIES',
+    footer_text VARCHAR(255) NOT NULL DEFAULT '© All Right Recieved with CRONIT SOLLUTIONS - JMR Prasanna.',
+    primary_color VARCHAR(24) NOT NULL DEFAULT '#0f6abf',
+    accent_color VARCHAR(24) NOT NULL DEFAULT '#11a36f',
+    background_color VARCHAR(24) NOT NULL DEFAULT '#edf3fb',
+    button_color VARCHAR(24) NOT NULL DEFAULT '#0f6abf',
+    mode_theme VARCHAR(16) NOT NULL DEFAULT 'light',
+    logo_path VARCHAR(500),
+    invoice_template_pdf_path VARCHAR(500),
+    quotation_template_pdf_path VARCHAR(500),
+    quotation2_template_pdf_path VARCHAR(500),
+    sign_c_path VARCHAR(500),
+    sign_v_path VARCHAR(500),
+    seal_c_path VARCHAR(500),
+    seal_v_path VARCHAR(500),
+    createdAt TIMESTAMP DEFAULT NOW(),
+    updatedAt TIMESTAMP DEFAULT NOW()
+);

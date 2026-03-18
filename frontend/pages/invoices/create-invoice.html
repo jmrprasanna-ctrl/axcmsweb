@@ -299,10 +299,15 @@ let products = [];
 let invoiceCounter = 1;
 let customersCache = [];
 let machinesByCustomer = {};
-const DEFAULT_IMPORTANT_NOTES = [
-    "Cheque's are to be drawn in favor of PULMO TECHNOLOGIES (1000606391) and crossed A/C Payee only.",
-    "Ex-stock-subject to prior sale of Supply of items."
-];
+const selectedDb = String(localStorage.getItem("selectedDatabaseName") || "").toLowerCase();
+const DEFAULT_IMPORTANT_NOTES = selectedDb === "demo"
+    ? [
+        "Ex-stock-subject to prior sale of Supply of items."
+    ]
+    : [
+        "Cheque's are to be drawn in favor of PULMO TECHNOLOGIES (1000606391) and crossed A/C Payee only.",
+        "Ex-stock-subject to prior sale of Supply of items."
+    ];
 let importantNotes = [...DEFAULT_IMPORTANT_NOTES];
 let supportImportantLibrary = [];
 let productSearchCache = null;

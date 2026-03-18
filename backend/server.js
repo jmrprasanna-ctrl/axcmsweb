@@ -70,17 +70,17 @@ let appHealth = {
   startedAt: null,
 };
 
+async function runOnBusinessDatabases(task) {
+  await db.withDatabase("inventory", async () => {
+    await task("inventory");
+  });
+  await db.withDatabase("demo", async () => {
+    await task("demo");
+  });
+}
+
 async function ensureDefaultUsers() {
   const defaults = [
-    {
-      username: "admin",
-      company: "IT Corp",
-      department: "IT",
-      telephone: "1234567890",
-      email: "admin@example.com",
-      role: "admin",
-      password: "admin123",
-    },
     {
       username: "manager",
       company: "IT Corp",
@@ -89,15 +89,6 @@ async function ensureDefaultUsers() {
       email: "manager@example.com",
       role: "manager",
       password: "manager123",
-    },
-    {
-      username: "user",
-      company: "IT Corp",
-      department: "Sales",
-      telephone: "0112233445",
-      email: "user@example.com",
-      role: "user",
-      password: "user123",
     },
   ];
 
@@ -131,30 +122,34 @@ async function ensureDefaultCategories() {
     "Service",
   ];
 
-  for (const name of defaults) {
-    const existing = await Category.findOne({ where: { name } });
-    if (!existing) {
-      await Category.create({ name });
+  await runOnBusinessDatabases(async () => {
+    for (const name of defaults) {
+      const existing = await Category.findOne({ where: { name } });
+      if (!existing) {
+        await Category.create({ name });
+      }
     }
-  }
+  });
 }
 
 async function ensureDefaultUiSettings() {
-  const first = await UiSetting.findOne({ order: [["id", "ASC"]] });
-  if (!first) {
-    await UiSetting.create({
-      app_name: "PULMO TECHNOLOGIES",
-      footer_text: "© All Right Recieved with CRONIT SOLLUTIONS - JMR Prasanna.",
-      primary_color: "#0f6abf",
-      accent_color: "#11a36f",
-    });
-    return;
-  }
+  await runOnBusinessDatabases(async () => {
+    const first = await UiSetting.findOne({ order: [["id", "ASC"]] });
+    if (!first) {
+      await UiSetting.create({
+        app_name: "PULMO TECHNOLOGIES",
+        footer_text: "© All Right Recieved with CRONIT SOLLUTIONS - JMR Prasanna.",
+        primary_color: "#0f6abf",
+        accent_color: "#11a36f",
+      });
+      return;
+    }
 
-  const currentAppName = String(first.app_name || "").trim().toLowerCase();
-  if (currentAppName === "pulmotech_inhouse" || currentAppName === "ulmotech_inhouse") {
-    await first.update({ app_name: "PULMO TECHNOLOGIES" });
-  }
+    const currentAppName = String(first.app_name || "").trim().toLowerCase();
+    if (currentAppName === "pulmotech_inhouse" || currentAppName === "ulmotech_inhouse") {
+      await first.update({ app_name: "PULMO TECHNOLOGIES" });
+    }
+  });
 }
 
 async function ensureDefaultCategoryModelOptions() {
@@ -170,66 +165,72 @@ async function ensureDefaultCategoryModelOptions() {
     Service: ["OTHER"],
   };
 
-  for (const [categoryName, models] of Object.entries(categoryModels)) {
-    for (const modelName of models) {
-      const existing = await CategoryModelOption.findOne({
-        where: { category_name: categoryName, model_name: modelName },
-      });
-      if (!existing) {
-        await CategoryModelOption.create({
-          category_name: categoryName,
-          model_name: modelName,
+  await runOnBusinessDatabases(async () => {
+    for (const [categoryName, models] of Object.entries(categoryModels)) {
+      for (const modelName of models) {
+        const existing = await CategoryModelOption.findOne({
+          where: { category_name: categoryName, model_name: modelName },
         });
+        if (!existing) {
+          await CategoryModelOption.create({
+            category_name: categoryName,
+            model_name: modelName,
+          });
+        }
       }
     }
-  }
+  });
 }
 
 async function ensureRentalConsumableSchema() {
-  await db.query(`
-    ALTER TABLE rental_machine_consumables
-    ALTER COLUMN rental_machine_id DROP NOT NULL;
-  `);
+  await runOnBusinessDatabases(async () => {
+    await db.query(`
+      ALTER TABLE rental_machine_consumables
+      ALTER COLUMN rental_machine_id DROP NOT NULL;
+    `);
 
-  await db.query(`
-    ALTER TABLE rental_machine_consumables
-    ADD COLUMN IF NOT EXISTS customer_id INTEGER REFERENCES customers(id);
-  `);
+    await db.query(`
+      ALTER TABLE rental_machine_consumables
+      ADD COLUMN IF NOT EXISTS customer_id INTEGER REFERENCES customers(id);
+    `);
 
-  await db.query(`
-    ALTER TABLE rental_machine_consumables
-    ADD COLUMN IF NOT EXISTS save_batch_id VARCHAR(50);
-  `);
+    await db.query(`
+      ALTER TABLE rental_machine_consumables
+      ADD COLUMN IF NOT EXISTS save_batch_id VARCHAR(50);
+    `);
 
-  await db.query(`
-    ALTER TABLE rental_machine_consumables
-    ADD COLUMN IF NOT EXISTS count INTEGER DEFAULT 0;
-  `);
+    await db.query(`
+      ALTER TABLE rental_machine_consumables
+      ADD COLUMN IF NOT EXISTS count INTEGER DEFAULT 0;
+    `);
+  });
 }
 
 async function ensureRentalMachineCountSchema() {
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS rental_machine_counts (
-      id SERIAL PRIMARY KEY,
-      transaction_id VARCHAR(50) NOT NULL UNIQUE,
-      rental_machine_id INTEGER NOT NULL REFERENCES rental_machines(id) ON DELETE CASCADE,
-      customer_id INTEGER NOT NULL REFERENCES customers(id),
-      input_count INTEGER DEFAULT 0,
-      updated_count INTEGER DEFAULT 0,
-      "createdAt" TIMESTAMP DEFAULT NOW(),
-      "updatedAt" TIMESTAMP DEFAULT NOW()
-    );
-  `);
+  await runOnBusinessDatabases(async () => {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS rental_machine_counts (
+        id SERIAL PRIMARY KEY,
+        transaction_id VARCHAR(50) NOT NULL UNIQUE,
+        rental_machine_id INTEGER NOT NULL REFERENCES rental_machines(id) ON DELETE CASCADE,
+        customer_id INTEGER NOT NULL REFERENCES customers(id),
+        input_count INTEGER DEFAULT 0,
+        updated_count INTEGER DEFAULT 0,
+        "createdAt" TIMESTAMP DEFAULT NOW(),
+        "updatedAt" TIMESTAMP DEFAULT NOW()
+      );
+    `);
 
-  await db.query(`
-    ALTER TABLE rental_machine_counts
-    ADD COLUMN IF NOT EXISTS input_count INTEGER DEFAULT 0;
-  `);
+    await db.query(`
+      ALTER TABLE rental_machine_counts
+      ADD COLUMN IF NOT EXISTS input_count INTEGER DEFAULT 0;
+    `);
 
-  await db.query(`
-    ALTER TABLE rental_machine_counts
-    ADD COLUMN IF NOT EXISTS updated_count INTEGER DEFAULT 0;
-  `);
+    await db.query(`
+      ALTER TABLE rental_machine_counts
+      ADD COLUMN IF NOT EXISTS updated_count INTEGER DEFAULT 0;
+    `);
+  });
 }
 
 // Middleware
@@ -333,3 +334,4 @@ async function startServer() {
 }
 
 startServer();
+
