@@ -139,13 +139,18 @@ body,
     .product-row {
         grid-template-columns: 1fr 1fr;
     }
+    .invoice-action-row {
+        flex-wrap: wrap;
+        align-items: center;
+    }
     .invoice-action-row button,
     .invoice-action-row select,
     .add-product-actions button,
     .add-product-actions .btn {
-        width: 100%;
+        width: auto;
         margin-top: 0;
-        min-width: 0;
+        min-width: 140px;
+        max-width: 100%;
     }
 }
 @media (max-width: 900px) {
@@ -169,27 +174,33 @@ body,
         min-width: 0;
     }
     .invoice-action-row {
-        flex-direction: column;
-        align-items: stretch;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
     }
     .invoice-action-row button,
     .invoice-action-row select {
-        width: 100%;
+        width: auto;
+        min-width: 140px;
+        max-width: 100%;
         margin-top: 0;
     }
     #supportImportantSelect {
-        min-width: 0 !important;
-        width: 100%;
+        min-width: 220px !important;
+        width: auto;
+        max-width: 100%;
     }
     .add-product-actions {
-        flex-direction: column;
-        align-items: stretch;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
     }
     .add-product-actions button,
     .add-product-actions .btn {
-        width: 100%;
+        width: auto;
         margin-top: 0;
-        min-width: 0;
+        min-width: 140px;
+        max-width: 100%;
     }
 }
 @media (pointer: coarse) {
@@ -217,23 +228,31 @@ body,
         gap: 10px 0 !important;
     }
     .invoice-action-row {
-        flex-direction: column !important;
-        align-items: stretch !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
     }
     .invoice-action-row button,
     .invoice-action-row select,
     .add-product-actions button,
     .add-product-actions .btn,
     .product-toolbar .btn-inline-add {
-        width: 100% !important;
-        min-width: 0 !important;
+        width: auto !important;
+        min-width: 140px !important;
+        max-width: 100% !important;
         margin-top: 0 !important;
+    }
+    .product-toolbar .btn-inline-add {
+        width: 100% !important;
     }
     .product-row {
         grid-template-columns: 1fr !important;
     }
     .compact-input {
         min-width: 0 !important;
+    }
+    .card {
+        overflow-x: auto;
     }
 }
 </style>
