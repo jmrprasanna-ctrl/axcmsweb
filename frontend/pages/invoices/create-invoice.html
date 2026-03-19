@@ -150,8 +150,15 @@ body {
     }
 }
 @media (max-width: 900px) {
+    body {
+        display: block !important;
+        overflow-x: hidden !important;
+    }
     body.mobile-nav-open .sidebar {
         transform: translateX(0) !important;
+    }
+    .sidebar {
+        transform: translateX(-100%);
     }
     .main-content.add-product-main {
         margin-left: 0 !important;
@@ -159,9 +166,13 @@ body {
         max-width: 100% !important;
         padding: 14px !important;
         box-sizing: border-box !important;
+        overflow-x: hidden !important;
     }
     .invoice-shell {
         padding: 14px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
     }
     .invoice-shell .field {
         width: 100% !important;
@@ -228,6 +239,10 @@ body {
     .invoice-shell td {
         white-space: normal !important;
         word-break: break-word !important;
+    }
+    body.app-has-sidebar-footer #app-global-footer {
+        left: 0 !important;
+        width: 100% !important;
     }
 }
 </style>
@@ -384,6 +399,18 @@ body {
 <script src="../../assets/js/api.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
+function lockMobileHorizontalShift(){
+    if(window.innerWidth > 900) return;
+    try{
+        window.scrollTo({ left: 0, top: window.scrollY, behavior: "auto" });
+    }catch(_err){
+        window.scrollTo(0, window.scrollY || 0);
+    }
+}
+
+window.addEventListener("load", lockMobileHorizontalShift);
+window.addEventListener("resize", lockMobileHorizontalShift);
+
 let products = [];
 let invoiceCounter = 1;
 let customersCache = [];
