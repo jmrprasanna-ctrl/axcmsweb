@@ -16,11 +16,11 @@ body {
     overflow-x: hidden;
 }
 .main-content.add-product-main {
-    overflow-x: hidden;
+    overflow-x: visible;
 }
 .invoice-shell {
     margin-bottom: 16px;
-    overflow-x: hidden;
+    overflow-x: visible;
 }
 .invoice-shell .field {
     min-width: 0 !important;
@@ -32,8 +32,9 @@ body {
     margin-top: 12px;
     border: 1px solid #d9e4f0;
     border-radius: 14px;
-    overflow-x: hidden;
+    overflow-x: auto;
     overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
 }
 .product-toolbar {
     display: flex;
@@ -57,10 +58,12 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    min-width: 980px;
-    width: max-content;
+    width: 100%;
+    min-width: 100%;
 }
 .product-rows-scroll {
+    width: 100%;
+    max-width: 100%;
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
@@ -160,6 +163,10 @@ body {
     .invoice-shell {
         padding: 14px !important;
     }
+    .invoice-shell .field {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
     .invoice-shell .field input,
     .invoice-shell .field select,
     .invoice-shell .field textarea {
@@ -206,7 +213,7 @@ body {
     .invoice-shell table,
     .invoice-shell .table {
         min-width: 640px !important;
-        width: max-content !important;
+        width: 640px !important;
         table-layout: auto !important;
         white-space: nowrap !important;
     }
