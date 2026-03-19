@@ -16,13 +16,13 @@ const stockTypeCandidates = (action, change) => {
   return ["in", "IN", "add", "ADD", "stock_in"];
 };
 
-const createStockLogWithFallback = async ({ product_id, change, date, action }) => {
+const createStockLogWithFallback = async ({ product_id, change, date, action, transaction = null }) => {
   const candidates = stockTypeCandidates(action, change);
   let lastErr = null;
 
   for (const type of candidates) {
     try {
-      await Stock.create({ product_id, change, type, date });
+      await Stock.create({ product_id, change, type, date }, transaction ? { transaction } : undefined);
       return type;
     } catch (err) {
       lastErr = err;
@@ -36,6 +36,14 @@ const createStockLogWithFallback = async ({ product_id, change, date, action }) 
     return null;
   }
   throw lastErr;
+};
+
+const classifyVendorSource = (vendorName) => {
+  const name = String(vendorName || "").trim().toLowerCase();
+  if (!name) return "VENDER";
+  if (name.includes("pulmo")) return "PULMO";
+  if (name.includes("other")) return "OTHER";
+  return "VENDER";
 };
 
 exports.getProductStocks = async (_req, res) => {
@@ -114,5 +122,55 @@ exports.adjustProductStock = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.message || "Failed to adjust stock." });
+  }
+};
+
+exports.clearVendorStocks = async (_req, res) => {
+  try {
+    const products = await Product.findAll({
+      include: [{ model: Vendor, attributes: ["id", "name"] }],
+      order: [["id", "ASC"]],
+    });
+
+    const targets = products.filter((p) => {
+      const source = classifyVendorSource(p?.Vendor?.name);
+      const count = Number(p.count || 0);
+      return source === "VENDER" && count !== 0;
+    });
+
+    if (!targets.length) {
+      return res.json({
+        message: "No vendor-source products needed stock clear.",
+        updated_products: 0,
+      });
+    }
+
+    await Product.sequelize.transaction(async (transaction) => {
+      for (const product of targets) {
+        const previousCount = Number(product.count || 0);
+        product.count = 0;
+        await product.save({ transaction });
+
+        try {
+          await createStockLogWithFallback({
+            product_id: product.id,
+            change: -previousCount,
+            date: new Date(),
+            action: "set",
+            transaction,
+          });
+        } catch (stockErr) {
+          console.error("Vendor clear stock history log failed:", stockErr?.message || stockErr);
+        }
+      }
+    });
+
+    return res.json({
+      message: "Vendor-source products stock cleared to 0.",
+      updated_products: targets.length,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: err.message || "Failed to clear vendor stocks." });
   }
 };

@@ -6,5 +6,6 @@ const roleMiddleware = require("../middleware/roleMiddleware");
 
 router.get("/", authMiddleware, roleMiddleware(["admin", "manager", "user"]), stockController.getProductStocks);
 router.post("/adjust", authMiddleware, roleMiddleware(["admin", "manager", "user"]), stockController.adjustProductStock);
+router.post("/clear-vendor", authMiddleware, roleMiddleware(["admin", "manager", "user"]), stockController.clearVendorStocks);
 
 module.exports = router;

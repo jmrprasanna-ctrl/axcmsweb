@@ -1,0 +1,30 @@
+* [33m13c136f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Ignore runtime backend templates directory
+* [33m47eb0de[m Improve AWS check/update scripts for AL2023 and API retry
+* [33mbd00449[m Add AWS system check and update scripts
+* [33m3074be9[m Add AWS server commands and update deployment scripts
+* [33m966630a[m Update to system
+* [33m916d49d[m changes
+* [33m1bad3a4[m Canges
+* [33mf814eae[m Implement demo-user training flow, auth hardening, and UI fixes
+* [33m359ea9d[m Add user database access fixes and admin preference management
+* [33meafab79[m Add more page options to User Access permissions
+* [33m2b1dc0f[m Add more page options to User Access permissions
+* [33m608f814[m Improve mobile responsiveness for user logged/access pages
+* [33mc30aaed[m Keep default database selection when user has no saved database
+* [33m602bd99[m Default User Access database dropdown to inventory
+* [33mde479ce[m Default User Access database dropdown to current database
+* [33m2c2d38f[m Add logged users history feature with filters and PDF export
+* [33m45ccdbc[m Add user access management with page permissions and database selection
+* [33m4c5b385[m Add Vender Paid dashboard metric and deduct from net profit
+* [33m6535691[m Add technician paid dashboard metric and deduct from net profit
+* [33mb0ca022[m Keep product list action buttons on one line
+* [33m30a529a[m Match machine and consumables pages to customer-list table scroll and one-line actions
+* [33mdc660e9[m Match customer list layout to vendor list with one-line action buttons
+* [33mc172569[m Keep invoice action buttons on one line on mobile
+* [33m7cb5a7f[m Limit vendor list horizontal scroll to table only
+* [33m4159e3c[m Match vendor list action buttons to support page style
+* [33m49bc77f[m Fix support page action button sizing and one-line layout
+* [33m2d6611b[m Limit sales report scrolling to table sections only
+* [33mbfef487[m Restyle stock page to match sales report layout
+* [33me05d8cc[m Improve stock table spacing and keep stock action buttons in one line
+* [33mc2cd048[m Fix stock table scroll container and equalize product action button sizes

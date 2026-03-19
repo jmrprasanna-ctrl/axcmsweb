@@ -123,6 +123,7 @@
             <div class="report-head">
                 <h3>Stock Overview</h3>
                 <div class="report-controls filters-inline">
+                    <button class="btn btn-secondary btn-inline" id="clearVendorStockBtn" type="button">Clear Vender Stock</button>
                     <select id="stockSourceFilter" class="model-filter">
                         <option value="ALL" selected>All Sources</option>
                         <option value="PULMO">PULMO</option>
@@ -176,6 +177,7 @@ if(!canAccessStock){
 const stockSearchEl = document.getElementById("stockSearch");
 const stockModelFilterEl = document.getElementById("stockModelFilter");
 const stockSourceFilterEl = document.getElementById("stockSourceFilter");
+const clearVendorStockBtnEl = document.getElementById("clearVendorStockBtn");
 let allStockProducts = [];
 
 function classifyVendorSource(vendorName){
@@ -302,12 +304,30 @@ async function adjustStock(productId, action){
     }
 }
 
+async function clearVendorStocks(){
+    const selectedSource = String(stockSourceFilterEl.value || "ALL").toUpperCase();
+    if(selectedSource !== "VENDER"){
+        alert("Please select 'Vender' in source list before clear stock.");
+        return;
+    }
+    if(!confirm("Clear current stock to 0 for all Vender source products?")) return;
+
+    try{
+        const result = await request("/stocks/clear-vendor","POST");
+        showMessageBox(result?.message || "Vender stock cleared.");
+        await loadStocks();
+    }catch(err){
+        alert(err.message || "Failed to clear vender stock");
+    }
+}
+
 stockSearchEl.addEventListener("input", applyStockFilter);
 stockModelFilterEl.addEventListener("change", applyStockFilter);
 stockSourceFilterEl.addEventListener("change", () => {
     stockModelFilterEl.value = "";
     applyStockFilter();
 });
+clearVendorStockBtnEl.addEventListener("click", clearVendorStocks);
 loadStocks();
 </script>
 </body>
