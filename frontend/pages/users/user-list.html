@@ -76,6 +76,24 @@
             <input id="restore-db-file" type="file" accept=".sql" style="display:none" onchange="restoreSystemBackup(event)">
             <a class="btn btn-secondary" href="../dashboard.html">Back</a>
         </div>
+
+        <section class="health-panel" id="healthPanel" aria-live="polite">
+            <div class="health-head">
+                <h3>System Health</h3>
+                <button class="btn btn-secondary" type="button" id="healthRefreshBtn">Refresh</button>
+            </div>
+            <div class="health-grid">
+                <div class="health-item"><span class="health-label">Overall</span><span class="health-badge unknown" id="healthOverall">Unknown</span></div>
+                <div class="health-item"><span class="health-label">Database</span><span class="health-badge unknown" id="healthDb">Unknown</span></div>
+                <div class="health-item"><span class="health-label">pg_dump</span><span class="health-badge unknown" id="healthPgDump">Unknown</span></div>
+                <div class="health-item"><span class="health-label">psql</span><span class="health-badge unknown" id="healthPsql">Unknown</span></div>
+                <div class="health-item"><span class="health-label">Invoice Template</span><span class="health-badge unknown" id="healthTplInvoice">Unknown</span></div>
+                <div class="health-item"><span class="health-label">Quotation Template</span><span class="health-badge unknown" id="healthTplQuotation">Unknown</span></div>
+                <div class="health-item"><span class="health-label">Quotation2 Template</span><span class="health-badge unknown" id="healthTplQuotation2">Unknown</span></div>
+            </div>
+            <p class="muted" id="healthUpdatedAt" style="margin:10px 0 0 0;">Last updated: -</p>
+        </section>
+
         <div class="card">
             <table class="table">
                 <thead>
@@ -134,6 +152,50 @@
                 loadUsers();
             }catch(err){
                 alert(err.message || "Failed to delete user");
+            }
+        }
+
+        function setHealthBadge(id, ok){
+            const el = document.getElementById(id);
+            if(!el) return;
+            el.classList.remove("ok", "fail", "unknown");
+            if(ok === true){
+                el.classList.add("ok");
+                el.innerText = "OK";
+                return;
+            }
+            if(ok === false){
+                el.classList.add("fail");
+                el.innerText = "Fail";
+                return;
+            }
+            el.classList.add("unknown");
+            el.innerText = "Unknown";
+        }
+
+        async function loadSystemHealthPreview(){
+            try{
+                const health = await request("/health","GET");
+                setHealthBadge("healthOverall", !!health.ok);
+                setHealthBadge("healthDb", !!health.dbConnected);
+                setHealthBadge("healthPgDump", !!health?.checks?.tools?.pg_dump?.available);
+                setHealthBadge("healthPsql", !!health?.checks?.tools?.psql?.available);
+                setHealthBadge("healthTplInvoice", !!health?.checks?.templateFiles?.invoice?.exists);
+                setHealthBadge("healthTplQuotation", !!health?.checks?.templateFiles?.quotation?.exists);
+                setHealthBadge("healthTplQuotation2", !!health?.checks?.templateFiles?.quotation2?.exists);
+            }catch(_err){
+                setHealthBadge("healthOverall", false);
+                setHealthBadge("healthDb", null);
+                setHealthBadge("healthPgDump", null);
+                setHealthBadge("healthPsql", null);
+                setHealthBadge("healthTplInvoice", null);
+                setHealthBadge("healthTplQuotation", null);
+                setHealthBadge("healthTplQuotation2", null);
+            }
+
+            const updated = document.getElementById("healthUpdatedAt");
+            if(updated){
+                updated.innerText = `Last updated: ${new Date().toLocaleString()}`;
             }
         }
 
@@ -258,7 +320,14 @@
             }
         }
 
-        window.addEventListener('DOMContentLoaded', loadUsers);
+        window.addEventListener('DOMContentLoaded', async () => {
+            const healthRefreshBtn = document.getElementById("healthRefreshBtn");
+            if(healthRefreshBtn){
+                healthRefreshBtn.addEventListener("click", loadSystemHealthPreview);
+            }
+            await loadSystemHealthPreview();
+            await loadUsers();
+        });
     </script>
 </body>
 </html>

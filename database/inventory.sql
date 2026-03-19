@@ -32,10 +32,6 @@ CREATE TABLE users (
     updatedAt TIMESTAMP DEFAULT NOW()
 );
 
--- Sample Admin & Manager Users
-INSERT INTO users(username, company, department, telephone, email, role, password)
-VALUES 
-('manager','IT Corp','Sales','0987654321','manager@example.com','manager','manager123');
 
 -- ==========================
 -- Categories Table
@@ -60,11 +56,6 @@ CREATE TABLE vendors (
     category VARCHAR(50) CHECK(category IN ('Photocopier','Printer','Plotter','Computer','Laptop','Accessory','Consumable','Machine'))
 );
 
-INSERT INTO vendors(name, address, category)
-VALUES
-('Vendor A','Colombo, Sri Lanka','Photocopier'),
-('Vendor B','Kandy, Sri Lanka','Printer'),
-('Vendor C','Galle, Sri Lanka','Laptop');
 
 -- ==========================
 -- Products Table
@@ -84,18 +75,13 @@ CREATE TABLE products (
     updatedAt TIMESTAMP DEFAULT NOW()
 );
 
--- Sample Products
-INSERT INTO products(product_id, description, category_id, model, serial_no, count, selling_price, dealer_price, vendor_id)
-VALUES
-('PH0001','Photocopier A','1','Model P1','SN1001',10,50000,45000,1),
-('PR0001','Printer B','2','Model PR1','SN2001',15,20000,18000,2),
-('LP0001','Laptop C','5','Model L1','SN3001',20,150000,140000,3);
 
 -- ==========================
 -- Customers Table
 -- ==========================
 CREATE TABLE customers (
     id SERIAL PRIMARY KEY,
+    customer_id VARCHAR(20) UNIQUE,
     name VARCHAR(100) NOT NULL,
     address TEXT,
     tel VARCHAR(50),
@@ -105,10 +91,6 @@ CREATE TABLE customers (
     updatedAt TIMESTAMP DEFAULT NOW()
 );
 
-INSERT INTO customers(name,address,tel,customer_type,email)
-VALUES
-('Customer One','Colombo, SL','0112345678','Gold','cust1@example.com'),
-('Customer Two','Kandy, SL','0812345678','Silver','cust2@example.com');
 
 -- ==========================
 -- Rental Machines Table
@@ -184,10 +166,6 @@ CREATE TABLE expenses (
     updatedAt TIMESTAMP DEFAULT NOW()
 );
 
-INSERT INTO expenses(title,amount,date,category)
-VALUES
-('Office Rent',50000,'2026-03-01','Fixed'),
-('Electricity Bill',15000,'2026-03-05','Utility');
 
 -- ==========================
 -- Stocks Table
@@ -212,12 +190,6 @@ CREATE TABLE conditions (
     updatedAt TIMESTAMP DEFAULT NOW()
 );
 
-INSERT INTO conditions(condition)
-VALUES
-('Payment within 30 days'),
-('Goods once sold cannot be returned'),
-('Warranty as per manufacturer terms'),
-('All disputes subject to local jurisdiction');
 
 -- ==========================
 -- UI Settings Table

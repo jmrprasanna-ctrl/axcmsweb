@@ -83,6 +83,7 @@ ALTER TABLE vendors ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP DEFAULT NOW()
 -- --------------------------
 CREATE TABLE IF NOT EXISTS customers (
     id SERIAL PRIMARY KEY,
+    customer_id VARCHAR(20),
     name VARCHAR(100) NOT NULL,
     address TEXT,
     tel VARCHAR(50),
@@ -97,6 +98,7 @@ CREATE TABLE IF NOT EXISTS customers (
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS customer_type VARCHAR(20) DEFAULT 'Silver';
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS customer_mode VARCHAR(20) DEFAULT 'General';
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS vat_number VARCHAR(100);
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS customer_id VARCHAR(20);
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP DEFAULT NOW();
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP DEFAULT NOW();
 
@@ -107,6 +109,16 @@ BEGIN
         WHERE conname = 'customers_email_unique'
     ) THEN
         ALTER TABLE customers ADD CONSTRAINT customers_email_unique UNIQUE (email);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'customers_customer_id_unique'
+    ) THEN
+        ALTER TABLE customers ADD CONSTRAINT customers_customer_id_unique UNIQUE (customer_id);
     END IF;
 END $$;
 
@@ -573,14 +585,6 @@ VALUES
 ('Machine'),
 ('Service')
 ON CONFLICT DO NOTHING;
-
--- NOTE:
--- Passwords below are placeholders. Backend ensureDefaultUsers() in server.js
--- creates hashed default users when missing.
-INSERT INTO users(username, company, department, telephone, email, role, password)
-VALUES
-('manager','IT Corp','Sales','0987654321','manager@example.com','manager','manager123')
-ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO ui_settings(app_name, footer_text, primary_color, accent_color)
 SELECT

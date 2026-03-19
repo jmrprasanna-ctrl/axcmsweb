@@ -34,13 +34,6 @@ if(userRole === "manager"){
     });
 }
 
-if(userRole !== "admin"){
-    const healthPanel = document.getElementById("healthPanel");
-    if(healthPanel){
-        healthPanel.style.display = "none";
-    }
-}
-
 // Logout
 function logout(){
     localStorage.removeItem("token");
@@ -184,31 +177,55 @@ function setHealthBadge(id, ok){
     el.innerText = "Unknown";
 }
 
+function setTopbarHealthIndicator(ok){
+    const el = document.getElementById("healthIconBtn");
+    if(!el) return;
+    el.classList.remove("ok", "fail", "unknown");
+    if(ok === true){
+        el.classList.add("ok");
+        el.title = "System health: OK";
+        return;
+    }
+    if(ok === false){
+        el.classList.add("fail");
+        el.title = "System health: Not OK";
+        return;
+    }
+    el.classList.add("unknown");
+    el.title = "System health: Unknown";
+}
+
 async function loadHealthStatus(){
-    if(userRole !== "admin") return;
+    const hasHealthPanel = !!document.getElementById("healthPanel");
     try{
         const health = await request("/health","GET");
-        setHealthBadge("healthOverall", !!health.ok);
-        setHealthBadge("healthDb", !!health.dbConnected);
-        setHealthBadge("healthPgDump", !!health?.checks?.tools?.pg_dump?.available);
-        setHealthBadge("healthPsql", !!health?.checks?.tools?.psql?.available);
-        setHealthBadge("healthTplInvoice", !!health?.checks?.templateFiles?.invoice?.exists);
-        setHealthBadge("healthTplQuotation", !!health?.checks?.templateFiles?.quotation?.exists);
-        setHealthBadge("healthTplQuotation2", !!health?.checks?.templateFiles?.quotation2?.exists);
+        setTopbarHealthIndicator(!!health.ok);
+        if(hasHealthPanel && userRole === "admin"){
+            setHealthBadge("healthOverall", !!health.ok);
+            setHealthBadge("healthDb", !!health.dbConnected);
+            setHealthBadge("healthPgDump", !!health?.checks?.tools?.pg_dump?.available);
+            setHealthBadge("healthPsql", !!health?.checks?.tools?.psql?.available);
+            setHealthBadge("healthTplInvoice", !!health?.checks?.templateFiles?.invoice?.exists);
+            setHealthBadge("healthTplQuotation", !!health?.checks?.templateFiles?.quotation?.exists);
+            setHealthBadge("healthTplQuotation2", !!health?.checks?.templateFiles?.quotation2?.exists);
+        }
 
         const updated = document.getElementById("healthUpdatedAt");
-        if(updated){
+        if(updated && hasHealthPanel){
             const now = new Date();
             updated.innerText = `Last updated: ${now.toLocaleString()}`;
         }
     }catch(_err){
-        setHealthBadge("healthOverall", false);
-        setHealthBadge("healthDb", null);
-        setHealthBadge("healthPgDump", null);
-        setHealthBadge("healthPsql", null);
-        setHealthBadge("healthTplInvoice", null);
-        setHealthBadge("healthTplQuotation", null);
-        setHealthBadge("healthTplQuotation2", null);
+        setTopbarHealthIndicator(false);
+        if(hasHealthPanel && userRole === "admin"){
+            setHealthBadge("healthOverall", false);
+            setHealthBadge("healthDb", null);
+            setHealthBadge("healthPgDump", null);
+            setHealthBadge("healthPsql", null);
+            setHealthBadge("healthTplInvoice", null);
+            setHealthBadge("healthTplQuotation", null);
+            setHealthBadge("healthTplQuotation2", null);
+        }
     }
 }
 

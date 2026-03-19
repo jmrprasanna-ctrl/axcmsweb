@@ -80,11 +80,12 @@
     <div class="form-container customer-shell">
         <a class="btn" href="add-customer.html" id="addCustomerBtn">Add</a>
         <button onclick="exportPDF()">Export as PDF</button>
-        <input type="text" id="customerSearch" class="search-inline" placeholder="Search Name, Tel, Email">
+        <input type="text" id="customerSearch" class="search-inline" placeholder="Search ID, Name, Tel, Email">
         <div class="customer-table-wrap">
             <table id="customerTable">
                 <thead>
                     <tr>
+                        <th>Customer ID</th>
                         <th>Name</th>
                         <th>Address</th>
                         <th>Tel</th>
@@ -140,6 +141,7 @@ function renderCustomers(customers){
     customers.forEach(c=>{
         const tr = document.createElement("tr");
         tr.innerHTML = `
+            <td>${c.customer_id || ""}</td>
             <td>${c.name}</td>
             <td>${c.address}</td>
             <td>${c.tel}</td>
@@ -168,7 +170,7 @@ function applyCustomerFilter(){
         return;
     }
     const filtered = allCustomers.filter(c =>
-        [c.name, c.tel, c.email].some(v => String(v || "").toLowerCase().includes(query))
+        [c.customer_id, c.name, c.tel, c.email].some(v => String(v || "").toLowerCase().includes(query))
     );
     renderCustomers(filtered);
 }
@@ -194,7 +196,7 @@ function exportPDF(){
     let y = 30;
     const rows = document.querySelectorAll("#customerTable tbody tr");
     rows.forEach(r=>{
-        const cells = Array.from(r.children).slice(0, 5).map(td=>td.innerText);
+        const cells = Array.from(r.children).slice(0, 6).map(td=>td.innerText);
         doc.text(cells.join(" | "),14,y);
         y+=8;
     });

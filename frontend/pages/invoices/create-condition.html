@@ -33,14 +33,8 @@
 
     <div class="form-container">
         <form id="conditionForm">
-            <label>Select Condition</label>
-            <select id="conditionSelect" required>
-                <option value="">-- Select Condition --</option>
-                <option value="Payment within 30 days">Payment within 30 days</option>
-                <option value="Goods once sold cannot be returned">Goods once sold cannot be returned</option>
-                <option value="Warranty as per manufacturer terms">Warranty as per manufacturer terms</option>
-                <option value="All disputes subject to local jurisdiction">All disputes subject to local jurisdiction</option>
-            </select>
+            <label>Condition</label>
+            <input type="text" id="conditionInput" placeholder="Enter condition" required>
             <button type="submit">Save Condition</button>
         </form>
 
@@ -86,13 +80,13 @@ async function loadConditions(){
 
 document.getElementById("conditionForm").addEventListener("submit", async function(e){
     e.preventDefault();
-    const conditionText = document.getElementById("conditionSelect").value;
-    if(!conditionText) return alert("Select a condition");
+    const conditionText = document.getElementById("conditionInput").value.trim();
+    if(!conditionText) return alert("Enter a condition");
 
     try{
         await request("/invoices/conditions","POST",{condition: conditionText});
         showMessageBox("Condition saved successfully");
-        document.getElementById("conditionSelect").value = "";
+        document.getElementById("conditionInput").value = "";
         loadConditions();
     }catch(err){
         alert(err.message || "Failed to save condition");

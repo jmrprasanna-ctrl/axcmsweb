@@ -1,12 +1,11 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const bcrypt = require("bcrypt");
 const db = require("./config/database");
 const { getRuntimeChecks, summarizeStatus } = require("./utils/startupChecks");
+const { extractCustomerPrefix } = require("./utils/customerCodeGenerator");
 
 // Models
-const User = require("./models/User");
 const Product = require("./models/Product");
 const Category = require("./models/Category");
 const Customer = require("./models/Customer");
@@ -77,36 +76,6 @@ async function runOnBusinessDatabases(task) {
   await db.withDatabase("demo", async () => {
     await task("demo");
   });
-}
-
-async function ensureDefaultUsers() {
-  const defaults = [
-    {
-      username: "manager",
-      company: "IT Corp",
-      department: "Sales",
-      telephone: "0987654321",
-      email: "manager@example.com",
-      role: "manager",
-      password: "manager123",
-    },
-  ];
-
-  for (const item of defaults) {
-    const existing = await User.findOne({ where: { email: item.email } });
-    if (!existing) {
-      const hashed = await bcrypt.hash(item.password, 10);
-      await User.create({
-        username: item.username,
-        company: item.company,
-        department: item.department,
-        telephone: item.telephone,
-        email: item.email,
-        role: item.role,
-        password: hashed,
-      });
-    }
-  }
 }
 
 async function ensureDefaultCategories() {
@@ -233,6 +202,42 @@ async function ensureRentalMachineCountSchema() {
   });
 }
 
+async function ensureCustomerCodeSchema() {
+  await runOnBusinessDatabases(async () => {
+    await db.query(`
+      ALTER TABLE customers
+      ADD COLUMN IF NOT EXISTS customer_id VARCHAR(20);
+    `);
+
+    await db.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS customers_customer_id_unique_idx
+      ON customers(customer_id)
+      WHERE customer_id IS NOT NULL;
+    `);
+
+    const allCustomers = await Customer.findAll({
+      order: [["id", "ASC"]],
+    });
+
+    await db.transaction(async (transaction) => {
+      // Step 1: assign temporary unique codes to avoid collisions during re-numbering.
+      for (const customer of allCustomers) {
+        await customer.update({ customer_id: `TMP${customer.id}` }, { transaction });
+      }
+
+      // Step 2: assign final codes using the requested initials rule, by creation order (id).
+      const prefixCounters = Object.create(null);
+      for (const customer of allCustomers) {
+        const prefix = extractCustomerPrefix(customer.name);
+        const nextNumber = (prefixCounters[prefix] || 0) + 1;
+        prefixCounters[prefix] = nextNumber;
+        const finalCode = `${prefix}${String(nextNumber).padStart(2, "0")}`;
+        await customer.update({ customer_id: finalCode }, { transaction });
+      }
+    });
+  });
+}
+
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
@@ -296,7 +301,7 @@ async function startServer() {
 
     await ensureRentalConsumableSchema();
     await ensureRentalMachineCountSchema();
-    await ensureDefaultUsers();
+    await ensureCustomerCodeSchema();
     await ensureDefaultCategories();
     await ensureDefaultCategoryModelOptions();
     await ensureDefaultUiSettings();

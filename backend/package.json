@@ -5,6 +5,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "setup": "node scripts/setup.js"
+    "setup": "node scripts/setup.js",
+    "cleanup:test-data": "node scripts/removeSystemTestData.js"
   }
 }

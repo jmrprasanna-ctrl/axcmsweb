@@ -3,6 +3,7 @@ const db = require("../config/database");
 
 const Customer = db.define("Customer",{
     id:{ type: DataTypes.INTEGER, primaryKey:true, autoIncrement:true },
+    customer_id:{ type: DataTypes.STRING, allowNull:true, unique:true },
     name:{ type: DataTypes.STRING, allowNull:false },
     address:{ type: DataTypes.STRING },
     quotation2_address:{ type: DataTypes.STRING, allowNull: true },

@@ -8,6 +8,7 @@ const loadCustomers = async () => {
     customers.forEach(c => {
         const row = document.createElement('tr');
         row.innerHTML = `
+            <td>${c.customer_id || ''}</td>
             <td>${c.id}</td>
             <td>${c.name}</td>
             <td>${c.address}</td>

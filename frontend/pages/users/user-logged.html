@@ -108,6 +108,7 @@
                     </select>
                 </div>
                 <div class="log-actions">
+                    <button class="btn btn-danger" type="button" onclick="clearLogs()">Clear</button>
                     <button class="btn btn-primary" type="button" onclick="loadLogs()">Search</button>
                     <button class="btn btn-primary" type="button" onclick="savePDF()">Save PDF</button>
                     <a class="btn btn-secondary" href="user-list.html">Back</a>
@@ -122,7 +123,7 @@
                             <th>Role</th>
                             <th>Login Time</th>
                             <th>IP</th>
-                            <th>User Agent</th>
+                            <th>City</th>
                         </tr>
                     </thead>
                     <tbody id="loggedBody"></tbody>
@@ -182,12 +183,24 @@
                         <td>${r.role || ""}</td>
                         <td>${r.login_time ? new Date(r.login_time).toLocaleString() : ""}</td>
                         <td>${r.ip_address || ""}</td>
-                        <td>${r.user_agent || ""}</td>
+                        <td>${r.city || ""}</td>
                     `;
                     tbody.appendChild(tr);
                 });
             }catch(err){
                 alert(err.message || "Failed to load login logs");
+            }
+        }
+
+        async function clearLogs(){
+            const ok = confirm("Are you sure you want to clear all logged time records?");
+            if(!ok) return;
+            try{
+                await request("/users/logs", "DELETE");
+                showMessageBox("Logged time records cleared.");
+                await loadLogs();
+            }catch(err){
+                alert(err.message || "Failed to clear login logs");
             }
         }
 
@@ -203,7 +216,7 @@
             let y = 34;
             const rows = document.querySelectorAll("#loggedTable tbody tr");
             rows.forEach((r) => {
-                const cells = Array.from(r.children).slice(0, 4).map((td) => td.innerText);
+                const cells = Array.from(r.children).slice(0, 5).map((td) => td.innerText);
                 doc.text(cells.join(" | "), 14, y);
                 y += 8;
                 if(y > 285){
