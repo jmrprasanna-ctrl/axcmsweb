@@ -94,14 +94,18 @@
     margin-top: 18px;
     display: flex;
     gap: 10px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
+    white-space: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
 .add-product-actions button,
 .add-product-actions .btn {
     min-width: 140px;
     margin-top: 0;
+    flex: 0 0 auto;
 }
 
 @media (max-width: 900px) {
