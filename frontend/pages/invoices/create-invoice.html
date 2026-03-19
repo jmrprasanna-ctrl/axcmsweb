@@ -210,10 +210,35 @@ body,
     body.mobile-nav-open .sidebar {
         transform: translateX(0) !important;
     }
+    html,
+    body {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
     .main-content.add-product-main {
         margin-left: 0 !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        padding: 12px !important;
+        overflow-x: hidden !important;
+    }
+    .invoice-shell {
         width: 100% !important;
-        padding: 14px !important;
+        max-width: 100% !important;
+        padding: 12px !important;
+        overflow-x: hidden !important;
+    }
+    .invoice-shell .add-product-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px 0 !important;
+    }
+    .invoice-shell .field,
+    .invoice-shell .field input,
+    .invoice-shell .field select,
+    .invoice-shell .field textarea {
+        min-width: 0 !important;
+        max-width: 100% !important;
     }
     .invoice-shell .invoice-action-row {
         flex-direction: row !important;
@@ -224,6 +249,7 @@ body,
         width: auto !important;
         min-width: 140px !important;
         max-width: 100% !important;
+        flex: 0 0 auto !important;
     }
     .invoice-shell .add-product-actions {
         flex-direction: row !important;
@@ -235,12 +261,34 @@ body,
         min-width: 140px !important;
         max-width: 100% !important;
         margin-top: 0 !important;
+        flex: 0 0 auto !important;
+    }
+    .invoice-shell .product-toolbar {
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+    }
+    .invoice-shell .product-toolbar .btn-inline-add {
+        width: auto !important;
+        min-width: 140px !important;
+    }
+    .invoice-shell .product-row {
+        grid-template-columns: 1fr !important;
+    }
+    .invoice-shell .card,
+    .invoice-shell .product-card,
+    .invoice-shell .product-rows,
+    .invoice-shell .product-row {
+        max-width: 100% !important;
     }
     .invoice-shell table,
     .invoice-shell .table {
+        display: table !important;
         min-width: 0 !important;
         width: 100% !important;
         table-layout: auto;
+        white-space: normal !important;
+        word-break: break-word;
     }
 }
 </style>
