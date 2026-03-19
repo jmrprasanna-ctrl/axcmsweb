@@ -118,11 +118,14 @@
     .product-row {
         grid-template-columns: 1fr 1fr;
     }
-    .invoice-grid .field-span-full {
-        grid-column: auto;
-    }
 }
 @media (max-width: 900px) {
+    .add-product-shell {
+        padding: 14px;
+    }
+    .add-product-grid {
+        gap: 10px 0;
+    }
     .product-toolbar {
         flex-direction: column;
         align-items: stretch;
@@ -140,9 +143,24 @@
         flex-direction: column;
         align-items: stretch;
     }
+    .invoice-action-row button,
+    .invoice-action-row select {
+        width: 100%;
+        margin-top: 0;
+    }
     #supportImportantSelect {
         min-width: 0 !important;
         width: 100%;
+    }
+    .add-product-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .add-product-actions button,
+    .add-product-actions .btn {
+        width: 100%;
+        margin-top: 0;
+        min-width: 0;
     }
 }
 </style>
@@ -264,11 +282,11 @@
 
                 <div class="field-span-full">
                     <div class="invoice-action-row">
-                        <button type="button" onclick="addImportantRow()">Important</button>
+                        <button class="btn btn-inline" type="button" onclick="addImportantRow()">Important</button>
                         <select id="supportImportantSelect" style="min-width:260px;">
                             <option value="">Select Support Important</option>
                         </select>
-                        <button type="button" onclick="addImportantFromSupport()">Add important</button>
+                        <button class="btn btn-inline" type="button" onclick="addImportantFromSupport()">Add important</button>
                     </div>
                     <div class="card" style="margin-top:12px;">
                         <table class="table">
@@ -595,7 +613,7 @@ async function addProductRow(){
             <input type="number" class="rate compact-input" readonly title="Rate">
             <input type="number" class="vat compact-input" value="0" title="VAT">
             <input type="number" class="gross compact-input" readonly title="Gross">
-            <button type="button" onclick="removeRow(this)">Remove</button>
+            <button class="btn btn-danger btn-inline" type="button" onclick="removeRow(this)">Remove</button>
         `;
 
         document.getElementById("productRows").appendChild(row);
