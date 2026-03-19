@@ -22,6 +22,9 @@ body {
     margin-bottom: 16px;
     overflow-x: hidden;
 }
+.invoice-shell .field {
+    min-width: 0 !important;
+}
 .invoice-grid .field-span-full {
     grid-column: 1 / -1;
 }
@@ -29,9 +32,8 @@ body {
     margin-top: 12px;
     border: 1px solid #d9e4f0;
     border-radius: 14px;
-    overflow-x: auto;
+    overflow-x: hidden;
     overflow-y: visible;
-    -webkit-overflow-scrolling: touch;
 }
 .product-toolbar {
     display: flex;
@@ -55,7 +57,12 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    min-width: 980px;
+    width: max-content;
+}
+.product-rows-scroll {
     overflow-x: auto;
+    overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
 }
 .product-row {
@@ -64,6 +71,7 @@ body {
     gap: 10px;
     align-items: start;
     min-width: 980px;
+    width: 980px;
     padding: 10px;
     border: 1px solid #dbe5ef;
     border-radius: 10px;
@@ -159,6 +167,11 @@ body {
         max-width: 100% !important;
         box-sizing: border-box !important;
     }
+    .invoice-shell .product-rows-scroll {
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
     .invoice-shell .invoice-action-row,
     .invoice-shell .add-product-actions {
         flex-direction: row !important;
@@ -185,7 +198,8 @@ body {
         width: auto !important;
         min-width: 140px !important;
     }
-    .invoice-shell .card {
+    .invoice-shell .card,
+    .invoice-shell .table-scroll {
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch;
     }
@@ -311,7 +325,9 @@ body {
                         <button class="btn btn-inline-add" type="button" onclick="addProductRow()">Add Product</button>
                         <span class="product-hint">Search by Product ID, Description, or Model</span>
                     </div>
-                    <div id="productRows" class="product-rows"></div>
+                    <div class="product-rows-scroll">
+                        <div id="productRows" class="product-rows"></div>
+                    </div>
                 </div>
 
                 <div class="field-span-full">
@@ -323,16 +339,18 @@ body {
                         <button class="btn btn-inline" type="button" onclick="addImportantFromSupport()">Add important</button>
                     </div>
                     <div class="card" style="margin-top:12px;">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th style="width:80px;">Line</th>
-                                    <th>Important Note</th>
-                                    <th style="width:140px;">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="important-table-body"></tbody>
-                        </table>
+                        <div class="table-scroll">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:80px;">Line</th>
+                                        <th>Important Note</th>
+                                        <th style="width:140px;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="important-table-body"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
