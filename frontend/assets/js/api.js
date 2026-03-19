@@ -458,6 +458,7 @@ function normalizeAppName(appName){
 }
 
 async function loadPublicUiSettings(){
+    const disableUiSettingsRefresh = typeof window !== "undefined" && window.__DISABLE_PUBLIC_UI_REFRESH__ === true;
     try{
         const cached = localStorage.getItem(UI_SETTINGS_CACHE_KEY);
         if(cached){
@@ -467,6 +468,10 @@ async function loadPublicUiSettings(){
             }
         }
     }catch(_cacheErr){
+    }
+
+    if(disableUiSettingsRefresh){
+        return;
     }
 
     try{
