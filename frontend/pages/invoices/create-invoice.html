@@ -59,6 +59,22 @@ html, body { overflow-x: hidden; }
     width: 100%;
     min-width: 0;
 }
+.table.product-table .invoice-product-row {
+    display: table-row !important;
+}
+.table.product-table .invoice-product-row td {
+    vertical-align: middle;
+}
+.table.product-table .invoice-product-row .compact-input {
+    height: 40px;
+}
+.table.product-table .invoice-product-row .btn.btn-inline {
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
 .product-picker-wrap { position: relative; min-width: 0; }
 .product-results {
     display: none;
@@ -532,7 +548,7 @@ function fillMachineSerialNo(){
 
 function applyGlobalVatToAllRows(vatValue){
     const normalizedVat = Number.isFinite(Number(vatValue)) ? Number(vatValue) : 0;
-    const rows = Array.from(document.querySelectorAll(".product-row"));
+    const rows = Array.from(document.querySelectorAll(".invoice-product-row"));
     rows.forEach((row) => {
         const vatEl = row.querySelector(".vat");
         if(!vatEl) return;
@@ -609,7 +625,7 @@ async function addProductRow(){
     try{
         const rowId = `row_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
         const row = document.createElement("tr");
-        row.className = "product-row";
+        row.className = "invoice-product-row";
         row.dataset.rowId = rowId;
         row.innerHTML = `
             <td>
@@ -854,7 +870,7 @@ function initProductRowHandlers(row){
 }
 
 function calculateRow(input){
-    const row = input.closest(".product-row");
+    const row = input.closest(".invoice-product-row");
     if(!row) return;
     const qty = parseFloat(row.querySelector(".qty").value) || 0;
     const rate = parseFloat(row.querySelector(".rate").value) || 0;
@@ -865,7 +881,7 @@ function calculateRow(input){
 
 // Remove row
 function removeRow(button){
-    const row = button.closest(".product-row");
+    const row = button.closest(".invoice-product-row");
     if(row) row.remove();
 }
 
@@ -887,7 +903,7 @@ document.getElementById("invoiceForm").addEventListener("submit", async function
     const paymentMethod = document.getElementById("paymentMethod").value || "Cash";
     const invoiceNo = document.getElementById("invoiceNo").value;
     const invoiceDate = document.getElementById("invoiceDate").value;
-    const items = Array.from(document.querySelectorAll(".product-row")).map(r=>{
+    const items = Array.from(document.querySelectorAll(".invoice-product-row")).map(r=>{
         return {
             productId: parseInt(r.querySelector(".productId").value, 10),
             product_id: r.querySelector(".productCode")?.value || "",
