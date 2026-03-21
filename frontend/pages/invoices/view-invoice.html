@@ -123,6 +123,9 @@
         <button class="btn btn-secondary" type="button" id="moveRightBtn">&gt;</button>
         <button class="btn btn-secondary" type="button" id="moveUpBtn">^</button>
         <button class="btn btn-secondary" type="button" id="moveDownBtn">v</button>
+        <label for="invDateInput" style="margin:0;font-weight:600;color:#1d3655;white-space:nowrap;">Inv Date</label>
+        <input type="date" id="invDateInput" style="min-width:150px;height:38px;padding:0 10px;">
+        <button class="btn btn-secondary" type="button" id="saveInvDateBtn">Update</button>
     </div>
     <div class="invoice-image-wrap">
         <img id="invoicePreview" class="invoice-image" alt="Invoice preview">
@@ -941,6 +944,38 @@ async function refreshPreviewFromLatest(){
     document.getElementById("invoicePreview").src = preview;
 }
 
+function syncInvDateInput(){
+    const input = document.getElementById("invDateInput");
+    if(!input || !latestInvoiceData || !latestInvoiceData.invoice) return;
+    const raw = String(latestInvoiceData.invoice.invoice_date || "").trim();
+    if(/^\d{4}-\d{2}-\d{2}$/.test(raw)){
+        input.value = raw;
+    }
+}
+
+async function updateInvoiceDateFromTile(){
+    const input = document.getElementById("invDateInput");
+    const invoiceId = new URLSearchParams(window.location.search).get("id");
+    if(!input || !invoiceId) return;
+    const value = String(input.value || "").trim();
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(value)){
+        alert("Enter a valid Inv Date.");
+        return;
+    }
+    try{
+        const res = await request(`/invoices/${invoiceId}/payment`, "PUT", { invoice_date: value });
+        if(!latestInvoiceData) latestInvoiceData = { invoice: {} };
+        if(!latestInvoiceData.invoice) latestInvoiceData.invoice = {};
+        latestInvoiceData.invoice.invoice_date = res?.invoice?.invoice_date || value;
+        await refreshPreviewFromLatest();
+        if(typeof showMessageBox === "function"){
+            showMessageBox("Inv Date updated");
+        }
+    }catch(err){
+        alert(err.message || "Failed to update Inv Date");
+    }
+}
+
 function applyPreviewAccessByRole(){
     if(canConfigurePreview) return;
     const addressControls = document.querySelector(".invoice-address-controls");
@@ -1154,6 +1189,7 @@ function initLayoutEditor(){
 async function renderInvoice(){
     try{
         latestInvoiceData = await fetchInvoiceData();
+        syncInvDateInput();
         await refreshPreviewFromLatest();
     }catch(err){
         alert(err.message || "Failed to load invoice details");
@@ -1222,6 +1258,10 @@ async function emailInvoice(){
 }
 
 window.addEventListener("DOMContentLoaded", () => {
+    const saveInvDateBtn = document.getElementById("saveInvDateBtn");
+    if(saveInvDateBtn){
+        saveInvDateBtn.addEventListener("click", updateInvoiceDateFromTile);
+    }
     applyPreviewAccessByRole();
     if(canConfigurePreview){
         initAddressControls();

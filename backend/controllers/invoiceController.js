@@ -557,20 +557,44 @@ exports.updateInvoicePayment = async (req,res)=>{
             return res.status(404).json({ message: "Invoice not found" });
         }
 
-        const payment_method = normalizePaymentMethod(req.body.payment_method);
-        const payment_status = normalizePaymentStatus(req.body.payment_status);
-        const cheque_no = payment_method === "Cheque"
-            ? String(req.body.cheque_no || "").trim().toUpperCase()
-            : null;
+        let payment_method = invoice.payment_method || "Cash";
+        if(req.body.payment_method !== undefined){
+            payment_method = normalizePaymentMethod(req.body.payment_method);
+        }
+
+        let payment_status = invoice.payment_status || "Pending";
+        if(req.body.payment_status !== undefined){
+            payment_status = normalizePaymentStatus(req.body.payment_status);
+        }
+
+        let cheque_no = invoice.cheque_no ? String(invoice.cheque_no).trim().toUpperCase() : null;
+        if(payment_method === "Cheque"){
+            if(req.body.cheque_no !== undefined){
+                cheque_no = String(req.body.cheque_no || "").trim().toUpperCase() || null;
+            }
+        }else{
+            cheque_no = null;
+        }
 
         if(payment_method === "Cheque" && !cheque_no){
             return res.status(400).json({ message: "Cheque number is required for cheque payments." });
         }
 
+        let invoice_date = invoice.invoice_date;
+        if(req.body.invoice_date !== undefined){
+            const parsedInvoiceDate = String(req.body.invoice_date || "").trim();
+            const isValidInvoiceDate = /^\d{4}-\d{2}-\d{2}$/.test(parsedInvoiceDate) && !Number.isNaN(new Date(`${parsedInvoiceDate}T00:00:00`).getTime());
+            if(!isValidInvoiceDate){
+                return res.status(400).json({ message: "Invalid invoice date." });
+            }
+            invoice_date = parsedInvoiceDate;
+        }
+
         await invoice.update({
             payment_method,
             cheque_no,
-            payment_status
+            payment_status,
+            invoice_date
         });
 
         res.json({
@@ -578,6 +602,7 @@ exports.updateInvoicePayment = async (req,res)=>{
             invoice: {
                 id: invoice.id,
                 invoice_no: invoice.invoice_no,
+                invoice_date: invoice.invoice_date,
                 payment_method: invoice.payment_method,
                 cheque_no: invoice.cheque_no,
                 payment_status: invoice.payment_status
