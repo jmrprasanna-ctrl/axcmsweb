@@ -125,15 +125,40 @@ exports.technicianInvoicesMonthlyReport = async (req,res)=>{
         const year = Number(req.query.year) || now.getFullYear();
         const month = Number(req.query.month) || (now.getMonth() + 1);
         const safeMonth = Math.min(Math.max(month, 1), 12);
+        const technicianFilterRaw = String(req.query.technician || "").trim();
 
         const start = new Date(year, safeMonth - 1, 1, 0, 0, 0, 0);
         const end = new Date(year, safeMonth, 0, 23, 59, 59, 999);
 
+        const baseWhere = {
+            invoice_date: { [Op.between]: [start, end] },
+            support_technician: { [Op.not]: null }
+        };
+
+        const technicianRows = await Invoice.findAll({
+            where: baseWhere,
+            attributes: [
+                [Sequelize.fn("DISTINCT", Sequelize.col("support_technician")), "technician"]
+            ],
+            raw: true
+        });
+        const technicians = technicianRows
+            .map((r) => String(r.technician || "").trim())
+            .filter(Boolean)
+            .sort((a, b) => a.localeCompare(b));
+
+        const where = { ...baseWhere };
+        if(technicianFilterRaw){
+            where[Op.and] = [
+                Sequelize.where(
+                    Sequelize.fn("LOWER", Sequelize.col("support_technician")),
+                    technicianFilterRaw.toLowerCase()
+                )
+            ];
+        }
+
         const invoices = await Invoice.findAll({
-            where: {
-                invoice_date: { [Op.between]: [start, end] },
-                support_technician: { [Op.not]: null }
-            },
+            where,
             include: [{ model: Customer, attributes: ["id", "name"] }],
             order: [["invoice_date", "DESC"], ["createdAt", "DESC"]]
         });
@@ -173,6 +198,8 @@ exports.technicianInvoicesMonthlyReport = async (req,res)=>{
         res.json({
             year,
             month: safeMonth,
+            technician: technicianFilterRaw || "",
+            technicians,
             start,
             end,
             summary,

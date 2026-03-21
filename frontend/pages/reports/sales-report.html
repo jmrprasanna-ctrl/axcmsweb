@@ -116,6 +116,9 @@
             <div class="report-head">
                 <h3>Technicians Attended Invoices (Month Wise)</h3>
                 <div class="report-controls">
+                    <select id="techTechnician">
+                        <option value="">All Support Technicians</option>
+                    </select>
                     <input type="month" id="techMonth">
                     <button type="button" onclick="loadTechnicianReport()">Load</button>
                     <button type="button" onclick="exportTechnicianPDF()">Export PDF</button>
@@ -412,6 +415,8 @@ function writeTableToDoc(doc, sectionTitle, tableId, startY){
 async function loadTechnicianReport(){
     if(!isAdminManager) return;
     try{
+        const techEl = document.getElementById("techTechnician");
+        const selectedTechnician = String(techEl?.value || "").trim();
         const monthVal = document.getElementById("techMonth").value;
         let year = new Date().getFullYear();
         let month = new Date().getMonth() + 1;
@@ -420,7 +425,26 @@ async function loadTechnicianReport(){
             year = Number(parts[0]) || year;
             month = Number(parts[1]) || month;
         }
-        const data = await request(`/reports/technician-invoices-monthly?year=${year}&month=${month}`,"GET");
+        const query = `year=${year}&month=${month}&technician=${encodeURIComponent(selectedTechnician)}`;
+        const data = await request(`/reports/technician-invoices-monthly?${query}`,"GET");
+
+        if(techEl){
+            const previous = selectedTechnician;
+            const list = Array.isArray(data.technicians) ? data.technicians : [];
+            techEl.innerHTML = "";
+            const allOpt = document.createElement("option");
+            allOpt.value = "";
+            allOpt.textContent = "All Support Technicians";
+            techEl.appendChild(allOpt);
+            list.forEach((name) => {
+                const opt = document.createElement("option");
+                opt.value = String(name || "");
+                opt.textContent = String(name || "");
+                techEl.appendChild(opt);
+            });
+            techEl.value = previous && list.includes(previous) ? previous : "";
+        }
+
         const tbody = document.querySelector("#technicianSummaryTable tbody");
         tbody.innerHTML = "";
         (data.summary || []).forEach((row) => {
@@ -628,6 +652,8 @@ document.getElementById("salesPeriod").addEventListener("change", () => {
 });
 document.getElementById("salesYearSelect").addEventListener("change", syncSalesDateFromSelectors);
 document.getElementById("salesMonthSelect").addEventListener("change", syncSalesDateFromSelectors);
+document.getElementById("techMonth").addEventListener("change", loadTechnicianReport);
+document.getElementById("techTechnician").addEventListener("change", loadTechnicianReport);
 
 loadSales();
 loadVendorProductsReport();
