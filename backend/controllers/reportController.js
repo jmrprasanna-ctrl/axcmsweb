@@ -6,6 +6,7 @@ const Expense = require("../models/Expense");
 const Product = require("../models/Product");
 const Vendor = require("../models/Vendor");
 const Category = require("../models/Category");
+const Technician = require("../models/Technician");
 const RentalMachineConsumable = require("../models/RentalMachineConsumable");
 const RentalMachine = require("../models/RentalMachine");
 const RentalMachineCount = require("../models/RentalMachineCount");
@@ -135,16 +136,15 @@ exports.technicianInvoicesMonthlyReport = async (req,res)=>{
             support_technician: { [Op.not]: null }
         };
 
-        const technicianRows = await Invoice.findAll({
-            where: baseWhere,
-            attributes: [
-                [Sequelize.fn("DISTINCT", Sequelize.col("support_technician")), "technician"]
-            ],
+        const technicianRows = await Technician.findAll({
+            attributes: ["technician_name"],
+            order: [["technician_name", "ASC"]],
             raw: true
         });
         const technicians = technicianRows
-            .map((r) => String(r.technician || "").trim())
+            .map((r) => String(r.technician_name || "").trim())
             .filter(Boolean)
+            .filter((name, index, arr) => arr.indexOf(name) === index)
             .sort((a, b) => a.localeCompare(b));
 
         const where = { ...baseWhere };
