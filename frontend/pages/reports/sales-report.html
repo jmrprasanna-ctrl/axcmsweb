@@ -146,13 +146,6 @@
             <div class="report-head">
                 <h3>Stock Reports (Minimum 2)</h3>
                 <div class="report-controls">
-                    <label for="stockSourceReport">Stock</label>
-                    <select id="stockSourceReport">
-                        <option value="ALL">All Sources</option>
-                        <option value="PULMO" selected>PULMO</option>
-                        <option value="VENDER">Vender</option>
-                        <option value="OTHER">Other</option>
-                    </select>
                     <label for="stockVendorReport">Vendor</label>
                     <select id="stockVendorReport">
                         <option value="">All Vendors</option>
@@ -179,7 +172,7 @@
                     <tbody></tbody>
                 </table>
             </div>
-            <h4 style="margin-top:10px;">Out of Stock Products</h4>
+            <h4 style="margin-top:10px;">Stock of Products</h4>
             <div class="table-scroll-wrap">
                 <table id="outStockTable">
                     <thead>
@@ -364,7 +357,7 @@ function exportStockReportsPDF(){
 
     y = writeTableToDoc(doc, "Low Stock Products", "lowStockTable", y);
     y += 6;
-    writeTableToDoc(doc, "Out of Stock Products", "outStockTable", y);
+    writeTableToDoc(doc, "Stock of Products", "outStockTable", y);
 
     doc.save("Stock_Reports.pdf");
 }
@@ -481,12 +474,11 @@ async function loadStockReports(){
     if(!isAdminManager) return;
     try{
         const min = Number(document.getElementById("minStockLevel").value) || 2;
-        const source = String(document.getElementById("stockSourceReport").value || "ALL").toUpperCase();
         const vendorId = String(document.getElementById("stockVendorReport").value || "").trim();
-        const query = `source=${encodeURIComponent(source)}&vendor_id=${encodeURIComponent(vendorId)}&min=${encodeURIComponent(min)}`;
+        const query = `vendor_id=${encodeURIComponent(vendorId)}&min=${encodeURIComponent(min)}`;
         const [low, out] = await Promise.all([
             request(`/reports/stock-low?${query}`,"GET"),
-            request(`/reports/stock-out?source=${encodeURIComponent(source)}&vendor_id=${encodeURIComponent(vendorId)}`,"GET")
+            request(`/reports/stock-products?vendor_id=${encodeURIComponent(vendorId)}`,"GET")
         ]);
 
         const lowBody = document.querySelector("#lowStockTable tbody");
@@ -525,41 +517,11 @@ async function loadStockReports(){
     }
 }
 
-function classifyVendorSource(vendorName){
-    const name = String(vendorName || "").trim().toLowerCase();
-    if(!name) return "VENDER";
-    if(name.includes("pulmo")) return "PULMO";
-    if(name.includes("other")) return "OTHER";
-    return "VENDER";
-}
-
 async function loadStockFilterOptions(){
     if(!isAdminManager) return;
     try{
-        const [stocks, vendors] = await Promise.all([
-            request("/stocks","GET"),
-            request("/vendors","GET")
-        ]);
-
-        const sourceEl = document.getElementById("stockSourceReport");
+        const vendors = await request("/vendors","GET");
         const vendorEl = document.getElementById("stockVendorReport");
-        if(sourceEl){
-            const previous = String(sourceEl.value || "PULMO").toUpperCase();
-            const sourceSet = new Set(["ALL"]);
-            (Array.isArray(stocks) ? stocks : []).forEach((p) => {
-                sourceSet.add(classifyVendorSource(p?.Vendor?.name));
-            });
-            const preferredOrder = ["ALL", "PULMO", "VENDER", "OTHER"];
-            const values = preferredOrder.filter((x) => sourceSet.has(x));
-            sourceEl.innerHTML = "";
-            values.forEach((value) => {
-                const opt = document.createElement("option");
-                opt.value = value;
-                opt.textContent = value === "ALL" ? "All Sources" : (value === "VENDER" ? "Vender" : value);
-                sourceEl.appendChild(opt);
-            });
-            sourceEl.value = values.includes(previous) ? previous : (values.includes("PULMO") ? "PULMO" : "ALL");
-        }
 
         if(vendorEl){
             const previousVendor = String(vendorEl.value || "");
@@ -730,7 +692,6 @@ document.getElementById("salesYearSelect").addEventListener("change", syncSalesD
 document.getElementById("salesMonthSelect").addEventListener("change", syncSalesDateFromSelectors);
 document.getElementById("techMonth").addEventListener("change", loadTechnicianReport);
 document.getElementById("techTechnician").addEventListener("change", loadTechnicianReport);
-document.getElementById("stockSourceReport").addEventListener("change", loadStockReports);
 document.getElementById("stockVendorReport").addEventListener("change", loadStockReports);
 document.getElementById("minStockLevel").addEventListener("change", loadStockReports);
 

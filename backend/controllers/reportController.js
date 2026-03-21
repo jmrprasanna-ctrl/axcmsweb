@@ -221,10 +221,9 @@ exports.technicianInvoicesMonthlyReport = async (req,res)=>{
 exports.lowStockReport = async (req,res)=>{
     try{
         const min = Math.max(1, Number(req.query.min) || 2);
-        const source = String(req.query.source || "ALL").trim().toUpperCase();
         const vendorId = Number(req.query.vendor_id);
         const where = {
-            count: { [Op.between]: [1, min] }
+            count: { [Op.lte]: min }
         };
         if(Number.isFinite(vendorId) && vendorId > 0){
             where.vendor_id = vendorId;
@@ -237,17 +236,11 @@ exports.lowStockReport = async (req,res)=>{
             ],
             order: [["count", "ASC"], ["product_id", "ASC"]]
         });
-        const filtered = products.filter((p) => {
-            if(source === "ALL") return true;
-            const src = classifyVendorSource(p?.Vendor?.name);
-            return src === source;
-        });
         res.json({
             min,
-            source,
             vendor_id: Number.isFinite(vendorId) && vendorId > 0 ? vendorId : null,
-            total: filtered.length,
-            rows: filtered.map((p) => ({
+            total: products.length,
+            rows: products.map((p) => ({
                 id: p.id,
                 product_id: p.product_id,
                 description: p.description,
@@ -259,6 +252,39 @@ exports.lowStockReport = async (req,res)=>{
         });
     }catch(err){
         res.status(500).json({ message: err.message || "Failed to load low stock report." });
+    }
+};
+
+exports.stockProductsReport = async (req,res)=>{
+    try{
+        const vendorId = Number(req.query.vendor_id);
+        const where = {};
+        if(Number.isFinite(vendorId) && vendorId > 0){
+            where.vendor_id = vendorId;
+        }
+        const products = await Product.findAll({
+            where,
+            include: [
+                { model: Category, attributes: ["id", "name"] },
+                { model: Vendor, attributes: ["id", "name"] }
+            ],
+            order: [["product_id", "ASC"]]
+        });
+        res.json({
+            vendor_id: Number.isFinite(vendorId) && vendorId > 0 ? vendorId : null,
+            total: products.length,
+            rows: products.map((p) => ({
+                id: p.id,
+                product_id: p.product_id,
+                description: p.description,
+                model: p.model,
+                count: Number(p.count || 0),
+                category: p.Category ? p.Category.name : "",
+                vendor: p.Vendor ? p.Vendor.name : ""
+            }))
+        });
+    }catch(err){
+        res.status(500).json({ message: err.message || "Failed to load stock products report." });
     }
 };
 
