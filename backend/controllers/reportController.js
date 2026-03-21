@@ -12,6 +12,14 @@ const RentalMachine = require("../models/RentalMachine");
 const RentalMachineCount = require("../models/RentalMachineCount");
 const Sequelize = require("sequelize");
 
+function classifyVendorSource(vendorName){
+    const name = String(vendorName || "").trim().toLowerCase();
+    if(!name) return "VENDER";
+    if(name.includes("pulmo")) return "PULMO";
+    if(name.includes("other")) return "OTHER";
+    return "VENDER";
+}
+
 function getRange(period, rawDate){
     const now = rawDate ? new Date(rawDate) : new Date();
     if(Number.isNaN(now.getTime())){
@@ -213,20 +221,33 @@ exports.technicianInvoicesMonthlyReport = async (req,res)=>{
 exports.lowStockReport = async (req,res)=>{
     try{
         const min = Math.max(1, Number(req.query.min) || 2);
+        const source = String(req.query.source || "ALL").trim().toUpperCase();
+        const vendorId = Number(req.query.vendor_id);
+        const where = {
+            count: { [Op.between]: [1, min] }
+        };
+        if(Number.isFinite(vendorId) && vendorId > 0){
+            where.vendor_id = vendorId;
+        }
         const products = await Product.findAll({
-            where: {
-                count: { [Op.between]: [1, min] }
-            },
+            where,
             include: [
                 { model: Category, attributes: ["id", "name"] },
                 { model: Vendor, attributes: ["id", "name"] }
             ],
             order: [["count", "ASC"], ["product_id", "ASC"]]
         });
+        const filtered = products.filter((p) => {
+            if(source === "ALL") return true;
+            const src = classifyVendorSource(p?.Vendor?.name);
+            return src === source;
+        });
         res.json({
             min,
-            total: products.length,
-            rows: products.map((p) => ({
+            source,
+            vendor_id: Number.isFinite(vendorId) && vendorId > 0 ? vendorId : null,
+            total: filtered.length,
+            rows: filtered.map((p) => ({
                 id: p.id,
                 product_id: p.product_id,
                 description: p.description,
@@ -243,17 +264,32 @@ exports.lowStockReport = async (req,res)=>{
 
 exports.outOfStockReport = async (req,res)=>{
     try{
+        const source = String(req.query.source || "ALL").trim().toUpperCase();
+        const vendorId = Number(req.query.vendor_id);
+        const where = {
+            count: { [Op.lte]: 0 }
+        };
+        if(Number.isFinite(vendorId) && vendorId > 0){
+            where.vendor_id = vendorId;
+        }
         const products = await Product.findAll({
-            where: { count: { [Op.lte]: 0 } },
+            where,
             include: [
                 { model: Category, attributes: ["id", "name"] },
                 { model: Vendor, attributes: ["id", "name"] }
             ],
             order: [["product_id", "ASC"]]
         });
+        const filtered = products.filter((p) => {
+            if(source === "ALL") return true;
+            const src = classifyVendorSource(p?.Vendor?.name);
+            return src === source;
+        });
         res.json({
-            total: products.length,
-            rows: products.map((p) => ({
+            source,
+            vendor_id: Number.isFinite(vendorId) && vendorId > 0 ? vendorId : null,
+            total: filtered.length,
+            rows: filtered.map((p) => ({
                 id: p.id,
                 product_id: p.product_id,
                 description: p.description,
