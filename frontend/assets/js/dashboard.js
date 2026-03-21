@@ -43,6 +43,7 @@ function logout(){
 
 let salesChartInstance = null;
 let profitChartInstance = null;
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 function formatDateWithWeekday(dateText){
     const fallbackDate = new Date();
@@ -145,17 +146,107 @@ async function fetchSummary(){
     }
 }
 
+function populateSummaryYearOptions(){
+    const yearEl = document.getElementById("summaryYearSelect");
+    if(!yearEl) return;
+    const currentYear = new Date().getFullYear();
+    const startYear = currentYear - 15;
+    const opts = [];
+    for(let y = currentYear; y >= startYear; y--){
+        opts.push(`<option value="${y}">${y}</option>`);
+    }
+    yearEl.innerHTML = opts.join("");
+}
+
+function populateSummaryMonthOptions(){
+    const monthEl = document.getElementById("summaryMonthSelect");
+    if(!monthEl) return;
+    monthEl.innerHTML = MONTH_NAMES
+        .map((name, i) => `<option value="${String(i + 1).padStart(2,"0")}">${name}</option>`)
+        .join("");
+}
+
+function syncSummaryDateFromSelectors(){
+    const periodEl = document.getElementById("summaryPeriod");
+    const dateEl = document.getElementById("summaryDate");
+    const yearEl = document.getElementById("summaryYearSelect");
+    const monthEl = document.getElementById("summaryMonthSelect");
+    if(!periodEl || !dateEl) return;
+
+    const period = (periodEl.value || "day").toLowerCase();
+    const year = (yearEl && yearEl.value) ? yearEl.value : String(new Date().getFullYear());
+    const month = (monthEl && monthEl.value) ? monthEl.value : String(new Date().getMonth() + 1).padStart(2,"0");
+
+    if(period === "year"){
+        dateEl.value = `${year}-01-01`;
+    }else if(period === "month"){
+        dateEl.value = `${year}-${month}-01`;
+    }else if(!dateEl.value){
+        dateEl.value = new Date().toISOString().slice(0,10);
+    }
+}
+
+function toggleSummaryExtraSelectors(){
+    const periodEl = document.getElementById("summaryPeriod");
+    const dateEl = document.getElementById("summaryDate");
+    const yearEl = document.getElementById("summaryYearSelect");
+    const monthEl = document.getElementById("summaryMonthSelect");
+    if(!periodEl || !dateEl || !yearEl || !monthEl) return;
+
+    const period = (periodEl.value || "day").toLowerCase();
+    const showYear = period === "year" || period === "month";
+    const showMonth = period === "month";
+
+    yearEl.style.display = showYear ? "" : "none";
+    monthEl.style.display = showMonth ? "" : "none";
+    dateEl.style.display = period === "day" ? "" : "none";
+}
+
 // Initialize
 const summaryDateEl = document.getElementById("summaryDate");
 if(summaryDateEl){
     summaryDateEl.value = new Date().toISOString().slice(0,10);
 }
 const summaryPeriodEl = document.getElementById("summaryPeriod");
+const summaryYearEl = document.getElementById("summaryYearSelect");
+const summaryMonthEl = document.getElementById("summaryMonthSelect");
+
+populateSummaryYearOptions();
+populateSummaryMonthOptions();
+if(summaryYearEl && !summaryYearEl.value){
+    summaryYearEl.value = String(new Date().getFullYear());
+}
+if(summaryMonthEl && !summaryMonthEl.value){
+    summaryMonthEl.value = String(new Date().getMonth() + 1).padStart(2,"0");
+}
+toggleSummaryExtraSelectors();
+syncSummaryDateFromSelectors();
+
 if(summaryPeriodEl){
-    summaryPeriodEl.addEventListener("change", fetchSummary);
+    summaryPeriodEl.addEventListener("change", () => {
+        toggleSummaryExtraSelectors();
+        syncSummaryDateFromSelectors();
+        fetchSummary();
+    });
+}
+if(summaryYearEl){
+    summaryYearEl.addEventListener("change", () => {
+        syncSummaryDateFromSelectors();
+        fetchSummary();
+    });
+}
+if(summaryMonthEl){
+    summaryMonthEl.addEventListener("change", () => {
+        syncSummaryDateFromSelectors();
+        fetchSummary();
+    });
 }
 if(summaryDateEl){
-    summaryDateEl.addEventListener("change", fetchSummary);
+    summaryDateEl.addEventListener("change", () => {
+        const period = summaryPeriodEl ? (summaryPeriodEl.value || "day").toLowerCase() : "day";
+        if(period !== "day") return;
+        fetchSummary();
+    });
 }
 fetchSummary();
 
