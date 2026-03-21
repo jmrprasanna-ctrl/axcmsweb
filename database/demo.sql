@@ -44,7 +44,8 @@ CREATE TABLE categories (
 INSERT INTO categories(name)
 VALUES
 ('Photocopier'),('Printer'),('Plotter'),('Computer'),
-('Laptop'),('Accessory'),('Consumable'),('Machine');
+('Laptop'),('Accessory'),('Consumable'),('Machine'),
+('CCTV'),('Duplo'),('Other');
 
 -- ==========================
 -- Vendors Table

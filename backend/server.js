@@ -88,6 +88,9 @@ async function ensureDefaultCategories() {
     "Accessory",
     "Consumable",
     "Machine",
+    "CCTV",
+    "Duplo",
+    "Other",
     "Service",
   ];
 
@@ -131,6 +134,9 @@ async function ensureDefaultCategoryModelOptions() {
     Computer: ["HP", "DELL", "ASUS", "SONY", "SINGER", "SAMSUNG", "OTHER"],
     Laptop: ["HP", "DELL", "ASUS", "SONY", "SINGER", "SAMSUNG", "OTHER"],
     Plotter: ["CANON", "HP", "EPSON", "OTHER"],
+    CCTV: ["OTHER"],
+    Duplo: ["OTHER"],
+    Other: ["OTHER"],
     Service: ["OTHER"],
   };
 

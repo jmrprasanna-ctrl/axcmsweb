@@ -589,6 +589,9 @@ VALUES
 ('Accessory'),
 ('Consumable'),
 ('Machine'),
+('CCTV'),
+('Duplo'),
+('Other'),
 ('Service')
 ON CONFLICT DO NOTHING;
 
