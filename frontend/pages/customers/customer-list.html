@@ -90,7 +90,6 @@
                         <th>Address</th>
                         <th>Tel</th>
                         <th>Email</th>
-                        <th>Customer Type</th>
                         <th>VAT</th>
                         <th>Action</th>
                     </tr>
@@ -146,7 +145,6 @@ function renderCustomers(customers){
             <td>${c.address}</td>
             <td>${c.tel}</td>
             <td>${c.email}</td>
-            <td>${c.customer_type || ""}</td>
             <td>${String(c.vat_number || "").trim() ? "Yes" : "No"}</td>
         `;
         if(canManage){
@@ -196,7 +194,7 @@ function exportPDF(){
     let y = 30;
     const rows = document.querySelectorAll("#customerTable tbody tr");
     rows.forEach(r=>{
-        const cells = Array.from(r.children).slice(0, 6).map(td=>td.innerText);
+        const cells = Array.from(r.children).slice(0, 5).map(td=>td.innerText);
         doc.text(cells.join(" | "),14,y);
         y+=8;
     });
