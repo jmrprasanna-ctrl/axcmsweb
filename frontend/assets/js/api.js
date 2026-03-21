@@ -31,6 +31,8 @@ window.BASE_URL = BASE_URL;
 const GLOBAL_FOOTER_TEXT = "\u00A9 All Right Recieved with CRONIT SOLLUTIONS - JMR Prasanna.";
 const UI_SETTINGS_CACHE_KEY = "publicUiSettingsCache";
 const ENABLE_PUBLIC_UI_SETTINGS_RUNTIME = typeof window !== "undefined" && window.__ENABLE_PUBLIC_UI_SETTINGS__ === true;
+const LAST_ACTIVITY_KEY = "lastActivityAt";
+const ACTIVITY_EVENTS = ["mousemove", "keydown", "touchstart"];
 
 const USER_DEFAULT_ALLOWED_PATHS = [
     "/login.html",
@@ -103,6 +105,22 @@ function enforceAuthentication(){
     }
 
     return true;
+}
+
+function markUserActivity(){
+    try{
+        localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
+    }catch(_err){
+    }
+}
+
+function setupActivityTracking(){
+    if(window.__activityTrackingBound) return;
+    window.__activityTrackingBound = true;
+    ACTIVITY_EVENTS.forEach((eventName) => {
+        window.addEventListener(eventName, markUserActivity, { passive: true });
+    });
+    markUserActivity();
 }
 
 function enforceUserAccess(){
@@ -540,6 +558,7 @@ async function loadUserAccessPermissions(){
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
+    setupActivityTracking();
     if(!enforceAuthentication()) return;
     await loadUserAccessPermissions();
     enforceUserAccess();

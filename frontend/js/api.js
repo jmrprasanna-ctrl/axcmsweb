@@ -29,6 +29,8 @@ function resolveBaseUrl(){
 const BASE_URL = resolveBaseUrl();
 window.BASE_URL = BASE_URL;
 const GLOBAL_FOOTER_TEXT = "\u00A9 All Right Recieved with CRONIT SOLLUTIONS - JMR Prasanna.";
+const LAST_ACTIVITY_KEY = "lastActivityAt";
+const ACTIVITY_EVENTS = ["mousemove", "keydown", "touchstart"];
 
 const USER_ALLOWED_PATHS = [
     "/login.html",
@@ -100,6 +102,22 @@ function enforceAuthentication(){
     }
 
     return true;
+}
+
+function markUserActivity(){
+    try{
+        localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
+    }catch(_err){
+    }
+}
+
+function setupActivityTracking(){
+    if(window.__activityTrackingBound) return;
+    window.__activityTrackingBound = true;
+    ACTIVITY_EVENTS.forEach((eventName) => {
+        window.addEventListener(eventName, markUserActivity, { passive: true });
+    });
+    markUserActivity();
 }
 
 function enforceUserAccess(){
@@ -466,6 +484,7 @@ async function loadPublicUiSettings(){
 }
 
 window.addEventListener("DOMContentLoaded", () => {
+    setupActivityTracking();
     if(!enforceAuthentication()) return;
     const role = (localStorage.getItem("role") || "").toLowerCase();
     if(role === "user"){
