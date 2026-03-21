@@ -411,16 +411,25 @@ function drawRightFixed(ctx, text, rightX, y, size=12, weight="normal", fontFami
     ctx.textAlign = prevAlign;
 }
 
-function drawFixedText(ctx, text, x, y, size=12, weight="normal", fontFamily="Arial"){
-    ctx.font = `${weight} ${size}px ${fontFamily}`;
-    ctx.fillText(String(text || ""), x, y);
+function drawFixedText(ctx, text, x, y, size=12, weight="normal", fontFamily="Arial", maxWidth=null){
+    let fontSize = size;
+    const value = String(text || "");
+    if(Number.isFinite(maxWidth) && maxWidth > 0){
+        while(fontSize >= 8){
+            ctx.font = `${weight} ${fontSize}px ${fontFamily}`;
+            if(ctx.measureText(value).width <= maxWidth) break;
+            fontSize -= 1;
+        }
+    }else{
+        ctx.font = `${weight} ${fontSize}px ${fontFamily}`;
+    }
+    ctx.fillText(value, x, y);
 }
 
-function drawMultilineFixedText(ctx, lines, x, y, lineHeight, size=12, weight="normal", fontFamily="Arial"){
+function drawMultilineFixedText(ctx, lines, x, y, lineHeight, size=12, weight="normal", fontFamily="Arial", maxWidth=null){
     const safeLines = Array.isArray(lines) ? lines : [];
-    ctx.font = `${weight} ${size}px ${fontFamily}`;
     safeLines.forEach((line, idx) => {
-        ctx.fillText(String(line || ""), x, y + (idx * lineHeight));
+        drawFixedText(ctx, String(line || ""), x, y + (idx * lineHeight), size, weight, fontFamily, maxWidth);
     });
 }
 
@@ -814,15 +823,19 @@ async function drawInvoice(data, mimeType="image/png", renderSize=null){
         const addressFamily = selectedAddressKey === "colombo"
             ? getLayoutFontFamily("addressColombo", "Bahnschrift SemiCondensed")
             : getLayoutFontFamily("addressV", "Bahnschrift SemiCondensed");
+        const addressX = m.x(blockPos.x + addressCfg.x);
+        const contentRight = m.x(BASE_W - 70);
+        const addressMaxW = Math.max(m.w(120), contentRight - addressX - m.w(8));
         drawMultilineFixedText(
             ctx,
             ADDRESS_TEXTS[selectedAddressKey],
-            m.x(blockPos.x + addressCfg.x),
+            addressX,
             m.y(blockPos.y + addressCfg.y),
             m.h(blockPos.lineH),
             addressFont,
             getLayoutFontWeight(selectedAddressKey === "colombo" ? "addressColombo" : "addressV"),
-            addressFamily
+            addressFamily,
+            addressMaxW
         );
     }
 
@@ -832,15 +845,19 @@ async function drawInvoice(data, mimeType="image/png", renderSize=null){
         const importantNotes = getImportantNotes(data.invoice);
         let importantY = m.y(POS.important.y + importantCfg.y);
         const importantGap = m.h(POS.important.rowH);
+        const importantX = m.x(POS.important.x + importantCfg.x);
+        const contentRight = m.x(BASE_W - 70);
+        const importantMaxW = Math.max(m.w(120), contentRight - importantX - m.w(8));
         importantNotes.slice(0, POS.important.maxRows).forEach((note, idx) => {
             drawFixedText(
                 ctx,
                 `${idx + 1}. ${note}`,
-                m.x(POS.important.x + importantCfg.x),
+                importantX,
                 importantY,
                 getLayoutFont("important", INPUT_FONT_SIZE),
                 getLayoutFontWeight("important"),
-                getLayoutFontFamily("important", INPUT_FONT_FAMILY)
+                getLayoutFontFamily("important", INPUT_FONT_FAMILY),
+                importantMaxW
             );
             importantY += importantGap;
         });
