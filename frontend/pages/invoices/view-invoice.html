@@ -42,6 +42,9 @@
         </label>
         <input type="file" id="logoFileInput" accept="image/*" style="display:none;">
         <button class="btn btn-secondary" type="button" id="logoBrowseBtn" title="Browse logo">Browse</button>
+        <label for="invDateInput" style="margin:0;font-weight:600;color:#1d3655;white-space:nowrap;">Inv Date</label>
+        <input type="date" id="invDateInput" style="min-width:150px;height:38px;padding:0 10px;">
+        <button class="btn btn-secondary" type="button" id="saveInvDateBtn">Update</button>
     </div>
     <div class="invoice-layout-controls" style="margin: 0 0 12px; padding: 10px 12px; background: rgba(255, 255, 255, 0.86); border: 1px solid #d6e3f2; border-radius: 14px; display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; overflow-x: auto;">
         <label for="layoutTargetSelect" style="margin:0;font-weight:600;color:#1d3655;">Render Input</label>
@@ -123,9 +126,6 @@
         <button class="btn btn-secondary" type="button" id="moveRightBtn">&gt;</button>
         <button class="btn btn-secondary" type="button" id="moveUpBtn">^</button>
         <button class="btn btn-secondary" type="button" id="moveDownBtn">v</button>
-        <label for="invDateInput" style="margin:0;font-weight:600;color:#1d3655;white-space:nowrap;">Inv Date</label>
-        <input type="date" id="invDateInput" style="min-width:150px;height:38px;padding:0 10px;">
-        <button class="btn btn-secondary" type="button" id="saveInvDateBtn">Update</button>
     </div>
     <div class="invoice-image-wrap">
         <img id="invoicePreview" class="invoice-image" alt="Invoice preview">
