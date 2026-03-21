@@ -40,6 +40,10 @@
             <input type="checkbox" id="logoWithNameChk">
             Logo with Name
         </label>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
+            <input type="checkbox" id="editModeChk" checked>
+            Edit
+        </label>
         <input type="file" id="logoFileInput" accept="image/*" style="display:none;">
         <button class="btn btn-secondary" type="button" id="logoBrowseBtn" title="Browse logo">Browse</button>
     </div>
@@ -941,11 +945,36 @@ async function refreshPreviewFromLatest(){
 }
 
 function applyPreviewAccessByRole(){
-    if(canConfigurePreview) return;
     const addressControls = document.querySelector(".invoice-address-controls");
     const layoutControls = document.querySelector(".invoice-layout-controls");
-    if(addressControls) addressControls.style.display = "none";
-    if(layoutControls) layoutControls.style.display = "none";
+    if(!canConfigurePreview){
+        if(addressControls) addressControls.style.display = "none";
+        if(layoutControls) layoutControls.style.display = "none";
+        return;
+    }
+    if(addressControls) addressControls.style.display = "flex";
+    updateNavigationTileByEditToggle();
+}
+
+function updateNavigationTileByEditToggle(){
+    const layoutControls = document.querySelector(".invoice-layout-controls");
+    const editChk = document.getElementById("editModeChk");
+    if(!layoutControls) return;
+    if(!canConfigurePreview){
+        layoutControls.style.display = "none";
+        return;
+    }
+    layoutControls.style.display = (editChk && !editChk.checked) ? "none" : "flex";
+}
+
+function initEditModeControl(){
+    const editChk = document.getElementById("editModeChk");
+    if(!editChk) return;
+    editChk.checked = true;
+    editChk.addEventListener("change", () => {
+        updateNavigationTileByEditToggle();
+    });
+    updateNavigationTileByEditToggle();
 }
 
 function initAddressControls(){
@@ -1223,6 +1252,7 @@ async function emailInvoice(){
 window.addEventListener("DOMContentLoaded", () => {
     applyPreviewAccessByRole();
     if(canConfigurePreview){
+        initEditModeControl();
         initAddressControls();
         initSignControl();
         initSignVControl();
