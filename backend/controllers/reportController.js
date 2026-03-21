@@ -223,7 +223,7 @@ exports.lowStockReport = async (req,res)=>{
         const min = Math.max(1, Number(req.query.min) || 2);
         const vendorId = Number(req.query.vendor_id);
         const where = {
-            count: { [Op.lte]: min }
+            count: { [Op.gt]: 0, [Op.lt]: min }
         };
         if(Number.isFinite(vendorId) && vendorId > 0){
             where.vendor_id = vendorId;
