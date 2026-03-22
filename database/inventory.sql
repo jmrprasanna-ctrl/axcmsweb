@@ -114,6 +114,8 @@ CREATE TABLE customers (
     tel VARCHAR(50),
     contact_person VARCHAR(100),
     customer_type VARCHAR(20) DEFAULT 'Silver',
+    customer_mode VARCHAR(20) DEFAULT 'General',
+    vat_number VARCHAR(100),
     email VARCHAR(100) UNIQUE,
     createdAt TIMESTAMP DEFAULT NOW(),
     updatedAt TIMESTAMP DEFAULT NOW()

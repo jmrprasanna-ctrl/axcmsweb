@@ -29,9 +29,22 @@ function sumVendorPaidFromInvoiceItems(rows){
 function getReceivedPaymentStatusFilter(){
     return {
         [Op.or]: [
-            { [Op.iLike]: "received" },
-            { [Op.iLike]: "recieved" }
+            { [Op.iLike]: "%received%" },
+            { [Op.iLike]: "%recieved%" }
         ]
+    };
+}
+
+function getGeneralCustomerInclude(){
+    return {
+        model: Customer,
+        required: true,
+        attributes: [],
+        where: {
+            customer_mode: {
+                [Op.iLike]: "general"
+            }
+        }
     };
 }
 
@@ -77,13 +90,16 @@ exports.getSummary = async (req,res)=>{
         const totalExpensesPeriod = await Expense.sum("amount",{
             where:{ date:{ [Op.between]:[periodStart, periodEnd] } }
         }) || 0;
+        // Match Finance > Payments source: only General customer invoices.
         const receivedPaymentPeriod = await Invoice.sum("total_amount",{
+            include: [getGeneralCustomerInclude()],
             where:{
                 invoice_date:{ [Op.between]:[periodStart, periodEnd] },
                 payment_status: getReceivedPaymentStatusFilter()
             }
         }) || 0;
         const invoicesPeriod = await Invoice.findAll({
+            include: [getGeneralCustomerInclude()],
             where:{
                 invoice_date:{ [Op.between]:[periodStart, periodEnd] },
                 payment_status: getReceivedPaymentStatusFilter()
@@ -100,7 +116,8 @@ exports.getSummary = async (req,res)=>{
                     where: {
                         invoice_date: { [Op.between]: [periodStart, periodEnd] },
                         payment_status: getReceivedPaymentStatusFilter()
-                    }
+                    },
+                    include: [getGeneralCustomerInclude()]
                 },
                 { model: Product, required: false, attributes: ["id", "dealer_price"] }
             ],
@@ -112,11 +129,13 @@ exports.getSummary = async (req,res)=>{
         const totalSalesAllTime = await Invoice.sum("total_amount") || 0;
         const totalExpensesAllTime = await Expense.sum("amount") || 0;
         const receivedPaymentAllTime = await Invoice.sum("total_amount", {
+            include: [getGeneralCustomerInclude()],
             where: {
                 payment_status: getReceivedPaymentStatusFilter()
             }
         }) || 0;
         const invoicesAllTime = await Invoice.findAll({
+            include: [getGeneralCustomerInclude()],
             where: {
                 payment_status: getReceivedPaymentStatusFilter()
             },
@@ -131,7 +150,8 @@ exports.getSummary = async (req,res)=>{
                     attributes: ["id", "payment_status"],
                     where: {
                         payment_status: getReceivedPaymentStatusFilter()
-                    }
+                    },
+                    include: [getGeneralCustomerInclude()]
                 },
                 { model: Product, required: false, attributes: ["id", "dealer_price"] }
             ],
