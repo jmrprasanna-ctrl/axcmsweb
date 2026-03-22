@@ -384,17 +384,40 @@ CREATE TABLE IF NOT EXISTS invoices (
     customer_id INT,
     invoice_date DATE DEFAULT CURRENT_DATE,
     quotation_date DATE DEFAULT CURRENT_DATE,
+    machine_description VARCHAR(255),
+    serial_no VARCHAR(100),
+    machine_count INT,
+    support_technician VARCHAR(150),
+    support_technician_percentage DOUBLE PRECISION,
+    payment_method VARCHAR(50) DEFAULT 'Cash',
+    cheque_no VARCHAR(100),
+    payment_status VARCHAR(50) DEFAULT 'Pending',
     total_amount DOUBLE PRECISION DEFAULT 0,
     "createdAt" TIMESTAMP DEFAULT NOW(),
     "updatedAt" TIMESTAMP DEFAULT NOW()
 );
 
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS total_amount DOUBLE PRECISION DEFAULT 0;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS machine_description VARCHAR(255);
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS serial_no VARCHAR(100);
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS machine_count INT;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS support_technician VARCHAR(150);
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS support_technician_percentage DOUBLE PRECISION;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50) DEFAULT 'Cash';
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS cheque_no VARCHAR(100);
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT 'Pending';
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS invoice_date DATE DEFAULT CURRENT_DATE;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS quotation_date DATE DEFAULT CURRENT_DATE;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP DEFAULT NOW();
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP DEFAULT NOW();
+
+UPDATE invoices
+SET payment_status = 'Received'
+WHERE LOWER(COALESCE(payment_status, '')) IN ('received', 'recieved');
+
+UPDATE invoices
+SET payment_status = 'Pending'
+WHERE payment_status IS NULL OR TRIM(payment_status) = '';
 
 DO $$
 BEGIN

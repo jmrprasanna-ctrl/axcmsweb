@@ -310,6 +310,54 @@ async function ensureInvoiceDateSchema() {
   });
 }
 
+async function ensureInvoicePaymentSchema() {
+  await runOnBusinessDatabases(async () => {
+    await db.query(`
+      ALTER TABLE invoices
+      ADD COLUMN IF NOT EXISTS machine_description VARCHAR(255);
+    `);
+    await db.query(`
+      ALTER TABLE invoices
+      ADD COLUMN IF NOT EXISTS serial_no VARCHAR(100);
+    `);
+    await db.query(`
+      ALTER TABLE invoices
+      ADD COLUMN IF NOT EXISTS machine_count INTEGER;
+    `);
+    await db.query(`
+      ALTER TABLE invoices
+      ADD COLUMN IF NOT EXISTS support_technician VARCHAR(150);
+    `);
+    await db.query(`
+      ALTER TABLE invoices
+      ADD COLUMN IF NOT EXISTS support_technician_percentage DOUBLE PRECISION;
+    `);
+    await db.query(`
+      ALTER TABLE invoices
+      ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50) DEFAULT 'Cash';
+    `);
+    await db.query(`
+      ALTER TABLE invoices
+      ADD COLUMN IF NOT EXISTS cheque_no VARCHAR(100);
+    `);
+    await db.query(`
+      ALTER TABLE invoices
+      ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT 'Pending';
+    `);
+
+    await db.query(`
+      UPDATE invoices
+      SET payment_status = 'Received'
+      WHERE LOWER(COALESCE(payment_status, '')) IN ('received', 'recieved');
+    `);
+    await db.query(`
+      UPDATE invoices
+      SET payment_status = 'Pending'
+      WHERE payment_status IS NULL OR TRIM(payment_status) = '';
+    `);
+  });
+}
+
 async function ensureVendorCategorySchema() {
   await runOnBusinessDatabases(async () => {
     await db.query(`
@@ -403,6 +451,7 @@ async function startServer() {
     await ensureCustomerCodeSchema();
     await ensureVendorCategorySchema();
     await ensureInvoiceDateSchema();
+    await ensureInvoicePaymentSchema();
     await ensureDefaultCategories();
     await ensureDefaultCategoryModelOptions();
     await ensureDefaultUiSettings();

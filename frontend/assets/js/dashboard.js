@@ -77,11 +77,16 @@ async function fetchSummary(){
         document.getElementById("totalCustomers").querySelector("p").innerText = summary.totalCustomers || 0;
         document.getElementById("totalVendors").querySelector("p").innerText = summary.totalVendors || 0;
         const salesVal = summary.totalSalesPeriod ?? summary.totalSales ?? 0;
+        const receivedPaymentVal = summary.receivedPaymentPeriod ?? summary.receivedPayment ?? 0;
         const expenseVal = summary.totalExpensesPeriod ?? summary.totalExpenses ?? 0;
         const technicianPaidVal = summary.technicianPaidPeriod ?? summary.technicianPaid ?? 0;
         const vendorPaidVal = summary.vendorPaidPeriod ?? summary.vendorPaid ?? 0;
-        const profitVal = summary.netProfitPeriod ?? summary.netProfit ?? (Number(salesVal) - Number(expenseVal) - Number(technicianPaidVal) - Number(vendorPaidVal));
+        const profitVal = summary.netProfitPeriod ?? summary.netProfit ?? (Number(receivedPaymentVal) - Number(expenseVal) - Number(technicianPaidVal) - Number(vendorPaidVal));
         document.getElementById("totalSales").querySelector("p").innerText = Number(salesVal || 0).toFixed(2);
+        const receivedPaymentEl = document.getElementById("receivedPayment");
+        if(receivedPaymentEl){
+            receivedPaymentEl.querySelector("p").innerText = Number(receivedPaymentVal || 0).toFixed(2);
+        }
         document.getElementById("totalExpenses").querySelector("p").innerText = Number(expenseVal || 0).toFixed(2);
         const technicianPaidEl = document.getElementById("technicianPaid");
         if(technicianPaidEl){

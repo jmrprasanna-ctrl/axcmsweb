@@ -26,6 +26,15 @@ function sumVendorPaidFromInvoiceItems(rows){
     }, 0);
 }
 
+function getReceivedPaymentStatusFilter(){
+    return {
+        [Op.or]: [
+            { [Op.iLike]: "received" },
+            { [Op.iLike]: "recieved" }
+        ]
+    };
+}
+
 exports.getSummary = async (req,res)=>{
     try{
         const period = String(req.query.period || "day").toLowerCase();
@@ -68,8 +77,17 @@ exports.getSummary = async (req,res)=>{
         const totalExpensesPeriod = await Expense.sum("amount",{
             where:{ date:{ [Op.between]:[periodStart, periodEnd] } }
         }) || 0;
+        const receivedPaymentPeriod = await Invoice.sum("total_amount",{
+            where:{
+                invoice_date:{ [Op.between]:[periodStart, periodEnd] },
+                payment_status: getReceivedPaymentStatusFilter()
+            }
+        }) || 0;
         const invoicesPeriod = await Invoice.findAll({
-            where:{ invoice_date:{ [Op.between]:[periodStart, periodEnd] } },
+            where:{
+                invoice_date:{ [Op.between]:[periodStart, periodEnd] },
+                payment_status: getReceivedPaymentStatusFilter()
+            },
             attributes:["total_amount","support_technician_percentage"]
         });
         const technicianPaidPeriod = sumTechnicianPaid(invoicesPeriod);
@@ -78,28 +96,49 @@ exports.getSummary = async (req,res)=>{
                 {
                     model: Invoice,
                     required: true,
-                    attributes: ["id", "invoice_date"],
-                    where: { invoice_date: { [Op.between]: [periodStart, periodEnd] } }
+                    attributes: ["id", "invoice_date", "payment_status"],
+                    where: {
+                        invoice_date: { [Op.between]: [periodStart, periodEnd] },
+                        payment_status: getReceivedPaymentStatusFilter()
+                    }
                 },
                 { model: Product, required: false, attributes: ["id", "dealer_price"] }
             ],
             attributes: ["qty"]
         });
         const vendorPaidPeriod = sumVendorPaidFromInvoiceItems(invoiceItemsPeriod);
-        const netProfitPeriod = totalSalesPeriod - totalExpensesPeriod - technicianPaidPeriod - vendorPaidPeriod;
+        const netProfitPeriod = receivedPaymentPeriod - totalExpensesPeriod - technicianPaidPeriod - vendorPaidPeriod;
 
         const totalSalesAllTime = await Invoice.sum("total_amount") || 0;
         const totalExpensesAllTime = await Expense.sum("amount") || 0;
+        const receivedPaymentAllTime = await Invoice.sum("total_amount", {
+            where: {
+                payment_status: getReceivedPaymentStatusFilter()
+            }
+        }) || 0;
         const invoicesAllTime = await Invoice.findAll({
+            where: {
+                payment_status: getReceivedPaymentStatusFilter()
+            },
             attributes:["total_amount","support_technician_percentage"]
         });
         const technicianPaidAllTime = sumTechnicianPaid(invoicesAllTime);
         const invoiceItemsAllTime = await InvoiceItem.findAll({
-            include: [{ model: Product, required: false, attributes: ["id", "dealer_price"] }],
+            include: [
+                {
+                    model: Invoice,
+                    required: true,
+                    attributes: ["id", "payment_status"],
+                    where: {
+                        payment_status: getReceivedPaymentStatusFilter()
+                    }
+                },
+                { model: Product, required: false, attributes: ["id", "dealer_price"] }
+            ],
             attributes: ["qty"]
         });
         const vendorPaidAllTime = sumVendorPaidFromInvoiceItems(invoiceItemsAllTime);
-        const netProfitAllTime = totalSalesAllTime - totalExpensesAllTime - technicianPaidAllTime - vendorPaidAllTime;
+        const netProfitAllTime = receivedPaymentAllTime - totalExpensesAllTime - technicianPaidAllTime - vendorPaidAllTime;
 
         // Low stock alerts (<5 items)
         const lowStock = await Product.findAll({
@@ -141,16 +180,19 @@ exports.getSummary = async (req,res)=>{
             totalCustomers,
             totalVendors,
             totalSales: totalSalesPeriod,
+            receivedPayment: receivedPaymentPeriod,
             totalExpenses: totalExpensesPeriod,
             netProfit: netProfitPeriod,
             technicianPaid: technicianPaidPeriod,
             vendorPaid: vendorPaidPeriod,
             totalSalesAllTime,
+            receivedPaymentAllTime,
             totalExpensesAllTime,
             netProfitAllTime,
             technicianPaidAllTime,
             vendorPaidAllTime,
             totalSalesPeriod,
+            receivedPaymentPeriod,
             totalExpensesPeriod,
             netProfitPeriod,
             technicianPaidPeriod,
