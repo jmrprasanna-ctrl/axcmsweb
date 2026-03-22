@@ -64,6 +64,31 @@ BEGIN
 END $$;
 
 -- --------------------------
+-- CATEGORY MODEL OPTIONS
+-- --------------------------
+CREATE TABLE IF NOT EXISTS category_model_options (
+    id SERIAL PRIMARY KEY,
+    category_name VARCHAR(100) NOT NULL,
+    model_name VARCHAR(100) NOT NULL,
+    "createdAt" TIMESTAMP DEFAULT NOW(),
+    "updatedAt" TIMESTAMP DEFAULT NOW()
+);
+
+ALTER TABLE category_model_options ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP DEFAULT NOW();
+ALTER TABLE category_model_options ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP DEFAULT NOW();
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'category_model_options_unique_category_model'
+    ) THEN
+        ALTER TABLE category_model_options
+        ADD CONSTRAINT category_model_options_unique_category_model UNIQUE (category_name, model_name);
+    END IF;
+END $$;
+
+-- --------------------------
 -- VENDORS
 -- --------------------------
 CREATE TABLE IF NOT EXISTS vendors (
@@ -594,6 +619,106 @@ VALUES
 ('Other'),
 ('Service')
 ON CONFLICT DO NOTHING;
+
+-- Normalize renamed Duplo models in existing data.
+DELETE FROM category_model_options
+WHERE category_name = 'Duplo' AND model_name = 'CANON'
+  AND EXISTS (
+    SELECT 1 FROM category_model_options
+    WHERE category_name = 'Duplo' AND model_name = 'RONGDA'
+  );
+
+UPDATE category_model_options
+SET model_name = 'RONGDA'
+WHERE category_name = 'Duplo' AND model_name = 'CANON';
+
+DELETE FROM category_model_options
+WHERE category_name = 'Duplo' AND model_name = 'TOSHIBA'
+  AND EXISTS (
+    SELECT 1 FROM category_model_options
+    WHERE category_name = 'Duplo' AND model_name = 'RISO'
+  );
+
+UPDATE category_model_options
+SET model_name = 'RISO'
+WHERE category_name = 'Duplo' AND model_name = 'TOSHIBA';
+
+INSERT INTO category_model_options(category_name, model_name)
+VALUES
+('Accessory', 'CANON'),
+('Accessory', 'TOSHIBA'),
+('Accessory', 'RECOH'),
+('Accessory', 'SHARP'),
+('Accessory', 'KYOCERA'),
+('Accessory', 'SEROX'),
+('Accessory', 'SAMSUNG'),
+('Accessory', 'HP'),
+('Accessory', 'DELL'),
+('Consumable', 'CANON'),
+('Consumable', 'TOSHIBA'),
+('Consumable', 'RECOH'),
+('Consumable', 'SHARP'),
+('Consumable', 'KYOCERA'),
+('Consumable', 'SEROX'),
+('Consumable', 'SAMSUNG'),
+('Consumable', 'HP'),
+('Consumable', 'DELL'),
+('Machine', 'CANON'),
+('Machine', 'TOSHIBA'),
+('Machine', 'RECOH'),
+('Machine', 'SHARP'),
+('Machine', 'KYOCERA'),
+('Machine', 'SEROX'),
+('Machine', 'SAMSUNG'),
+('Machine', 'HP'),
+('Machine', 'DELL'),
+('Photocopier', 'CANON'),
+('Photocopier', 'TOSHIBA'),
+('Photocopier', 'RECOH'),
+('Photocopier', 'SHARP'),
+('Photocopier', 'KYOCERA'),
+('Photocopier', 'SEROX'),
+('Photocopier', 'SAMSUNG'),
+('Photocopier', 'HP'),
+('Photocopier', 'DELL'),
+('Printer', 'CANON'),
+('Printer', 'HP'),
+('Printer', 'EPSON'),
+('Printer', 'BROTHER'),
+('Printer', 'LEXMARK'),
+('Printer', 'OTHER'),
+('Printer', 'SEROX'),
+('Printer', 'SAMSUNG'),
+('Computer', 'HP'),
+('Computer', 'DELL'),
+('Computer', 'ASUS'),
+('Computer', 'SONY'),
+('Computer', 'SINGER'),
+('Computer', 'SAMSUNG'),
+('Computer', 'SPARE PARTS'),
+('Computer', 'OTHER'),
+('Laptop', 'HP'),
+('Laptop', 'DELL'),
+('Laptop', 'ASUS'),
+('Laptop', 'SONY'),
+('Laptop', 'SINGER'),
+('Laptop', 'SAMSUNG'),
+('Laptop', 'SPARE PARTS'),
+('Laptop', 'OTHER'),
+('Plotter', 'CANON'),
+('Plotter', 'HP'),
+('Plotter', 'EPSON'),
+('Plotter', 'OTHER'),
+('CCTV', 'HICKVISION'),
+('CCTV', 'DAHUA'),
+('CCTV', 'OTHER'),
+('Duplo', 'RONGDA'),
+('Duplo', 'RISO'),
+('Duplo', 'RECOH'),
+('Duplo', 'DUPLO'),
+('Other', 'OTHER'),
+('Service', 'OTHER')
+ON CONFLICT (category_name, model_name) DO NOTHING;
 
 INSERT INTO ui_settings(app_name, footer_text, primary_color, accent_color)
 SELECT

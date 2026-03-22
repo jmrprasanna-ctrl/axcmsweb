@@ -130,17 +130,46 @@ async function ensureDefaultCategoryModelOptions() {
     Consumable: ["CANON", "TOSHIBA", "RECOH", "SHARP", "KYOCERA", "SEROX", "SAMSUNG", "HP", "DELL"],
     Machine: ["CANON", "TOSHIBA", "RECOH", "SHARP", "KYOCERA", "SEROX", "SAMSUNG", "HP", "DELL"],
     Photocopier: ["CANON", "TOSHIBA", "RECOH", "SHARP", "KYOCERA", "SEROX", "SAMSUNG", "HP", "DELL"],
-    Printer: ["CANON", "HP", "EPSON", "BROTHER", "OTHER", "SEROX", "SAMSUNG"],
-    Computer: ["HP", "DELL", "ASUS", "SONY", "SINGER", "SAMSUNG", "OTHER"],
-    Laptop: ["HP", "DELL", "ASUS", "SONY", "SINGER", "SAMSUNG", "OTHER"],
+    Printer: ["CANON", "HP", "EPSON", "BROTHER", "LEXMARK", "OTHER", "SEROX", "SAMSUNG"],
+    Computer: ["HP", "DELL", "ASUS", "SONY", "SINGER", "SAMSUNG", "SPARE PARTS", "OTHER"],
+    Laptop: ["HP", "DELL", "ASUS", "SONY", "SINGER", "SAMSUNG", "SPARE PARTS", "OTHER"],
     Plotter: ["CANON", "HP", "EPSON", "OTHER"],
     CCTV: ["HICKVISION", "DAHUA", "OTHER"],
-    Duplo: ["CANON", "TOSHIBA", "RECOH"],
+    Duplo: ["RONGDA", "RISO", "RECOH", "DUPLO"],
     Other: ["OTHER"],
     Service: ["OTHER"],
   };
 
   await runOnBusinessDatabases(async () => {
+    // Data normalization for renamed Duplo model labels.
+    await db.query(`
+      DELETE FROM category_model_options
+      WHERE category_name = 'Duplo' AND model_name = 'CANON'
+        AND EXISTS (
+          SELECT 1 FROM category_model_options
+          WHERE category_name = 'Duplo' AND model_name = 'RONGDA'
+        );
+    `);
+    await db.query(`
+      UPDATE category_model_options
+      SET model_name = 'RONGDA'
+      WHERE category_name = 'Duplo' AND model_name = 'CANON';
+    `);
+
+    await db.query(`
+      DELETE FROM category_model_options
+      WHERE category_name = 'Duplo' AND model_name = 'TOSHIBA'
+        AND EXISTS (
+          SELECT 1 FROM category_model_options
+          WHERE category_name = 'Duplo' AND model_name = 'RISO'
+        );
+    `);
+    await db.query(`
+      UPDATE category_model_options
+      SET model_name = 'RISO'
+      WHERE category_name = 'Duplo' AND model_name = 'TOSHIBA';
+    `);
+
     for (const [categoryName, models] of Object.entries(categoryModels)) {
       for (const modelName of models) {
         const existing = await CategoryModelOption.findOne({

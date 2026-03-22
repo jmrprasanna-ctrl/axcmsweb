@@ -13,6 +13,7 @@ DROP TABLE IF EXISTS expenses CASCADE;
 DROP TABLE IF EXISTS products CASCADE;
 DROP TABLE IF EXISTS vendors CASCADE;
 DROP TABLE IF EXISTS customers CASCADE;
+DROP TABLE IF EXISTS category_model_options CASCADE;
 DROP TABLE IF EXISTS categories CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 
@@ -46,6 +47,31 @@ VALUES
 ('Photocopier'),('Printer'),('Plotter'),('Computer'),
 ('Laptop'),('Accessory'),('Consumable'),('Machine'),
 ('CCTV'),('Duplo'),('Other');
+
+-- ==========================
+-- Category Model Options
+-- ==========================
+CREATE TABLE category_model_options (
+    id SERIAL PRIMARY KEY,
+    category_name VARCHAR(100) NOT NULL,
+    model_name VARCHAR(100) NOT NULL,
+    createdAt TIMESTAMP DEFAULT NOW(),
+    updatedAt TIMESTAMP DEFAULT NOW(),
+    UNIQUE (category_name, model_name)
+);
+
+INSERT INTO category_model_options(category_name, model_name) VALUES
+('Accessory', 'CANON'),('Accessory', 'TOSHIBA'),('Accessory', 'RECOH'),('Accessory', 'SHARP'),('Accessory', 'KYOCERA'),('Accessory', 'SEROX'),('Accessory', 'SAMSUNG'),('Accessory', 'HP'),('Accessory', 'DELL'),
+('Consumable', 'CANON'),('Consumable', 'TOSHIBA'),('Consumable', 'RECOH'),('Consumable', 'SHARP'),('Consumable', 'KYOCERA'),('Consumable', 'SEROX'),('Consumable', 'SAMSUNG'),('Consumable', 'HP'),('Consumable', 'DELL'),
+('Machine', 'CANON'),('Machine', 'TOSHIBA'),('Machine', 'RECOH'),('Machine', 'SHARP'),('Machine', 'KYOCERA'),('Machine', 'SEROX'),('Machine', 'SAMSUNG'),('Machine', 'HP'),('Machine', 'DELL'),
+('Photocopier', 'CANON'),('Photocopier', 'TOSHIBA'),('Photocopier', 'RECOH'),('Photocopier', 'SHARP'),('Photocopier', 'KYOCERA'),('Photocopier', 'SEROX'),('Photocopier', 'SAMSUNG'),('Photocopier', 'HP'),('Photocopier', 'DELL'),
+('Printer', 'CANON'),('Printer', 'HP'),('Printer', 'EPSON'),('Printer', 'BROTHER'),('Printer', 'LEXMARK'),('Printer', 'OTHER'),('Printer', 'SEROX'),('Printer', 'SAMSUNG'),
+('Computer', 'HP'),('Computer', 'DELL'),('Computer', 'ASUS'),('Computer', 'SONY'),('Computer', 'SINGER'),('Computer', 'SAMSUNG'),('Computer', 'SPARE PARTS'),('Computer', 'OTHER'),
+('Laptop', 'HP'),('Laptop', 'DELL'),('Laptop', 'ASUS'),('Laptop', 'SONY'),('Laptop', 'SINGER'),('Laptop', 'SAMSUNG'),('Laptop', 'SPARE PARTS'),('Laptop', 'OTHER'),
+('Plotter', 'CANON'),('Plotter', 'HP'),('Plotter', 'EPSON'),('Plotter', 'OTHER'),
+('CCTV', 'HICKVISION'),('CCTV', 'DAHUA'),('CCTV', 'OTHER'),
+('Duplo', 'RONGDA'),('Duplo', 'RISO'),('Duplo', 'RECOH'),('Duplo', 'DUPLO'),
+('Other', 'OTHER');
 
 -- ==========================
 -- Vendors Table
