@@ -49,6 +49,41 @@
         margin-top:0;
         margin-left:0;
     }
+    .product-search-wrap{
+        position: relative;
+    }
+    .product-search-results{
+        position: absolute;
+        z-index: 20;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid #d9e1ec;
+        border-radius: 8px;
+        max-height: 240px;
+        overflow-y: auto;
+        box-shadow: 0 8px 20px rgba(15, 46, 79, 0.12);
+        display: none;
+    }
+    .product-search-item{
+        padding: 10px 12px;
+        border-bottom: 1px solid #edf2f7;
+        cursor: pointer;
+        font-size: 13px;
+        line-height: 1.35;
+    }
+    .product-search-item:last-child{
+        border-bottom: none;
+    }
+    .product-search-item:hover{
+        background: #f6f9ff;
+    }
+    .product-search-empty{
+        padding: 10px 12px;
+        color: #5e7085;
+        font-size: 13px;
+    }
     @media (max-width: 900px){
         .controls-row{
             flex-direction: row !important;
@@ -108,10 +143,12 @@
                 </div>
 
                 <div class="field">
-                    <label for="consumableProduct">Consumables</label>
-                    <select id="consumableProduct" required>
-                        <option value="">Select Consumable from Products</option>
-                    </select>
+                    <label for="productSearchInput">Products</label>
+                    <div class="product-search-wrap">
+                        <input type="text" id="productSearchInput" placeholder="Search by Product ID, Description, Category, Model, Vendor" autocomplete="off">
+                        <input type="hidden" id="consumableProductId">
+                        <div id="productSearchResults" class="product-search-results"></div>
+                    </div>
                 </div>
 
                 <div class="field">
@@ -212,26 +249,58 @@ async function loadRentalMachines(){
 async function loadConsumableProducts(){
     try{
         const products = await request("/products", "GET");
-        const consumableLike = products.filter(p => {
-            const categoryName = p.Category ? p.Category.name : "";
-            const normalized = String(categoryName || "").toLowerCase();
-            return normalized === "consumable" || normalized === "consumables";
-        });
-        consumableProducts = consumableLike.length ? consumableLike : products;
-
-        const select = document.getElementById("consumableProduct");
-        select.innerHTML = "<option value=''>Select Consumable from Products</option>";
-        consumableProducts.forEach(p => {
-            const opt = document.createElement("option");
-            opt.value = p.id;
-            const code = p.product_id || `ID:${p.id}`;
-            const name = p.description || "Unnamed";
-            opt.innerText = `${code} - ${name}`;
-            select.appendChild(opt);
-        });
+        consumableProducts = Array.isArray(products) ? products : [];
     }catch(err){
         alert(err.message || "Failed to load products");
     }
+}
+
+function getProductSearchText(product){
+    const productId = String(product.product_id || `ID:${product.id}`);
+    const description = String(product.description || "Unnamed");
+    const category = String(product.Category ? (product.Category.name || "") : "");
+    const model = String(product.model || "");
+    const vendor = String(product.Vendor ? (product.Vendor.name || "") : "");
+    return `${productId} ${description} ${category} ${model} ${vendor}`.toLowerCase();
+}
+
+function productDisplayLabel(product){
+    const productId = String(product.product_id || `ID:${product.id}`);
+    const description = String(product.description || "Unnamed");
+    const category = String(product.Category ? (product.Category.name || "-") : "-");
+    const model = String(product.model || "-");
+    const vendor = String(product.Vendor ? (product.Vendor.name || "-") : "-");
+    return `${productId} | ${description} | ${category} | ${model} | ${vendor}`;
+}
+
+function renderProductSearchResults(query){
+    const resultsEl = document.getElementById("productSearchResults");
+    const q = String(query || "").trim().toLowerCase();
+    let rows = consumableProducts;
+    if(q){
+        rows = consumableProducts.filter(p => getProductSearchText(p).includes(q));
+    }
+    rows = rows.slice(0, 40);
+
+    if(!rows.length){
+        resultsEl.innerHTML = `<div class="product-search-empty">No products found.</div>`;
+        resultsEl.style.display = "block";
+        return;
+    }
+
+    resultsEl.innerHTML = rows.map((p) => `
+        <div class="product-search-item" data-id="${p.id}">${productDisplayLabel(p)}</div>
+    `).join("");
+    resultsEl.style.display = "block";
+}
+
+function selectProductById(id){
+    const productId = Number(id);
+    const product = consumableProducts.find(p => Number(p.id) === productId);
+    if(!product) return;
+    document.getElementById("consumableProductId").value = String(product.id);
+    document.getElementById("productSearchInput").value = productDisplayLabel(product);
+    document.getElementById("productSearchResults").style.display = "none";
 }
 
 function renderPending(){
@@ -261,7 +330,7 @@ function removePending(index){
 window.removePending = removePending;
 
 function addPendingItem(){
-    const productId = Number(document.getElementById("consumableProduct").value);
+    const productId = Number(document.getElementById("consumableProductId").value);
     const quantity = Number.parseInt(document.getElementById("quantity").value, 10);
     const count = Number.parseInt(document.getElementById("count").value, 10);
     const product = consumableProducts.find(p => Number(p.id) === productId);
@@ -281,12 +350,35 @@ function addPendingItem(){
     });
 
     renderPending();
-    document.getElementById("consumableProduct").value = "";
+    document.getElementById("consumableProductId").value = "";
+    document.getElementById("productSearchInput").value = "";
     document.getElementById("quantity").value = "1";
     document.getElementById("count").value = "1";
 }
 
 document.getElementById("addItemBtn").addEventListener("click", addPendingItem);
+
+const productSearchInput = document.getElementById("productSearchInput");
+const productSearchResults = document.getElementById("productSearchResults");
+if(productSearchInput && productSearchResults){
+    productSearchInput.addEventListener("input", (e) => {
+        document.getElementById("consumableProductId").value = "";
+        renderProductSearchResults(e.target.value);
+    });
+    productSearchInput.addEventListener("focus", (e) => {
+        renderProductSearchResults(e.target.value);
+    });
+    productSearchInput.addEventListener("blur", () => {
+        setTimeout(() => {
+            productSearchResults.style.display = "none";
+        }, 150);
+    });
+    productSearchResults.addEventListener("mousedown", (e) => {
+        const item = e.target.closest(".product-search-item");
+        if(!item) return;
+        selectProductById(item.dataset.id);
+    });
+}
 
 async function loadAddedConsumables(){
     try{
