@@ -8,5 +8,6 @@ router.get("/", authMiddleware, roleMiddleware(["admin", "manager", "user"]), co
 router.get("/last-id", authMiddleware, roleMiddleware(["admin", "manager", "user"]), controller.getLastTransactionId);
 router.get("/next-count", authMiddleware, roleMiddleware(["admin", "manager", "user"]), controller.getMachineNextCount);
 router.post("/", authMiddleware, roleMiddleware(["admin", "manager", "user"]), controller.createRentalMachineCount);
+router.delete("/:id", authMiddleware, roleMiddleware(["admin", "manager"]), controller.deleteRentalMachineCount);
 
 module.exports = router;

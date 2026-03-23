@@ -143,3 +143,46 @@ exports.createRentalMachineCount = async (req, res) => {
     res.status(500).json({ message: err.message || "Failed to save rental count." });
   }
 };
+
+exports.deleteRentalMachineCount = async (req, res) => {
+  const transaction = await db.transaction();
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id) || id <= 0) {
+      await transaction.rollback();
+      return res.status(400).json({ message: "Invalid rental count id." });
+    }
+
+    const row = await RentalMachineCount.findByPk(id, { transaction });
+    if (!row) {
+      await transaction.rollback();
+      return res.status(404).json({ message: "Rental count record not found." });
+    }
+
+    const machine = await RentalMachine.findByPk(row.rental_machine_id, { transaction });
+    if (!machine) {
+      await transaction.rollback();
+      return res.status(404).json({ message: "Linked rental machine not found." });
+    }
+
+    await row.destroy({ transaction });
+
+    const latestRemaining = await RentalMachineCount.findOne({
+      where: { rental_machine_id: machine.id },
+      order: [["createdAt", "DESC"], ["id", "DESC"]],
+      transaction,
+    });
+
+    const updatedCount = latestRemaining
+      ? Number(latestRemaining.updated_count || 0)
+      : Number(machine.start_count || 0);
+
+    await machine.update({ updated_count: updatedCount }, { transaction });
+    await transaction.commit();
+
+    res.json({ message: "Rental count record deleted successfully." });
+  } catch (err) {
+    await transaction.rollback();
+    res.status(500).json({ message: err.message || "Failed to delete rental count record." });
+  }
+};

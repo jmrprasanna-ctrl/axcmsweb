@@ -81,6 +81,7 @@
                     <th>Updated Count</th>
                     <th>Price (Rs.)</th>
                     <th>Date</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -95,6 +96,7 @@ if(!localStorage.getItem("token")){
 }
 
 const role = (localStorage.getItem("role") || "").toLowerCase();
+const canDeleteCount = role === "admin" || role === "manager";
 
 let allMachines = [];
 let allRentalCounts = [];
@@ -191,13 +193,14 @@ function renderRentalCounts(){
             <td>${updatedCount}</td>
             <td>${priceAmount.toFixed(2)}</td>
             <td>${dateText}</td>
+            <td>${canDeleteCount ? `<button class="btn btn-danger" type="button" onclick="deleteRentalCount(${Number(r.id)})">Delete</button>` : "-"}</td>
         `;
         tbody.appendChild(tr);
     });
 
     if(!rows.length){
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td colspan="8" style="text-align:center;">No rental count records found.</td>`;
+        tr.innerHTML = `<td colspan="9" style="text-align:center;">No rental count records found.</td>`;
         tbody.appendChild(tr);
     }
 }
@@ -252,6 +255,23 @@ document.getElementById("rentalCountForm").addEventListener("submit", async (e) 
         alert(err.message || "Failed to save rental count");
     }
 });
+
+async function deleteRentalCount(id){
+    const rowId = Number(id);
+    if(!Number.isFinite(rowId) || rowId <= 0) return;
+    if(!confirm("Delete this rental count record?")) return;
+
+    try{
+        await request(`/rental-machine-counts/${rowId}`, "DELETE");
+        showMessageBox("Rental count record deleted");
+        await loadMachines();
+        await loadRentalCounts();
+        await onMachineChange();
+    }catch(err){
+        alert(err.message || "Failed to delete rental count record");
+    }
+}
+window.deleteRentalCount = deleteRentalCount;
 
 function logout(){
     localStorage.removeItem("token");
