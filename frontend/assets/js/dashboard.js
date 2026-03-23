@@ -83,6 +83,7 @@ async function fetchSummary(){
         document.getElementById("totalProducts").querySelector("p").innerText = summary.totalProducts || 0;
         document.getElementById("totalCustomers").querySelector("p").innerText = summary.totalCustomers || 0;
         document.getElementById("totalVendors").querySelector("p").innerText = summary.totalVendors || 0;
+        // Total Sales: invoice totals only.
         const salesVal = summary.totalSalesPeriod ?? summary.totalSales ?? 0;
         const receivedPaymentVal = summary.receivedPaymentPeriod ?? summary.receivedPayment ?? 0;
         const rentalMachinesCountsVal = summary.rentalMachinesCountsPriceAllInputs
@@ -96,7 +97,13 @@ async function fetchSummary(){
         const expenseVal = summary.totalExpensesPeriod ?? summary.totalExpenses ?? 0;
         const technicianPaidVal = summary.technicianPaidPeriod ?? summary.technicianPaid ?? 0;
         const vendorPaidVal = summary.vendorPaidPeriod ?? summary.vendorPaid ?? 0;
-        const profitVal = summary.netProfitPeriod ?? summary.netProfit ?? (Number(receivedPaymentVal) - Number(expenseVal) - Number(technicianPaidVal) - Number(vendorPaidVal));
+        const profitVal =
+            Number(receivedPaymentVal || 0)
+            + Number(rentalMachinesCountsVal || 0)
+            - Number(rentalConsumablesVal || 0)
+            - Number(expenseVal || 0)
+            - Number(technicianPaidVal || 0)
+            - Number(vendorPaidVal || 0);
         document.getElementById("totalSales").querySelector("p").innerText = Number(salesVal || 0).toFixed(2);
         const receivedPaymentEl = document.getElementById("receivedPayment");
         if(receivedPaymentEl){
