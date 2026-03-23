@@ -172,9 +172,7 @@ async function loadRentalCounts(){
             const customer = r.Customer ? (r.Customer.name || "") : "";
             const inputCount = Number(r.input_count || 0);
             const updatedCount = Number(r.updated_count || 0);
-            const pagePerPrice = Number((r.RentalMachine && r.RentalMachine.page_per_price) || 0);
-            const copiedPages = Math.max(0, updatedCount - inputCount);
-            const priceAmount = copiedPages * pagePerPrice;
+            const priceAmount = (updatedCount - inputCount) * 1;
             tr.innerHTML = `
                 <td>${r.transaction_id || ""}</td>
                 <td>${machineId}</td>
