@@ -148,8 +148,10 @@ async function loadMachines(){
         allMachines.forEach(m => {
             const opt = document.createElement("option");
             opt.value = m.id;
+            const machineId = m.machine_id || "MACHINE";
+            const machineTitle = String(m.machine_title || "").trim() || "UNTITLED";
             const customer = m.customer_name || (m.Customer ? m.Customer.name : "");
-            opt.innerText = `${m.machine_id || "MACHINE"} - ${customer}`;
+            opt.innerText = `${machineId} - ${machineTitle} - ${customer || "NO CUSTOMER"}`;
             select.appendChild(opt);
         });
         populateMachineTitleFilter();
