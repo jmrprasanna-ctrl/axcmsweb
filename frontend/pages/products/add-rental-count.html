@@ -75,6 +75,7 @@
                 <tr>
                     <th>Transaction ID</th>
                     <th>Machine ID</th>
+                    <th>Machine Title</th>
                     <th>Customer</th>
                     <th>Input Count</th>
                     <th>Updated Count</th>
@@ -176,6 +177,7 @@ function renderRentalCounts(){
         const tr = document.createElement("tr");
         const dateText = r.createdAt ? new Date(r.createdAt).toLocaleString() : "";
         const machineId = r.RentalMachine ? (r.RentalMachine.machine_id || "") : "";
+        const machineTitle = r.RentalMachine ? (r.RentalMachine.machine_title || "") : "";
         const customer = r.Customer ? (r.Customer.name || "") : "";
         const inputCount = Number(r.input_count || 0);
         const updatedCount = Number(r.updated_count || 0);
@@ -183,6 +185,7 @@ function renderRentalCounts(){
         tr.innerHTML = `
             <td>${r.transaction_id || ""}</td>
             <td>${machineId}</td>
+            <td>${machineTitle}</td>
             <td>${customer}</td>
             <td>${inputCount}</td>
             <td>${updatedCount}</td>
@@ -194,7 +197,7 @@ function renderRentalCounts(){
 
     if(!rows.length){
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td colspan="7" style="text-align:center;">No rental count records found.</td>`;
+        tr.innerHTML = `<td colspan="8" style="text-align:center;">No rental count records found.</td>`;
         tbody.appendChild(tr);
     }
 }
