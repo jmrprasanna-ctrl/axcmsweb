@@ -68,7 +68,14 @@ async function fetchSummary(){
         const query = `?period=${encodeURIComponent(period)}&date=${encodeURIComponent(date)}`;
         const summary = await request(`/dashboard/summary${query}`,"GET");
 
-        document.getElementById("totalUsers").querySelector("p").innerText = summary.totalUsers || 0;
+        const totalUsersEl = document.getElementById("totalUsers");
+        if(totalUsersEl){
+            totalUsersEl.querySelector("p").innerText = summary.totalUsers || 0;
+        }
+        const totalMchineEl = document.getElementById("totalMchine");
+        if(totalMchineEl){
+            totalMchineEl.querySelector("p").innerText = summary.totalGeneralMachines || 0;
+        }
         const rentalMachinesEl = document.getElementById("totalRentalMachines");
         if(rentalMachinesEl){
             rentalMachinesEl.querySelector("p").innerText = summary.totalRentalMachines || 0;

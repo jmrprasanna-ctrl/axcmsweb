@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const Product = require("../models/Product");
 const RentalMachine = require("../models/RentalMachine");
+const GeneralMachine = require("../models/GeneralMachine");
 const Customer = require("../models/Customer");
 const Vendor = require("../models/Vendor");
 const Invoice = require("../models/Invoice");
@@ -90,6 +91,9 @@ exports.getSummary = async (req,res)=>{
         }
 
         const totalUsers = await User.count();
+        const totalGeneralMachines = await GeneralMachine.count({
+            include: [getGeneralCustomerInclude()]
+        });
         const totalRentalMachines = await RentalMachine.count();
         const totalProducts = await Product.count();
         const totalCustomers = await Customer.count();
@@ -214,6 +218,7 @@ exports.getSummary = async (req,res)=>{
 
         res.json({
             totalUsers,
+            totalGeneralMachines,
             totalRentalMachines,
             totalProducts,
             totalCustomers,
