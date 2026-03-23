@@ -17,6 +17,19 @@
 .button-row .btn{
     margin-top:0;
 }
+.table-header-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+}
+.table-header-row h3{
+    margin:0;
+}
+.table-filter{
+    min-width:220px;
+}
 </style>
 </head>
 <body>
@@ -69,7 +82,12 @@
     </div>
 
     <div class="form-container">
-        <header><h3>Rental Machines Counts</h3></header>
+        <header class="table-header-row">
+            <h3>Rental Machines Counts</h3>
+            <select id="machineTitleFilter" class="table-filter">
+                <option value="">All Machine Titles</option>
+            </select>
+        </header>
         <table id="rentalCountTable">
             <thead>
                 <tr>
@@ -134,8 +152,31 @@ async function loadMachines(){
             opt.innerText = `${m.machine_id || "MACHINE"} - ${customer}`;
             select.appendChild(opt);
         });
+        populateMachineTitleFilter();
     }catch(err){
         alert(err.message || "Failed to load rental machines");
+    }
+}
+
+function populateMachineTitleFilter(){
+    const filter = document.getElementById("machineTitleFilter");
+    const current = String(filter.value || "");
+    const uniqueTitles = Array.from(new Set(
+        allMachines
+            .map(m => String(m.machine_title || "").trim())
+            .filter(Boolean)
+    )).sort((a, b) => a.localeCompare(b));
+
+    filter.innerHTML = "<option value=''>All Machine Titles</option>";
+    uniqueTitles.forEach(title => {
+        const opt = document.createElement("option");
+        opt.value = title;
+        opt.textContent = title;
+        filter.appendChild(opt);
+    });
+
+    if(uniqueTitles.includes(current)){
+        filter.value = current;
     }
 }
 
@@ -170,9 +211,19 @@ async function onMachineChange(){
 function renderRentalCounts(){
     const tbody = document.querySelector("#rentalCountTable tbody");
     const selectedMachineId = Number(document.getElementById("rentalMachineId").value);
-    const rows = selectedMachineId
-        ? allRentalCounts.filter(r => Number(r.rental_machine_id) === selectedMachineId)
-        : allRentalCounts;
+    const selectedTitle = String(document.getElementById("machineTitleFilter").value || "").trim();
+    const rows = allRentalCounts.filter(r => {
+        if(selectedMachineId && Number(r.rental_machine_id) !== selectedMachineId){
+            return false;
+        }
+        if(selectedTitle){
+            const rowTitle = String((r.RentalMachine && r.RentalMachine.machine_title) || "").trim();
+            if(rowTitle !== selectedTitle){
+                return false;
+            }
+        }
+        return true;
+    });
 
     tbody.innerHTML = "";
     rows.forEach(r => {
@@ -220,6 +271,7 @@ document.getElementById("transactionId").addEventListener("blur", (e) => {
 });
 
 document.getElementById("rentalMachineId").addEventListener("change", onMachineChange);
+document.getElementById("machineTitleFilter").addEventListener("change", renderRentalCounts);
 
 document.getElementById("rentalCountForm").addEventListener("submit", async (e) => {
     e.preventDefault();
