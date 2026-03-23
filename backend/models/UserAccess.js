@@ -7,10 +7,19 @@ const UserAccess = db.define("UserAccess", {
   user_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    unique: true,
     references: { model: User, key: "id" },
   },
+  user_database: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: "inventory",
+  },
   allowed_pages_json: {
+    type: DataTypes.TEXT,
+    allowNull: false,
+    defaultValue: "[]",
+  },
+  allowed_actions_json: {
     type: DataTypes.TEXT,
     allowNull: false,
     defaultValue: "[]",
@@ -24,6 +33,13 @@ const UserAccess = db.define("UserAccess", {
 }, {
   tableName: "user_accesses",
   timestamps: true,
+  indexes: [
+    {
+      unique: true,
+      fields: ["user_id", "user_database"],
+      name: "user_accesses_user_db_unique_idx",
+    },
+  ],
 });
 
 UserAccess.belongsTo(User, { foreignKey: "user_id" });

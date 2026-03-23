@@ -55,7 +55,11 @@ exports.login = async (req, res) => {
     let databaseName = null;
     if (String(user.role || "").toLowerCase() === "user") {
       const accessRs = await client.query(
-        "SELECT database_name FROM user_accesses WHERE user_id = $1 LIMIT 1",
+        `SELECT database_name
+         FROM user_accesses
+         WHERE user_id = $1
+           AND LOWER(COALESCE(user_database, 'inventory')) = 'inventory'
+         LIMIT 1`,
         [user.id]
       );
       const normalized = String(accessRs.rows[0]?.database_name || "").trim().toLowerCase();

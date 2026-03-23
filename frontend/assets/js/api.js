@@ -72,6 +72,8 @@ const USER_DEFAULT_ALLOWED_PATHS = [
 ];
 let USER_ALLOWED_PATHS_RUNTIME = [...USER_DEFAULT_ALLOWED_PATHS];
 const USER_ALLOWED_CACHE_KEY = "userAllowedPathsRuntime";
+let USER_ALLOWED_ACTIONS_RUNTIME = [];
+const USER_ALLOWED_ACTIONS_CACHE_KEY = "userAllowedActionsRuntime";
 
 const MANAGER_BLOCKED_PATHS = [
     "/users/add-user.html",
@@ -555,7 +557,9 @@ async function loadUserAccessPermissions(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
     if(role !== "user"){
         USER_ALLOWED_PATHS_RUNTIME = [...USER_DEFAULT_ALLOWED_PATHS];
+        USER_ALLOWED_ACTIONS_RUNTIME = [];
         localStorage.removeItem(USER_ALLOWED_CACHE_KEY);
+        localStorage.removeItem(USER_ALLOWED_ACTIONS_CACHE_KEY);
         return;
     }
     const cachedRaw = localStorage.getItem(USER_ALLOWED_CACHE_KEY);
@@ -564,6 +568,15 @@ async function loadUserAccessPermissions(){
             const cached = JSON.parse(cachedRaw);
             if(Array.isArray(cached) && cached.length){
                 USER_ALLOWED_PATHS_RUNTIME = Array.from(new Set(cached.map((x)=>String(x || "").trim()).filter(Boolean)));
+            }
+        }catch(_e){}
+    }
+    const cachedActionsRaw = localStorage.getItem(USER_ALLOWED_ACTIONS_CACHE_KEY);
+    if(cachedActionsRaw){
+        try{
+            const cached = JSON.parse(cachedActionsRaw);
+            if(Array.isArray(cached) && cached.length){
+                USER_ALLOWED_ACTIONS_RUNTIME = Array.from(new Set(cached.map((x)=>String(x || "").trim().toLowerCase()).filter(Boolean)));
             }
         }catch(_e){}
     }
@@ -580,6 +593,7 @@ async function loadUserAccessPermissions(){
         }
         const data = await res.json();
         const dynamicPages = Array.isArray(data.allowed_pages) ? data.allowed_pages : [];
+        const dynamicActions = Array.isArray(data.allowed_actions) ? data.allowed_actions : [];
         const merged = new Set([
             "/login.html",
             "/dashboard.html",
@@ -587,7 +601,9 @@ async function loadUserAccessPermissions(){
             ...dynamicPages
         ]);
         USER_ALLOWED_PATHS_RUNTIME = Array.from(merged);
+        USER_ALLOWED_ACTIONS_RUNTIME = Array.from(new Set(dynamicActions.map((x)=>String(x || "").trim().toLowerCase()).filter(Boolean)));
         localStorage.setItem(USER_ALLOWED_CACHE_KEY, JSON.stringify(USER_ALLOWED_PATHS_RUNTIME));
+        localStorage.setItem(USER_ALLOWED_ACTIONS_CACHE_KEY, JSON.stringify(USER_ALLOWED_ACTIONS_RUNTIME));
         if(data.database_name){
             localStorage.setItem("selectedDatabaseName", String(data.database_name));
         }else{
@@ -789,3 +805,30 @@ function hasUserGrantedPath(path){
         return false;
     }
 }
+window.hasUserGrantedPath = hasUserGrantedPath;
+
+function hasUserActionPermission(path, action){
+    const role = (localStorage.getItem("role") || "").toLowerCase();
+    if(role === "admin" || role === "manager"){
+        return true;
+    }
+    const selectedDb = String(localStorage.getItem("selectedDatabaseName") || "").trim().toLowerCase();
+    if(role === "user" && selectedDb === "demo"){
+        return true;
+    }
+    if(role !== "user"){
+        return false;
+    }
+
+    const actionKey = `${String(path || "").trim().toLowerCase()}::${String(action || "").trim().toLowerCase()}`;
+    if(USER_ALLOWED_ACTIONS_RUNTIME.includes(actionKey)){
+        return true;
+    }
+    try{
+        const cached = JSON.parse(localStorage.getItem(USER_ALLOWED_ACTIONS_CACHE_KEY) || "[]");
+        return Array.isArray(cached) && cached.map((x)=>String(x || "").trim().toLowerCase()).includes(actionKey);
+    }catch(_err){
+        return false;
+    }
+}
+window.hasUserActionPermission = hasUserActionPermission;

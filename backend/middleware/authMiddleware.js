@@ -20,7 +20,11 @@ async function resolveUserAssignedDatabase(userId) {
   try {
     await client.connect();
     const rs = await client.query(
-      "SELECT database_name FROM user_accesses WHERE user_id = $1 LIMIT 1",
+      `SELECT database_name
+       FROM user_accesses
+       WHERE user_id = $1
+         AND LOWER(COALESCE(user_database, 'inventory')) = 'inventory'
+       LIMIT 1`,
       [userId]
     );
     const selected = db.normalizeDatabaseName(rs.rows[0]?.database_name || "");

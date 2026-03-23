@@ -108,7 +108,9 @@ const canAccessPath = (path) => (canManage)
     ? true
     : (role === "user" && allowedPaths.has(String(path || "").trim().toLowerCase()));
 const canAddGeneralMachine = canAccessPath("/products/add-general-machine.html");
-const isReadOnlyUser = !canManage;
+const canEditGeneralMachine = canManage || (role === "user" && typeof hasUserActionPermission === "function" && hasUserActionPermission("/products/general-machine.html", "edit"));
+const canDeleteGeneralMachine = canManage || (role === "user" && typeof hasUserActionPermission === "function" && hasUserActionPermission("/products/general-machine.html", "delete"));
+const isReadOnlyUser = !canEditGeneralMachine && !canDeleteGeneralMachine;
 const addMachineBtn = document.getElementById("addMachineBtn");
 const machineSearchEl = document.getElementById("machineSearch");
 let allMachines = [];
@@ -144,8 +146,8 @@ function renderMachines(machines){
             tr.innerHTML += `
                 <td>
                     <div class="machine-action-row">
-                        <a class="btn machine-action-btn" href="edit-general-machine.html?id=${m.id}">Edit</a>
-                        <button class="btn btn-danger btn-inline machine-action-btn" type="button" onclick="deleteMachine(${m.id})">Delete</button>
+                        ${canEditGeneralMachine ? `<a class="btn machine-action-btn" href="edit-general-machine.html?id=${m.id}">Edit</a>` : ""}
+                        ${canDeleteGeneralMachine ? `<button class="btn btn-danger btn-inline machine-action-btn" type="button" onclick="deleteMachine(${m.id})">Delete</button>` : ""}
                     </div>
                 </td>
             `;

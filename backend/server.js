@@ -385,6 +385,42 @@ async function ensureVendorCategorySchema() {
   });
 }
 
+async function ensureUserAccessSchema() {
+  await runOnBusinessDatabases(async () => {
+    await db.query(`
+      ALTER TABLE user_accesses
+      ADD COLUMN IF NOT EXISTS user_database VARCHAR(20) DEFAULT 'inventory';
+    `);
+
+    await db.query(`
+      UPDATE user_accesses
+      SET user_database = 'inventory'
+      WHERE user_database IS NULL OR TRIM(user_database) = '';
+    `);
+
+    await db.query(`
+      ALTER TABLE user_accesses
+      ADD COLUMN IF NOT EXISTS allowed_actions_json TEXT DEFAULT '[]';
+    `);
+
+    await db.query(`
+      UPDATE user_accesses
+      SET allowed_actions_json = '[]'
+      WHERE allowed_actions_json IS NULL OR TRIM(allowed_actions_json) = '';
+    `);
+
+    await db.query(`
+      ALTER TABLE user_accesses
+      DROP CONSTRAINT IF EXISTS user_accesses_user_id_key;
+    `);
+
+    await db.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS user_accesses_user_db_unique_idx
+      ON user_accesses(user_id, user_database);
+    `);
+  });
+}
+
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
@@ -450,6 +486,7 @@ async function startServer() {
     await ensureRentalMachineCountSchema();
     await ensureCustomerCodeSchema();
     await ensureVendorCategorySchema();
+    await ensureUserAccessSchema();
     await ensureInvoiceDateSchema();
     await ensureInvoicePaymentSchema();
     await ensureDefaultCategories();

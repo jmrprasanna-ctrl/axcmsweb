@@ -114,7 +114,12 @@ if(!localStorage.getItem("token")){
 }
 
 const role = (localStorage.getItem("role") || "").toLowerCase();
-const canDeleteCount = role === "admin" || role === "manager";
+const selectedDb = (localStorage.getItem("selectedDatabaseName") || "").toLowerCase();
+const isTrainingUser = role === "user" && selectedDb === "demo";
+const canDeleteCount = role === "admin"
+    || role === "manager"
+    || isTrainingUser
+    || (role === "user" && typeof hasUserActionPermission === "function" && hasUserActionPermission("/products/add-rental-count.html", "delete"));
 
 let allMachines = [];
 let allRentalCounts = [];

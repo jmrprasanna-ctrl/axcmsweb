@@ -1,6 +1,7 @@
 const express = require("express");
 const { getUsers, getUserById, addUser, updateUser, deleteUser } = require("../controllers/userController");
 const {
+  getAccessUsers,
   getAccessPages,
   getDatabases,
   getUserAccess,
@@ -20,6 +21,7 @@ router.get("/access/me", getMyAccess);
 
 router.use(roleMiddleware(["admin"]));
 
+router.get("/access-users", getAccessUsers);
 router.get("/access-pages", getAccessPages);
 router.get("/databases", getDatabases);
 router.get("/logs", getLoginLogs);

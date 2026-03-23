@@ -110,6 +110,8 @@ const canAccessPath = (path) => canManage
     ? true
     : (role === "user" && allowedPaths.has(String(path || "").trim().toLowerCase()));
 const canAddVendor = canAccessPath("/vendors/add-vendor.html");
+const canEditVendor = canManage || (role === "user" && typeof hasUserActionPermission === "function" && hasUserActionPermission("/vendors/list-vendor.html", "edit"));
+const canDeleteVendor = canManage || (role === "user" && typeof hasUserActionPermission === "function" && hasUserActionPermission("/vendors/list-vendor.html", "delete"));
 const vendorSearchEl = document.getElementById("vendorSearch");
 let allVendors = [];
 
@@ -118,7 +120,7 @@ if(addVendorBtn && !canAddVendor){
     addVendorBtn.style.display = "none";
 }
 
-if(!canManage){
+if(!canEditVendor && !canDeleteVendor){
     const actionHeader = document.querySelector("#vendorTable thead th:last-child");
     if(actionHeader && actionHeader.innerText.toLowerCase().includes("action")){
         actionHeader.remove();
@@ -135,12 +137,12 @@ function renderVendors(vendors){
             <td>${v.address}</td>
             <td>${v.category || ""}</td>
         `;
-        if(canManage){
+        if(canEditVendor || canDeleteVendor){
             tr.innerHTML += `
                 <td>
                     <div class="vendor-action-row">
-                        <a class="btn vendor-action-btn" href="edit-vendor.html?id=${v.id}">Edit</a>
-                        <button class="btn btn-danger btn-inline vendor-action-btn" type="button" onclick="deleteVendor(${v.id})">Delete</button>
+                        ${canEditVendor ? `<a class="btn vendor-action-btn" href="edit-vendor.html?id=${v.id}">Edit</a>` : ""}
+                        ${canDeleteVendor ? `<button class="btn btn-danger btn-inline vendor-action-btn" type="button" onclick="deleteVendor(${v.id})">Delete</button>` : ""}
                     </div>
                 </td>
             `;

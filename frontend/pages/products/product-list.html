@@ -118,6 +118,8 @@ const canAccessPath = (path) => canManage
     ? true
     : (role === "user" && allowedPaths.has(String(path || "").trim().toLowerCase()));
 const canAddProduct = canAccessPath("/products/add-product.html");
+const canEditProduct = canManage || (role === "user" && typeof hasUserActionPermission === "function" && hasUserActionPermission("/products/product-list.html", "edit"));
+const canDeleteProduct = canManage || (role === "user" && typeof hasUserActionPermission === "function" && hasUserActionPermission("/products/product-list.html", "delete"));
 const productSearchEl = document.getElementById("productSearch");
 let allProducts = [];
 
@@ -126,7 +128,7 @@ if(addProductBtn && !canAddProduct){
     addProductBtn.style.display = "none";
 }
 
-if(!canManage){
+if(!canEditProduct && !canDeleteProduct){
     const actionHeader = document.querySelector("#productTable thead th:last-child");
     if(actionHeader && actionHeader.innerText.toLowerCase().includes("action")){
         actionHeader.remove();
@@ -150,13 +152,13 @@ function renderProducts(products){
             <td>${p.selling_price}</td>
             <td>${vendorName}</td>
         `;
-        if(canManage){
+        if(canEditProduct || canDeleteProduct){
             const count = Number(p.count || 0);
             tr.innerHTML += `
                 <td>
                     <div class="product-action-row">
-                        <a class="btn action-btn" href="edit-product.html?id=${p.id}">Edit</a>
-                        <button class="btn btn-danger btn-inline action-btn" type="button" onclick="deleteProduct(${p.id}, ${count})">Delete</button>
+                        ${canEditProduct ? `<a class="btn action-btn" href="edit-product.html?id=${p.id}">Edit</a>` : ""}
+                        ${canDeleteProduct ? `<button class="btn btn-danger btn-inline action-btn" type="button" onclick="deleteProduct(${p.id}, ${count})">Delete</button>` : ""}
                     </div>
                 </td>
             `;

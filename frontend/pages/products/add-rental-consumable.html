@@ -221,6 +221,12 @@ if(!localStorage.getItem("token")){
 }
 
 const role = (localStorage.getItem("role") || "").toLowerCase();
+const selectedDb = (localStorage.getItem("selectedDatabaseName") || "").toLowerCase();
+const isTrainingUser = role === "user" && selectedDb === "demo";
+const canDeleteAddedConsumables = role === "admin"
+    || role === "manager"
+    || isTrainingUser
+    || (role === "user" && typeof hasUserActionPermission === "function" && hasUserActionPermission("/products/add-rental-consumable.html", "delete"));
 
 let consumableProducts = [];
 let pendingItems = [];
@@ -421,7 +427,9 @@ async function loadAddedConsumables(){
                 <td>${g.counts.length ? g.counts.join(", ") : "-"}</td>
                 <td>
                     <div class="consumable-action-row">
-                        <button class="btn btn-danger btn-inline consumable-action-btn" type="button" onclick="deleteAddedEntry('${String(g.entry).replace(/'/g, "\\'")}')">Delete</button>
+                        ${canDeleteAddedConsumables
+                            ? `<button class="btn btn-danger btn-inline consumable-action-btn" type="button" onclick="deleteAddedEntry('${String(g.entry).replace(/'/g, "\\'")}')">Delete</button>`
+                            : "-"}
                     </div>
                 </td>
             `;
@@ -466,6 +474,10 @@ document.getElementById("consumableForm").addEventListener("submit", (e) => {
 document.getElementById("saveEntryBtn").addEventListener("click", saveEntry);
 
 async function deleteAddedEntry(entryId){
+    if(!canDeleteAddedConsumables){
+        alert("You do not have permission to delete consumable entries.");
+        return;
+    }
     if(!entryId) return;
     if(!confirm("Delete this added consumables entry?")) return;
 

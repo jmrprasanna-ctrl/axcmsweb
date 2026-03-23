@@ -1,52 +1,140 @@
 const { Client } = require("pg");
 const { spawn } = require("child_process");
+const db = require("../config/database");
 const User = require("../models/User");
 const UserAccess = require("../models/UserAccess");
 const DEMO_DB_NAME = "demo";
-const ALLOWED_DBS = new Set(["inventory", DEMO_DB_NAME]);
+const INVENTORY_DB_NAME = "inventory";
+const ALLOWED_DBS = new Set([INVENTORY_DB_NAME, DEMO_DB_NAME]);
 
-const ACCESS_PAGE_OPTIONS = [
-  { path: "/dashboard.html", label: "Dashboard" },
-  { path: "/products/product-list.html", label: "Products List" },
-  { path: "/products/add-product.html", label: "Add Product" },
-  { path: "/products/general-machine.html", label: "General Machines" },
-  { path: "/products/add-general-machine.html", label: "Add General Machine" },
-  { path: "/products/machine.html", label: "Rental Machines" },
-  { path: "/products/add-rental-machine.html", label: "Add Rental Machine" },
-  { path: "/products/add-rental-count.html", label: "Rental Count" },
-  { path: "/products/add-rental-consumable.html", label: "Rental Consumables" },
-  { path: "/customers/customer-list.html", label: "Customers List" },
-  { path: "/customers/add-customer.html", label: "Add Customer" },
-  { path: "/vendors/list-vendor.html", label: "Vendors List" },
-  { path: "/vendors/add-vendor.html", label: "Add Vendor" },
-  { path: "/expenses/expense-list.html", label: "Expenses List" },
-  { path: "/expenses/add-expense.html", label: "Add Expense" },
-  { path: "/invoices/invoice-list.html", label: "Invoice List" },
-  { path: "/invoices/create-invoice.html", label: "Create Invoice" },
-  { path: "/invoices/view-invoice.html", label: "Invoice Details" },
-  { path: "/reports/sales-report.html", label: "Sales Report" },
-  { path: "/messages/messages.html", label: "Messages" },
-  { path: "/notifications/notifications.html", label: "Notifications" },
-  { path: "/support/support.html", label: "Support" },
-  { path: "/finance/finance.html", label: "Finance" },
-  { path: "/stock/stock.html", label: "Stock Management" }
+const ACCESS_MODULE_OPTIONS = [
+  {
+    module: "Products",
+    items: [
+      { path: "/products/product-list.html", label: "Products List", actions: ["view", "add", "edit", "delete"] },
+      { path: "/products/add-product.html", label: "Add Product", actions: ["view", "add"] },
+      { path: "/products/edit-product.html", label: "Edit Product", actions: ["view", "edit"] },
+      { path: "/products/general-machine.html", label: "General Machines", actions: ["view", "add", "edit", "delete"] },
+      { path: "/products/add-general-machine.html", label: "Add General Machine", actions: ["view", "add"] },
+      { path: "/products/edit-general-machine.html", label: "Edit General Machine", actions: ["view", "edit"] },
+      { path: "/products/machine.html", label: "Rental Machines", actions: ["view", "add", "edit", "delete"] },
+      { path: "/products/add-rental-machine.html", label: "Add Rental Machine", actions: ["view", "add"] },
+      { path: "/products/edit-rental-machine.html", label: "Edit Rental Machine", actions: ["view", "edit"] },
+      { path: "/products/add-rental-count.html", label: "Rental Count", actions: ["view", "add", "edit", "delete"] },
+      { path: "/products/add-rental-consumable.html", label: "Rental Consumables", actions: ["view", "add", "edit", "delete"] },
+    ],
+  },
+  {
+    module: "Customers",
+    items: [
+      { path: "/customers/customer-list.html", label: "Customers List", actions: ["view", "add", "edit", "delete"] },
+      { path: "/customers/add-customer.html", label: "Add Customer", actions: ["view", "add"] },
+      { path: "/customers/edit-customer.html", label: "Edit Customer", actions: ["view", "edit"] },
+    ],
+  },
+  {
+    module: "Vendors",
+    items: [
+      { path: "/vendors/list-vendor.html", label: "Vendors List", actions: ["view", "add", "edit", "delete"] },
+      { path: "/vendors/add-vendor.html", label: "Add Vendor", actions: ["view", "add"] },
+      { path: "/vendors/edit-vendor.html", label: "Edit Vendor", actions: ["view", "edit"] },
+    ],
+  },
+  {
+    module: "Expenses",
+    items: [
+      { path: "/expenses/expense-list.html", label: "Expenses List", actions: ["view", "add", "edit", "delete"] },
+      { path: "/expenses/add-expense.html", label: "Add Expense", actions: ["view", "add"] },
+      { path: "/expenses/edit-expense.html", label: "Edit Expense", actions: ["view", "edit"] },
+    ],
+  },
+  {
+    module: "Invoices",
+    items: [
+      { path: "/invoices/invoice-list.html", label: "Invoice List", actions: ["view", "add", "edit", "delete"] },
+      { path: "/invoices/create-invoice.html", label: "Create Invoice", actions: ["view", "add", "edit"] },
+      { path: "/invoices/view-invoice.html", label: "View Invoice", actions: ["view"] },
+      { path: "/invoices/view-quotation.html", label: "View Quotation", actions: ["view"] },
+      { path: "/invoices/view-quotation-2.html", label: "View Quotation 2", actions: ["view"] },
+      { path: "/invoices/view-quotation-3.html", label: "View Quotation 3", actions: ["view"] },
+    ],
+  },
+  {
+    module: "Reports & Analytics",
+    items: [
+      { path: "/reports/sales-report.html", label: "Sales Report", actions: ["view"] },
+      { path: "/analytics/sales-chart.html", label: "Sales Chart", actions: ["view"] },
+      { path: "/finance/finance.html", label: "Finance", actions: ["view"] },
+      { path: "/stock/stock.html", label: "Stock", actions: ["view", "edit"] },
+    ],
+  },
+  {
+    module: "Communication",
+    items: [
+      { path: "/messages/messages.html", label: "Messages", actions: ["view", "add", "delete"] },
+      { path: "/notifications/notifications.html", label: "Notifications", actions: ["view"] },
+      { path: "/support/support.html", label: "Support", actions: ["view", "add", "edit", "delete"] },
+    ],
+  },
+  {
+    module: "Users",
+    items: [
+      { path: "/users/user-list.html", label: "User List", actions: ["view", "add", "edit", "delete"] },
+      { path: "/users/add-user.html", label: "Add User", actions: ["view", "add"] },
+      { path: "/users/edit-user.html", label: "Edit User", actions: ["view", "edit"] },
+      { path: "/users/user-access.html", label: "User Access", actions: ["view", "edit"] },
+    ],
+  },
+  {
+    module: "Core",
+    items: [
+      { path: "/dashboard.html", label: "Dashboard", actions: ["view"] },
+    ],
+  },
 ];
 
-const EXCLUDED_PAGES = new Set([
-  "/users/user-list.html",
-  "/user-list.html"
-]);
+const EXCLUDED_PAGES = new Set([]);
+
+function toActionKey(path, action) {
+  return `${String(path || "").trim().toLowerCase()}::${String(action || "").trim().toLowerCase()}`;
+}
+
+const ACCESS_PAGE_OPTIONS = ACCESS_MODULE_OPTIONS
+  .flatMap((group) => group.items || [])
+  .filter((item) => !EXCLUDED_PAGES.has(String(item.path || "").toLowerCase()));
+
+const ACCESS_PATH_SET = new Set(ACCESS_PAGE_OPTIONS.map((x) => String(x.path || "").trim().toLowerCase()));
+
+const ACCESS_ACTION_SET = new Set(
+  ACCESS_PAGE_OPTIONS.flatMap((item) =>
+    (Array.isArray(item.actions) ? item.actions : [])
+      .map((action) => toActionKey(item.path, action))
+  )
+);
 
 function normalizePages(rawPages) {
   const list = Array.isArray(rawPages) ? rawPages : [];
-  const valid = new Set(
-    ACCESS_PAGE_OPTIONS.map((x) => String(x.path || "").trim().toLowerCase())
+  return Array.from(
+    new Set(
+      list
+        .map((p) => String(p || "").trim())
+        .filter(Boolean)
+        .filter((p) => !EXCLUDED_PAGES.has(p.toLowerCase()))
+        .filter((p) => ACCESS_PATH_SET.has(p.toLowerCase()))
+    )
   );
-  return list
-    .map((p) => String(p || "").trim())
-    .filter(Boolean)
-    .filter((p) => !EXCLUDED_PAGES.has(p.toLowerCase()))
-    .filter((p) => valid.has(p.toLowerCase()));
+}
+
+function normalizeActions(rawActions) {
+  const list = Array.isArray(rawActions) ? rawActions : [];
+  return Array.from(
+    new Set(
+      list
+        .map((x) => String(x || "").trim().toLowerCase())
+        .filter(Boolean)
+        .filter((x) => ACCESS_ACTION_SET.has(x))
+    )
+  );
 }
 
 function parseAllowedPages(row) {
@@ -58,6 +146,28 @@ function parseAllowedPages(row) {
   }
 }
 
+function parseAllowedActions(row) {
+  try {
+    const parsed = JSON.parse(String(row?.allowed_actions_json || "[]"));
+    return normalizeActions(parsed);
+  } catch (_err) {
+    return [];
+  }
+}
+
+function derivePagesFromActions(actionKeys, fallbackPages) {
+  const fromActions = (Array.isArray(actionKeys) ? actionKeys : [])
+    .map((key) => String(key || "").trim().toLowerCase())
+    .filter((key) => key.includes("::view"))
+    .map((key) => {
+      const idx = key.lastIndexOf("::");
+      return idx === -1 ? "" : key.slice(0, idx);
+    })
+    .filter(Boolean);
+
+  return normalizePages([...(Array.isArray(fallbackPages) ? fallbackPages : []), ...fromActions]);
+}
+
 function normalizeDatabaseName(value) {
   const normalized = String(value || "").trim().toLowerCase();
   if (!normalized) return null;
@@ -65,20 +175,47 @@ function normalizeDatabaseName(value) {
   return normalized;
 }
 
-async function findAccessFromMainDb(userId) {
+function normalizeUserDatabase(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!normalized) return INVENTORY_DB_NAME;
+  if (!ALLOWED_DBS.has(normalized)) return INVENTORY_DB_NAME;
+  return normalized;
+}
+
+function parseUserReference(raw) {
+  const value = String(raw || "").trim();
+  if (!value) return null;
+
+  const composite = value.match(/^([a-z0-9_]+):(\d+)$/i);
+  if (composite) {
+    const userDatabase = normalizeUserDatabase(composite[1]);
+    const userId = Number(composite[2]);
+    if (!Number.isFinite(userId) || userId <= 0) return null;
+    return { user_id: userId, user_database: userDatabase };
+  }
+
+  const userId = Number(value);
+  if (!Number.isFinite(userId) || userId <= 0) return null;
+  return { user_id: userId, user_database: INVENTORY_DB_NAME };
+}
+
+async function findAccessFromMainDb(userId, userDatabase = INVENTORY_DB_NAME) {
   const cfg = getDbConfig();
   const client = new Client({
     host: cfg.host,
     port: cfg.port,
     user: cfg.user,
     password: cfg.password,
-    database: cfg.database || "inventory",
+    database: cfg.database || INVENTORY_DB_NAME,
   });
   try {
     await client.connect();
     const rs = await client.query(
-      "SELECT allowed_pages_json, database_name FROM user_accesses WHERE user_id = $1 LIMIT 1",
-      [userId]
+      `SELECT allowed_pages_json, allowed_actions_json, database_name, user_database
+       FROM user_accesses
+       WHERE user_id = $1 AND (LOWER(COALESCE(user_database, 'inventory')) = $2)
+       LIMIT 1`,
+      [userId, normalizeUserDatabase(userDatabase)]
     );
     if (!rs.rowCount) return null;
     return rs.rows[0];
@@ -95,7 +232,7 @@ function getDbConfig() {
     port: Number(process.env.DB_PORT || 5432),
     user: process.env.DB_USER || "postgres",
     password: process.env.DB_PASSWORD || "",
-    database: process.env.DB_NAME || "inventory",
+    database: process.env.DB_NAME || INVENTORY_DB_NAME,
   };
 }
 
@@ -182,9 +319,82 @@ async function ensureDemoDatabaseSchema() {
   return { demoExists: true, schemaCloned: true };
 }
 
+async function getUserFromDatabase(databaseName, userId) {
+  return db.withDatabase(databaseName, async () => {
+    return User.findByPk(userId, {
+      attributes: ["id", "username", "email", "role"],
+    });
+  });
+}
+
+exports.getAccessUsers = async (_req, res) => {
+  try {
+    try{
+      await ensureDemoDatabaseSchema();
+    }catch(_err){
+    }
+
+    const rows = [];
+
+    for (const databaseName of [INVENTORY_DB_NAME, DEMO_DB_NAME]) {
+      let users = [];
+      try{
+        users = await db.withDatabase(databaseName, async () => {
+          return User.findAll({
+            attributes: ["id", "username", "email", "role"],
+            order: [["role", "ASC"], ["username", "ASC"], ["id", "ASC"]],
+          });
+        });
+      }catch(_err){
+        users = [];
+      }
+
+      (Array.isArray(users) ? users : []).forEach((user) => {
+        const plain = user.toJSON ? user.toJSON() : user;
+        const role = String(plain.role || "").toLowerCase() || "user";
+        rows.push({
+          selection_key: `${databaseName}:${plain.id}`,
+          id: plain.id,
+          username: plain.username || "",
+          email: plain.email || "",
+          role,
+          database_name: databaseName,
+          label: `${plain.username || plain.email || `User ${plain.id}`} [${role}] (${databaseName})`,
+        });
+      });
+    }
+
+    rows.sort((a, b) => {
+      const dbCmp = String(a.database_name || "").localeCompare(String(b.database_name || ""));
+      if (dbCmp !== 0) return dbCmp;
+      const roleCmp = String(a.role || "").localeCompare(String(b.role || ""));
+      if (roleCmp !== 0) return roleCmp;
+      return String(a.username || a.email || "").localeCompare(String(b.username || b.email || ""));
+    });
+
+    res.json({ users: rows });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to load access users." });
+  }
+};
+
 exports.getAccessPages = async (_req, res) => {
+  const modules = ACCESS_MODULE_OPTIONS
+    .map((group) => ({
+      module: group.module,
+      items: (group.items || [])
+        .filter((x) => !EXCLUDED_PAGES.has(String(x.path || "").toLowerCase()))
+        .map((item) => ({
+          ...item,
+          actions: Array.isArray(item.actions) ? item.actions : [],
+          action_keys: (Array.isArray(item.actions) ? item.actions : []).map((action) => toActionKey(item.path, action)),
+        })),
+    }))
+    .filter((group) => group.items.length > 0);
+
   res.json({
-    pages: ACCESS_PAGE_OPTIONS.filter((x) => !EXCLUDED_PAGES.has(String(x.path || "").toLowerCase()))
+    modules,
+    pages: modules.flatMap((g) => g.items.map((x) => ({ path: x.path, label: x.label }))),
   });
 };
 
@@ -233,59 +443,70 @@ exports.getDatabases = async (_req, res) => {
 };
 
 exports.getUserAccess = async (req, res) => {
-  const userId = Number(req.params.userId);
-  if (!Number.isFinite(userId) || userId <= 0) {
+  const ref = parseUserReference(req.params.userId);
+  if (!ref) {
     return res.status(400).json({ message: "Invalid user id" });
   }
-  const user = await User.findByPk(userId, {
-    attributes: ["id", "username", "email", "role"]
-  });
+
+  const user = await getUserFromDatabase(ref.user_database, ref.user_id);
   if (!user) {
     return res.status(404).json({ message: "User not found" });
   }
-  const row = await UserAccess.findOne({ where: { user_id: userId } });
+
+  const row = await UserAccess.findOne({ where: { user_id: ref.user_id, user_database: ref.user_database } });
   res.json({
-    user,
+    user: {
+      ...(user.toJSON ? user.toJSON() : user),
+      database_name: ref.user_database,
+      selection_key: `${ref.user_database}:${ref.user_id}`,
+    },
     allowed_pages: parseAllowedPages(row),
-    database_name: normalizeDatabaseName(row?.database_name)
+    allowed_actions: parseAllowedActions(row),
+    database_name: normalizeDatabaseName(row?.database_name),
+    user_database: ref.user_database,
   });
 };
 
 exports.saveUserAccess = async (req, res) => {
-  const userId = Number(req.params.userId);
-  if (!Number.isFinite(userId) || userId <= 0) {
+  const ref = parseUserReference(req.params.userId);
+  if (!ref) {
     return res.status(400).json({ message: "Invalid user id" });
   }
-  const user = await User.findByPk(userId, {
-    attributes: ["id", "username", "email", "role"]
-  });
+
+  const user = await getUserFromDatabase(ref.user_database, ref.user_id);
   if (!user) {
     return res.status(404).json({ message: "User not found" });
   }
-  if (String(user.role || "").toLowerCase() !== "user") {
-    return res.status(400).json({ message: "Access settings are only for role: user" });
-  }
 
-  const allowedPages = normalizePages(req.body.allowed_pages);
+  const allowedActions = normalizeActions(req.body.allowed_actions);
+  const requestedPages = normalizePages(req.body.allowed_pages);
+  const allowedPages = derivePagesFromActions(allowedActions, requestedPages);
   const databaseName = normalizeDatabaseName(req.body.database_name);
 
-  let row = await UserAccess.findOne({ where: { user_id: userId } });
+  let row = await UserAccess.findOne({ where: { user_id: ref.user_id, user_database: ref.user_database } });
   if (!row) {
     row = await UserAccess.create({
-      user_id: userId,
+      user_id: ref.user_id,
+      user_database: ref.user_database,
       allowed_pages_json: JSON.stringify(allowedPages),
-      database_name: databaseName
+      allowed_actions_json: JSON.stringify(allowedActions),
+      database_name: databaseName,
     });
   } else {
+    row.user_database = ref.user_database;
     row.allowed_pages_json = JSON.stringify(allowedPages);
+    row.allowed_actions_json = JSON.stringify(allowedActions);
     row.database_name = databaseName;
     await row.save();
   }
+
   res.json({
     message: "Access settings saved",
-    user_id: userId,
+    user_id: ref.user_id,
+    user_database: ref.user_database,
     allowed_pages: allowedPages,
-    database_name: databaseName
+    allowed_actions: allowedActions,
+    database_name: databaseName,
   });
 };
 
@@ -294,14 +515,26 @@ exports.getMyAccess = async (req, res) => {
   if (!Number.isFinite(userId) || userId <= 0) {
     return res.status(401).json({ message: "Invalid token user" });
   }
+
+  const userDatabase = normalizeUserDatabase(req.databaseName || req.user?.database_name || INVENTORY_DB_NAME);
+
   // Access permissions are treated as global user settings stored in main DB.
   // Data DB (inventory/demo) can switch per user, but access config must remain stable.
-  let row = await findAccessFromMainDb(userId);
+  let row = await findAccessFromMainDb(userId, userDatabase);
   if (!row) {
-    row = await UserAccess.findOne({ where: { user_id: userId } });
+    row = await UserAccess.findOne({ where: { user_id: userId, user_database: userDatabase } });
   }
+  if (!row && userDatabase !== INVENTORY_DB_NAME) {
+    row = await findAccessFromMainDb(userId, INVENTORY_DB_NAME);
+    if (!row) {
+      row = await UserAccess.findOne({ where: { user_id: userId, user_database: INVENTORY_DB_NAME } });
+    }
+  }
+
   res.json({
     allowed_pages: parseAllowedPages(row),
-    database_name: normalizeDatabaseName(row?.database_name)
+    allowed_actions: parseAllowedActions(row),
+    database_name: normalizeDatabaseName(row?.database_name),
+    user_database: userDatabase,
   });
 };
