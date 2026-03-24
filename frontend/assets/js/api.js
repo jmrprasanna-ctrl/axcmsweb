@@ -150,16 +150,29 @@ function startIdleTimeoutWatcher(){
 }
 
 function hasAccessConfigRestrictions(){
-    if(USER_ACCESS_CONFIG_APPLIES_RUNTIME){
+    if(USER_ACCESS_CONFIG_APPLIES_RUNTIME === true){
         return true;
+    }
+    if(USER_ACCESS_CONFIG_APPLIES_RUNTIME === false){
+        return false;
     }
     return String(localStorage.getItem(USER_ACCESS_CONFIG_ENABLED_CACHE_KEY) || "") === "1";
 }
 window.hasAccessConfigRestrictions = hasAccessConfigRestrictions;
 
+function getAccessConfigState(){
+    if(USER_ACCESS_CONFIG_APPLIES_RUNTIME === true || USER_ACCESS_CONFIG_APPLIES_RUNTIME === false){
+        return USER_ACCESS_CONFIG_APPLIES_RUNTIME;
+    }
+    const cached = String(localStorage.getItem(USER_ACCESS_CONFIG_ENABLED_CACHE_KEY) || "");
+    if(cached === "1") return true;
+    if(cached === "0") return false;
+    return null;
+}
+
 function enforceUserAccess(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
-    const enforceByConfiguredRole = (role === "admin" || role === "manager") && hasAccessConfigRestrictions();
+    const enforceByConfiguredRole = (role === "admin" || role === "manager") && getAccessConfigState() === true;
     if(role !== "user" && !enforceByConfiguredRole) return;
     const selectedDb = String(localStorage.getItem("selectedDatabaseName") || "").trim().toLowerCase();
     if(role === "user" && selectedDb === "demo") return;
@@ -190,7 +203,7 @@ function enforceManagerAccess(){
 
 function applyUserNavRestrictions(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
-    const enforceByConfiguredRole = (role === "admin" || role === "manager") && hasAccessConfigRestrictions();
+    const enforceByConfiguredRole = (role === "admin" || role === "manager") && getAccessConfigState() === true;
     if(role !== "user" && !enforceByConfiguredRole) return;
     const allowed = USER_ALLOWED_PATHS_RUNTIME;
     document.querySelectorAll(".sidebar a").forEach(a=>{
@@ -277,11 +290,20 @@ function getStockLink(fileName){
 
 function applyFinanceNav(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
-    const hasConfig = hasAccessConfigRestrictions();
+    const configState = getAccessConfigState();
     const isAdminOrManager = role === "admin" || role === "manager";
-    const isAllowed = isAdminOrManager
-        ? (!hasConfig || hasUserGrantedPath("/finance/finance.html"))
-        : (role === "user" && hasUserGrantedPath("/finance/finance.html"));
+    let isAllowed = false;
+    if(isAdminOrManager){
+        if(configState === true){
+            isAllowed = hasUserGrantedPath("/finance/finance.html");
+        }else if(configState === false){
+            isAllowed = true;
+        }else{
+            isAllowed = false;
+        }
+    }else{
+        isAllowed = role === "user" && hasUserGrantedPath("/finance/finance.html");
+    }
     if(!isAllowed) return;
 
     document.querySelectorAll(".sidebar .nav-links, .sidebar ul").forEach(nav => {
@@ -300,11 +322,20 @@ function applyFinanceNav(){
 
 function applySupportNav(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
-    const hasConfig = hasAccessConfigRestrictions();
+    const configState = getAccessConfigState();
     const isAdminOrManager = role === "admin" || role === "manager";
-    const isAllowed = isAdminOrManager
-        ? (!hasConfig || hasUserGrantedPath("/support/support.html"))
-        : (role === "user" && hasUserGrantedPath("/support/support.html"));
+    let isAllowed = false;
+    if(isAdminOrManager){
+        if(configState === true){
+            isAllowed = hasUserGrantedPath("/support/support.html");
+        }else if(configState === false){
+            isAllowed = true;
+        }else{
+            isAllowed = false;
+        }
+    }else{
+        isAllowed = role === "user" && hasUserGrantedPath("/support/support.html");
+    }
     if(!isAllowed) return;
 
     document.querySelectorAll(".sidebar .nav-links, .sidebar ul").forEach(nav => {
@@ -334,7 +365,9 @@ function applySupportNav(){
 function applyAdminUsersNav(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
     if(role !== "admin") return;
-    if(hasAccessConfigRestrictions() && !hasUserGrantedPath("/users/user-list.html")) return;
+    const configState = getAccessConfigState();
+    if(configState === true && !hasUserGrantedPath("/users/user-list.html")) return;
+    if(configState === null) return;
 
     document.querySelectorAll(".sidebar .nav-links, .sidebar ul").forEach(nav => {
         const hasUsers = Array.from(nav.querySelectorAll("a")).some(a => {
@@ -352,11 +385,20 @@ function applyAdminUsersNav(){
 
 function applyStockNav(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
-    const hasConfig = hasAccessConfigRestrictions();
+    const configState = getAccessConfigState();
     const isAdminOrManager = role === "admin" || role === "manager";
-    const isAllowed = isAdminOrManager
-        ? (!hasConfig || hasUserGrantedPath("/stock/stock.html"))
-        : (role === "user" && hasUserGrantedPath("/stock/stock.html"));
+    let isAllowed = false;
+    if(isAdminOrManager){
+        if(configState === true){
+            isAllowed = hasUserGrantedPath("/stock/stock.html");
+        }else if(configState === false){
+            isAllowed = true;
+        }else{
+            isAllowed = false;
+        }
+    }else{
+        isAllowed = role === "user" && hasUserGrantedPath("/stock/stock.html");
+    }
     if(!isAllowed) return;
 
     document.querySelectorAll(".sidebar .nav-links, .sidebar ul").forEach(nav => {
@@ -588,7 +630,14 @@ async function loadUserAccessPermissions(){
             }
         }catch(_e){}
     }
-    USER_ACCESS_CONFIG_APPLIES_RUNTIME = String(localStorage.getItem(USER_ACCESS_CONFIG_ENABLED_CACHE_KEY) || "") === "1";
+    const cachedConfigState = String(localStorage.getItem(USER_ACCESS_CONFIG_ENABLED_CACHE_KEY) || "");
+    if(cachedConfigState === "1"){
+        USER_ACCESS_CONFIG_APPLIES_RUNTIME = true;
+    }else if(cachedConfigState === "0"){
+        USER_ACCESS_CONFIG_APPLIES_RUNTIME = false;
+    }else{
+        USER_ACCESS_CONFIG_APPLIES_RUNTIME = null;
+    }
     const token = localStorage.getItem("token");
     if(!token){
         return;
@@ -601,15 +650,19 @@ async function loadUserAccessPermissions(){
             return;
         }
         const data = await res.json();
-        USER_ACCESS_CONFIG_APPLIES_RUNTIME = Boolean(data && data.has_access_config);
-        localStorage.setItem(
-            USER_ACCESS_CONFIG_ENABLED_CACHE_KEY,
-            USER_ACCESS_CONFIG_APPLIES_RUNTIME ? "1" : "0"
-        );
         const dynamicPages = Array.isArray(data.allowed_pages)
             ? data.allowed_pages.map((x) => String(x || "").trim()).filter(Boolean)
             : [];
         const dynamicActions = Array.isArray(data.allowed_actions) ? data.allowed_actions : [];
+        if(typeof data?.has_access_config === "boolean"){
+            USER_ACCESS_CONFIG_APPLIES_RUNTIME = data.has_access_config;
+            localStorage.setItem(USER_ACCESS_CONFIG_ENABLED_CACHE_KEY, data.has_access_config ? "1" : "0");
+        }else if(role === "admin" || role === "manager"){
+            if(dynamicPages.length > 0 || dynamicActions.length > 0){
+                USER_ACCESS_CONFIG_APPLIES_RUNTIME = true;
+                localStorage.setItem(USER_ACCESS_CONFIG_ENABLED_CACHE_KEY, "1");
+            }
+        }
         const merged = new Set([
             "/login.html",
             "/dashboard.html",
@@ -826,8 +879,8 @@ window.hasUserGrantedPath = hasUserGrantedPath;
 
 function hasUserActionPermission(path, action){
     const role = (localStorage.getItem("role") || "").toLowerCase();
-    const hasConfig = hasAccessConfigRestrictions();
-    if((role === "admin" || role === "manager") && !hasConfig){
+    const configState = getAccessConfigState();
+    if((role === "admin" || role === "manager") && configState === false){
         return true;
     }
     const selectedDb = String(localStorage.getItem("selectedDatabaseName") || "").trim().toLowerCase();
