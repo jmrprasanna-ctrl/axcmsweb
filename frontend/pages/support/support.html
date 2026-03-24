@@ -188,7 +188,10 @@ async function editImportant(id, encodedText){
     }
 }
 
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("DOMContentLoaded", async () => {
+    if(typeof window.__waitForUserAccessPermissions === "function"){
+        await window.__waitForUserAccessPermissions();
+    }
     const form = document.getElementById("supportImportantForm");
     const addTechnicianBtn = document.getElementById("addTechnicianBtn");
     if(addTechnicianBtn && !canAddTechnician()){

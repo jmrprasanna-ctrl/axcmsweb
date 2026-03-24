@@ -54,7 +54,10 @@
             return true;
         }
 
-        window.addEventListener("load", () => {
+        window.addEventListener("load", async () => {
+            if(typeof window.__waitForUserAccessPermissions === "function"){
+                await window.__waitForUserAccessPermissions();
+            }
             if(!canAddTechnician()){
                 alert("You don't have permission to add technicians.");
                 window.location.href = "technician-list.html";

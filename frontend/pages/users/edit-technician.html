@@ -80,7 +80,10 @@
             }
         }
 
-        window.addEventListener("load", () => {
+        window.addEventListener("load", async () => {
+            if(typeof window.__waitForUserAccessPermissions === "function"){
+                await window.__waitForUserAccessPermissions();
+            }
             if(!canEditTechnician()){
                 alert("You don't have permission to edit technicians.");
                 window.location.href = "technician-list.html";
