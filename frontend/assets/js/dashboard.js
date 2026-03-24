@@ -47,6 +47,59 @@ if(userRole === "user"){
     }
 }
 
+function normalizeAccessPath(path){
+    return `/${String(path || "").trim().toLowerCase().replace(/\\/g, "/").replace(/^\/+/, "")}`;
+}
+
+function toDashboardMenuHref(canonicalPath){
+    const clean = String(canonicalPath || "").trim().replace(/\\/g, "/").replace(/^\/+/, "");
+    if(!clean) return "#";
+    return clean;
+}
+
+async function enforceDashboardSidebarAccess(){
+    const nav = document.querySelector(".sidebar .nav-links, .sidebar ul");
+    if(!nav || typeof request !== "function") return;
+    const role = (localStorage.getItem("role") || "").toLowerCase();
+    if(role !== "admin" && role !== "manager" && role !== "user") return;
+
+    try{
+        const data = await request("/users/access/me","GET");
+        const allowedPages = Array.isArray(data?.allowed_pages) ? data.allowed_pages : [];
+        const allowedActions = Array.isArray(data?.allowed_actions) ? data.allowed_actions : [];
+        const fromActions = allowedActions
+            .map((x) => String(x || "").trim().toLowerCase())
+            .filter((x) => x.endsWith("::view"))
+            .map((x) => x.slice(0, x.lastIndexOf("::")));
+        const allowedSet = new Set(
+            ["/dashboard.html", ...allowedPages, ...fromActions].map((p) => normalizeAccessPath(p))
+        );
+
+        const entries = [
+            { path: "/dashboard.html", label: "Dashboard" },
+            { path: "/products/product-list.html", label: "Products" },
+            { path: "/products/general-machine.html", label: "Machines" },
+            { path: "/customers/customer-list.html", label: "Customers" },
+            { path: "/invoices/invoice-list.html", label: "Invoices" },
+            { path: "/vendors/list-vendor.html", label: "Vendors" },
+            { path: "/expenses/expense-list.html", label: "Expenses" },
+            { path: "/reports/sales-report.html", label: "Reports" },
+            { path: "/analytics/sales-chart.html", label: "Analytics" },
+            { path: "/finance/finance.html", label: "Finance" },
+            { path: "/support/support.html", label: "Support" },
+            { path: "/stock/stock.html", label: "Stock" },
+            { path: "/users/user-list.html", label: "Users" }
+        ];
+
+        const finalEntries = entries.filter((e) => allowedSet.has(normalizeAccessPath(e.path)));
+        nav.innerHTML = finalEntries
+            .map((e) => `<li><a href="${toDashboardMenuHref(e.path)}">${e.label}</a></li>`)
+            .join("");
+    }catch(_err){
+        // keep existing menu if access endpoint fails
+    }
+}
+
 // Logout
 function logout(){
     localStorage.removeItem("token");
@@ -297,6 +350,9 @@ if(summaryDateEl){
     });
 }
 fetchSummary();
+enforceDashboardSidebarAccess();
+setTimeout(enforceDashboardSidebarAccess, 500);
+setTimeout(enforceDashboardSidebarAccess, 1500);
 
 function setHealthBadge(id, ok){
     const el = document.getElementById(id);
