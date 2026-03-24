@@ -605,12 +605,7 @@ async function loadUserAccessPermissions(){
             .filter((x) => x.endsWith("::view"))
             .map((x) => x.slice(0, x.lastIndexOf("::")))
             .filter(Boolean);
-        const fallbackPages = Array.isArray(data.allowed_pages)
-            ? data.allowed_pages.map((x) => String(x || "").trim()).filter(Boolean)
-            : [];
-        const dynamicPages = pagesFromActions.length
-            ? pagesFromActions
-            : fallbackPages;
+        const dynamicPages = pagesFromActions;
         if(typeof data?.has_access_config === "boolean"){
             let nextConfigState = data.has_access_config;
             // For admin/manager, once a restricted config is known, keep it sticky across refreshes.

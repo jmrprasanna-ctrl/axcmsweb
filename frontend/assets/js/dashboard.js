@@ -103,7 +103,7 @@ async function enforceDashboardSidebarAccess(){
             .filter((x) => x.endsWith("::view"))
             .map((x) => x.slice(0, x.lastIndexOf("::")));
         const allowedSet = new Set(
-            ["/dashboard.html", ...allowedPages, ...fromActions].map((p) => normalizeAccessPath(p))
+            ["/dashboard.html", ...fromActions].map((p) => normalizeAccessPath(p))
         );
 
         dashboardAllowedMenuEntries = DASHBOARD_MENU_ENTRIES.filter((e) => allowedSet.has(normalizeAccessPath(e.path)));
