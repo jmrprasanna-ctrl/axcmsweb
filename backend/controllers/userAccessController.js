@@ -75,6 +75,7 @@ const ACCESS_MODULE_OPTIONS = [
       { path: "/messages/messages.html", label: "Messages", actions: ["view", "add", "delete"] },
       { path: "/notifications/notifications.html", label: "Notifications", actions: ["view"] },
       { path: "/support/support.html", label: "Support", actions: ["view", "add", "edit", "delete"] },
+      { path: "/users/technician-list.html", label: "Support Technician", actions: ["view", "add", "edit", "delete"] },
     ],
   },
   {
@@ -172,6 +173,14 @@ function expandImplicitActionDependencies(actionKeys) {
   if (set.has(toActionKey("/expenses/expense-list.html", "edit"))) {
     add("/expenses/edit-expense.html", "view");
     add("/expenses/edit-expense.html", "edit");
+  }
+  if (set.has(toActionKey("/users/technician-list.html", "edit"))) {
+    add("/users/edit-technician.html", "view");
+    add("/users/edit-technician.html", "edit");
+  }
+  if (set.has(toActionKey("/users/technician-list.html", "add"))) {
+    add("/users/add-technician.html", "view");
+    add("/users/add-technician.html", "add");
   }
 
   return normalizeActions(Array.from(set));

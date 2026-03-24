@@ -105,7 +105,13 @@ function canManage(){
 
 function canAddTechnician(){
     const role = getRole();
-    return role === "admin" || role === "manager";
+    if(role === "admin" || role === "manager"){
+        if(typeof hasAccessConfigRestrictions === "function" && hasAccessConfigRestrictions()){
+            return typeof hasUserGrantedPath === "function" ? hasUserGrantedPath("/users/technician-list.html") : true;
+        }
+        return true;
+    }
+    return typeof hasUserGrantedPath === "function" ? hasUserGrantedPath("/users/technician-list.html") : false;
 }
 
 async function loadSupportImportants(){

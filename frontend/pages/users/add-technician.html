@@ -41,7 +41,25 @@
 
     <script src="../../assets/js/api.js"></script>
     <script>
+        const TECHNICIAN_ACCESS_PATH = "/users/technician-list.html";
+
+        function canAddTechnician(){
+            const role = (localStorage.getItem("role") || "").toLowerCase();
+            if(role !== "admin" && role !== "manager") return false;
+            if(typeof hasAccessConfigRestrictions === "function" && hasAccessConfigRestrictions()){
+                return typeof hasUserActionPermission === "function"
+                    ? hasUserActionPermission(TECHNICIAN_ACCESS_PATH, "add")
+                    : false;
+            }
+            return true;
+        }
+
         window.addEventListener("load", () => {
+            if(!canAddTechnician()){
+                alert("You don't have permission to add technicians.");
+                window.location.href = "technician-list.html";
+                return;
+            }
             const form = document.getElementById("addTechnicianForm");
             const companyInput = document.getElementById("company");
 

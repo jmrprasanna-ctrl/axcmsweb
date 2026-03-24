@@ -15,7 +15,7 @@
     <div class="main-content">
         <header><h2>Technician List</h2></header>
         <div class="form-actions">
-            <button class="btn btn-primary" onclick="window.location.href='add-technician.html'">Add Technician</button>
+            <button id="addTechnicianBtn" class="btn btn-primary" onclick="window.location.href='add-technician.html'">Add Technician</button>
             <a class="btn btn-secondary" href="../support/support.html">Back</a>
         </div>
         <div class="card">
@@ -38,6 +38,56 @@
 
     <script src="../../assets/js/api.js"></script>
     <script>
+        const TECHNICIAN_ACCESS_PATH = "/users/technician-list.html";
+
+        function getRole(){
+            return (localStorage.getItem("role") || "").toLowerCase();
+        }
+
+        function canViewTechnicianList(){
+            const role = getRole();
+            if(role === "admin" || role === "manager"){
+                if(typeof hasAccessConfigRestrictions === "function" && hasAccessConfigRestrictions()){
+                    return typeof hasUserGrantedPath === "function" ? hasUserGrantedPath(TECHNICIAN_ACCESS_PATH) : true;
+                }
+                return true;
+            }
+            return typeof hasUserGrantedPath === "function" ? hasUserGrantedPath(TECHNICIAN_ACCESS_PATH) : false;
+        }
+
+        function canAddTechnician(){
+            const role = getRole();
+            if(role !== "admin" && role !== "manager") return false;
+            if(typeof hasAccessConfigRestrictions === "function" && hasAccessConfigRestrictions()){
+                return typeof hasUserActionPermission === "function"
+                    ? hasUserActionPermission(TECHNICIAN_ACCESS_PATH, "add")
+                    : false;
+            }
+            return true;
+        }
+
+        function canEditTechnician(){
+            const role = getRole();
+            if(role !== "admin" && role !== "manager") return false;
+            if(typeof hasAccessConfigRestrictions === "function" && hasAccessConfigRestrictions()){
+                return typeof hasUserActionPermission === "function"
+                    ? hasUserActionPermission(TECHNICIAN_ACCESS_PATH, "edit")
+                    : false;
+            }
+            return true;
+        }
+
+        function canDeleteTechnician(){
+            const role = getRole();
+            if(role !== "admin" && role !== "manager") return false;
+            if(typeof hasAccessConfigRestrictions === "function" && hasAccessConfigRestrictions()){
+                return typeof hasUserActionPermission === "function"
+                    ? hasUserActionPermission(TECHNICIAN_ACCESS_PATH, "delete")
+                    : false;
+            }
+            return true;
+        }
+
         async function loadTechnicians(){
             try{
                 const rows = await request("/technicians","GET");
@@ -54,8 +104,9 @@
                         <td>${t.telephone || ""}</td>
                         <td>${t.email || ""}</td>
                         <td>
-                            <a class="btn btn-inline" href="edit-technician.html?id=${t.id}">Edit</a>
-                            <button class="btn btn-danger btn-inline" type="button" onclick="deleteTechnician(${t.id})">Delete</button>
+                            ${canEditTechnician() ? `<a class="btn btn-inline" href="edit-technician.html?id=${t.id}">Edit</a>` : ""}
+                            ${canDeleteTechnician() ? `<button class="btn btn-danger btn-inline" type="button" onclick="deleteTechnician(${t.id})">Delete</button>` : ""}
+                            ${!canEditTechnician() && !canDeleteTechnician() ? "<span>-</span>" : ""}
                         </td>
                     `;
                     tbody.appendChild(tr);
@@ -66,6 +117,10 @@
         }
 
         async function deleteTechnician(id){
+            if(!canDeleteTechnician()){
+                alert("You don't have permission to delete technicians.");
+                return;
+            }
             if(!confirm("Delete this technician?")) return;
             try{
                 await request(`/technicians/${id}`,"DELETE");
@@ -76,7 +131,18 @@
             }
         }
 
-        window.addEventListener("DOMContentLoaded", loadTechnicians);
+        window.addEventListener("DOMContentLoaded", () => {
+            if(!canViewTechnicianList()){
+                alert("You don't have access to Technician List.");
+                window.location.href = "../dashboard.html";
+                return;
+            }
+            const addBtn = document.getElementById("addTechnicianBtn");
+            if(addBtn && !canAddTechnician()){
+                addBtn.style.display = "none";
+            }
+            loadTechnicians();
+        });
     </script>
 </body>
 </html>

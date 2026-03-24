@@ -41,6 +41,19 @@
 
     <script src="../../assets/js/api.js"></script>
     <script>
+        const TECHNICIAN_ACCESS_PATH = "/users/technician-list.html";
+
+        function canEditTechnician(){
+            const role = (localStorage.getItem("role") || "").toLowerCase();
+            if(role !== "admin" && role !== "manager") return false;
+            if(typeof hasAccessConfigRestrictions === "function" && hasAccessConfigRestrictions()){
+                return typeof hasUserActionPermission === "function"
+                    ? hasUserActionPermission(TECHNICIAN_ACCESS_PATH, "edit")
+                    : false;
+            }
+            return true;
+        }
+
         function getTechnicianId(){
             const params = new URLSearchParams(window.location.search);
             return params.get("id");
@@ -68,6 +81,11 @@
         }
 
         window.addEventListener("load", () => {
+            if(!canEditTechnician()){
+                alert("You don't have permission to edit technicians.");
+                window.location.href = "technician-list.html";
+                return;
+            }
             const form = document.getElementById("editTechnicianForm");
             const companyInput = document.getElementById("company");
 
