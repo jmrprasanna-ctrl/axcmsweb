@@ -38,37 +38,7 @@ const IDLE_CHECK_INTERVAL_MS = 30 * 1000;
 
 const USER_DEFAULT_ALLOWED_PATHS = [
     "/login.html",
-    "/dashboard.html",
-    "/products/product-list.html",
-    "/products/machine.html",
-    "/products/general-machine.html",
-    "/product-list.html",
-    "/machine.html",
-    "/general-machine.html",
-    "/customers/customer-list.html",
-    "/customer-list.html",
-    "/vendors/list-vendor.html",
-    "/list-vendor.html",
-    "/expenses/expense-list.html",
-    "/expense-list.html",
-    "/messages/messages.html",
-    "/messages.html",
-    "/notifications/notifications.html",
-    "/notifications.html",
-    "/invoices/invoice-list.html",
-    "/invoices/create-invoice.html",
-    "/invoices/view-invoice.html",
-    "/invoices/view-quotation.html",
-    "/invoices/view-quotation-2.html",
-    "/invoices/view-quotation-3.html",
-    "/invoice-list.html",
-    "/create-invoice.html",
-    "/view-invoice.html",
-    "/view-quotation.html",
-    "/view-quotation-2.html",
-    "/view-quotation-3.html",
-    "/reports/sales-report.html",
-    "/sales-report.html"
+    "/dashboard.html"
 ];
 let USER_ALLOWED_PATHS_RUNTIME = [...USER_DEFAULT_ALLOWED_PATHS];
 const USER_ALLOWED_CACHE_KEY = "userAllowedPathsRuntime";
@@ -592,12 +562,13 @@ async function loadUserAccessPermissions(){
             return;
         }
         const data = await res.json();
-        const dynamicPages = Array.isArray(data.allowed_pages) ? data.allowed_pages : [];
+        const dynamicPages = Array.isArray(data.allowed_pages)
+            ? data.allowed_pages.map((x) => String(x || "").trim()).filter(Boolean)
+            : [];
         const dynamicActions = Array.isArray(data.allowed_actions) ? data.allowed_actions : [];
         const merged = new Set([
             "/login.html",
             "/dashboard.html",
-            ...USER_DEFAULT_ALLOWED_PATHS,
             ...dynamicPages
         ]);
         USER_ALLOWED_PATHS_RUNTIME = Array.from(merged);

@@ -34,6 +34,19 @@ if(userRole === "manager"){
     });
 }
 
+if(userRole === "user"){
+    const messagesBtn = document.getElementById("messagesBtn");
+    const noticeBtn = document.getElementById("noticeBtn");
+
+    if(messagesBtn && typeof hasUserGrantedPath === "function" && !hasUserGrantedPath("/messages/messages.html")){
+        messagesBtn.style.display = "none";
+    }
+
+    if(noticeBtn && typeof hasUserGrantedPath === "function" && !hasUserGrantedPath("/notifications/notifications.html")){
+        noticeBtn.style.display = "none";
+    }
+}
+
 // Logout
 function logout(){
     localStorage.removeItem("token");
