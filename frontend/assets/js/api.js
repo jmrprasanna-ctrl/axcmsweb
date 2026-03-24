@@ -175,10 +175,11 @@ function getAccessConfigState(){
 
 function enforceUserAccess(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
-    const enforceByConfiguredRole = (role === "admin" || role === "manager") && getAccessConfigState() === true;
-    if(role !== "user" && !enforceByConfiguredRole) return;
+    if(role !== "user" && role !== "admin" && role !== "manager") return;
     const selectedDb = String(localStorage.getItem("selectedDatabaseName") || "").trim().toLowerCase();
-    if(role === "user" && selectedDb === "demo") return;
+    if(role === "user" && selectedDb === "demo"){
+        return;
+    }
     const path = window.location.pathname.replace(/\\/g,"/");
     const allowed = USER_ALLOWED_PATHS_RUNTIME.some(suffix => path.endsWith(suffix));
     if(allowed) return;
@@ -291,6 +292,48 @@ function getStockLink(fileName){
     return `${prefix}stock/${fileName}`;
 }
 
+function toMenuHref(canonicalPath){
+    const clean = String(canonicalPath || "").trim().replace(/\\/g, "/").replace(/^\/+/, "");
+    if(!clean) return "#";
+    const path = window.location.pathname.replace(/\\/g, "/");
+    const idx = path.lastIndexOf("/pages/");
+    if(idx === -1){
+        return `/${clean}`;
+    }
+    const rest = path.slice(idx + 7);
+    const depth = Math.max(0, rest.split("/").length - 1);
+    const prefix = depth === 0 ? "" : "../".repeat(depth);
+    return `${prefix}${clean}`;
+}
+
+function renderSidebarMenuByAccess(){
+    const role = (localStorage.getItem("role") || "").toLowerCase();
+    if(role !== "admin" && role !== "manager" && role !== "user") return;
+    const menuEntries = [
+        { path: "/dashboard.html", label: "Dashboard" },
+        { path: "/products/product-list.html", label: "Products" },
+        { path: "/products/general-machine.html", label: "Machines" },
+        { path: "/customers/customer-list.html", label: "Customers" },
+        { path: "/invoices/invoice-list.html", label: "Invoices" },
+        { path: "/vendors/list-vendor.html", label: "Vendors" },
+        { path: "/expenses/expense-list.html", label: "Expenses" },
+        { path: "/reports/sales-report.html", label: "Reports" },
+        { path: "/analytics/sales-chart.html", label: "Analytics" },
+        { path: "/finance/finance.html", label: "Finance" },
+        { path: "/support/support.html", label: "Support" },
+        { path: "/stock/stock.html", label: "Stock" },
+        { path: "/users/user-list.html", label: "Users" }
+    ];
+    const granted = menuEntries.filter((entry) => hasUserGrantedPath(entry.path));
+    const finalMenu = granted.length ? granted : [{ path: "/dashboard.html", label: "Dashboard" }];
+
+    document.querySelectorAll(".sidebar .nav-links, .sidebar ul").forEach((nav) => {
+        nav.innerHTML = finalMenu
+            .map((entry) => `<li><a href="${toMenuHref(entry.path)}">${entry.label}</a></li>`)
+            .join("");
+    });
+}
+
 function applyFinanceNav(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
     if(role !== "admin" && role !== "manager" && role !== "user") return;
@@ -390,14 +433,11 @@ function applyStockNav(){
 }
 
 function applyAccessGuards(){
+    renderSidebarMenuByAccess();
     enforceUserAccess();
     enforceManagerAccess();
     applyUserNavRestrictions();
     applyManagerNavRestrictions();
-    applyFinanceNav();
-    applySupportNav();
-    applyStockNav();
-    applyAdminUsersNav();
 }
 
 function ensureGlobalFooter(){
@@ -873,16 +913,12 @@ window.hasUserGrantedPath = hasUserGrantedPath;
 
 function hasUserActionPermission(path, action){
     const role = (localStorage.getItem("role") || "").toLowerCase();
-    const configState = getAccessConfigState();
-    if((role === "admin" || role === "manager") && configState === false){
-        return true;
+    if(role !== "admin" && role !== "manager" && role !== "user"){
+        return false;
     }
     const selectedDb = String(localStorage.getItem("selectedDatabaseName") || "").trim().toLowerCase();
     if(role === "user" && selectedDb === "demo"){
         return true;
-    }
-    if(role !== "user"){
-        return false;
     }
 
     const actionKey = `${String(path || "").trim().toLowerCase()}::${String(action || "").trim().toLowerCase()}`;

@@ -447,7 +447,12 @@ exports.getAccessUsers = async (_req, res) => {
 
     const rows = [];
 
-    for (const databaseName of [INVENTORY_DB_NAME, DEMO_DB_NAME]) {
+    const includeDemo = String(_req?.query?.include_demo || "").trim().toLowerCase() === "true";
+    const sourceDbs = includeDemo
+      ? [INVENTORY_DB_NAME, DEMO_DB_NAME]
+      : [INVENTORY_DB_NAME];
+
+    for (const databaseName of sourceDbs) {
       let users = [];
       try{
         users = await db.withDatabase(databaseName, async () => {
