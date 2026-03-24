@@ -118,15 +118,19 @@
         function canShowAdminTool(path){
             const role = (localStorage.getItem("role") || "").toLowerCase();
             const hasConfiguredAccess = typeof hasAccessConfigRestrictions === "function" && hasAccessConfigRestrictions();
+            const hasPageAccess = (
+                (typeof hasUserGrantedPath === "function" && hasUserGrantedPath(path))
+                || (typeof hasUserActionPermission === "function" && hasUserActionPermission(path, "view"))
+            );
             if(role === "admin"){
                 if(!hasConfiguredAccess) return true;
-                return typeof hasUserGrantedPath === "function" && hasUserGrantedPath(path);
+                return hasPageAccess;
             }
             if(role === "manager"){
                 if(!hasConfiguredAccess) return false;
-                return typeof hasUserGrantedPath === "function" && hasUserGrantedPath(path);
+                return hasPageAccess;
             }
-            return typeof hasUserGrantedPath === "function" && hasUserGrantedPath(path);
+            return hasPageAccess;
         }
 
         function applyTopButtonVisibility(){

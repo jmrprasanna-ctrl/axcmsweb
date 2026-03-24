@@ -123,6 +123,9 @@ function logoutForInactivity(){
     localStorage.removeItem("userName");
     localStorage.removeItem("selectedDatabaseName");
     localStorage.removeItem(LAST_ACTIVITY_KEY);
+    localStorage.removeItem(USER_ALLOWED_CACHE_KEY);
+    localStorage.removeItem(USER_ALLOWED_ACTIONS_CACHE_KEY);
+    localStorage.removeItem(USER_ACCESS_CONFIG_ENABLED_CACHE_KEY);
     window.location.replace(buildPagesPath("login.html"));
 }
 
@@ -424,6 +427,17 @@ function applyStockNav(){
     });
 }
 
+function applyAccessGuards(){
+    enforceUserAccess();
+    enforceManagerAccess();
+    applyUserNavRestrictions();
+    applyManagerNavRestrictions();
+    applyFinanceNav();
+    applySupportNav();
+    applyStockNav();
+    applyAdminUsersNav();
+}
+
 function ensureGlobalFooter(){
     if(document.getElementById("app-global-footer")) return;
     if(document.querySelector(".sidebar")){
@@ -699,14 +713,9 @@ window.addEventListener("DOMContentLoaded", async () => {
     await loadUserAccessPermissions();
     window.__userAccessPermissionsLoaded = true;
     document.dispatchEvent(new CustomEvent("app:user-access-ready"));
-    enforceUserAccess();
-    enforceManagerAccess();
-    applyUserNavRestrictions();
-    applyManagerNavRestrictions();
-    applyFinanceNav();
-    applySupportNav();
-    applyStockNav();
-    applyAdminUsersNav();
+    applyAccessGuards();
+    // Some pages inject sidebar/nav slightly later; re-apply once after render settles.
+    window.setTimeout(applyAccessGuards, 250);
     ensureMobileSidebar();
     ensureGlobalFooter();
     loadPublicUiSettings();
@@ -715,6 +724,11 @@ window.addEventListener("DOMContentLoaded", async () => {
 window.addEventListener("pageshow", () => {
     if(!enforceIdleTimeout()) return;
     enforceAuthentication();
+    if(window.__userAccessPermissionsLoaded){
+        applyAccessGuards();
+    }else{
+        document.addEventListener("app:user-access-ready", applyAccessGuards, { once: true });
+    }
 });
 
 window.addEventListener("popstate", () => {
@@ -841,6 +855,10 @@ async function login(){
     }
 
     try{
+        // Prevent permission cache from a previous session/user leaking into current session.
+        localStorage.removeItem(USER_ALLOWED_CACHE_KEY);
+        localStorage.removeItem(USER_ALLOWED_ACTIONS_CACHE_KEY);
+        localStorage.removeItem(USER_ACCESS_CONFIG_ENABLED_CACHE_KEY);
         const res = await request("/auth/login","POST",{email,password});
         if(res.user.role !== role){
             alert("Selected role does not match your account role!");

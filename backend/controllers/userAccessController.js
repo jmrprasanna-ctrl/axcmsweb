@@ -293,6 +293,50 @@ async function findAnyAccessFromMainDb(userId) {
   }
 }
 
+async function queryAccessFromDatabase(databaseName, userId) {
+  const cfg = getDbConfig();
+  const client = new Client({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: databaseName,
+  });
+  try {
+    await client.connect();
+    const rs = await client.query(
+      `SELECT allowed_pages_json, allowed_actions_json, database_name, user_database
+       FROM user_accesses
+       WHERE user_id = $1
+       ORDER BY CASE WHEN LOWER(COALESCE(user_database, 'inventory')) = 'inventory' THEN 0 ELSE 1 END, id ASC
+       LIMIT 1`,
+      [userId]
+    );
+    if (!rs.rowCount) return null;
+    return rs.rows[0];
+  } catch (_err) {
+    return null;
+  } finally {
+    await client.end().catch(() => {});
+  }
+}
+
+async function findAnyAccessAcrossDatabases(userId) {
+  const cfg = getDbConfig();
+  const candidates = Array.from(
+    new Set(
+      [String(cfg.database || "").trim().toLowerCase(), INVENTORY_DB_NAME, DEMO_DB_NAME]
+        .filter(Boolean)
+    )
+  );
+
+  for (const dbName of candidates) {
+    const row = await queryAccessFromDatabase(dbName, userId);
+    if (row) return row;
+  }
+  return null;
+}
+
 function getDbConfig() {
   return {
     host: process.env.DB_HOST || "localhost",
@@ -604,9 +648,12 @@ exports.getMyAccess = async (req, res) => {
       row = await UserAccess.findOne({ where: { user_id: userId } });
     }
   }
+  if (!row) {
+    row = await findAnyAccessAcrossDatabases(userId);
+  }
 
-  const allowedPages = parseAllowedPages(row);
   const allowedActions = parseAllowedActions(row);
+  const allowedPages = derivePagesFromActions(allowedActions, parseAllowedPages(row));
   const hasAccessConfig = Boolean(row) || allowedPages.length > 0 || allowedActions.length > 0;
 
   res.json({
