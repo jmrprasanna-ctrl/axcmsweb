@@ -46,6 +46,17 @@ let USER_ALLOWED_ACTIONS_RUNTIME = [];
 const USER_ALLOWED_ACTIONS_CACHE_KEY = "userAllowedActionsRuntime";
 let USER_ACCESS_CONFIG_APPLIES_RUNTIME = false;
 const USER_ACCESS_CONFIG_ENABLED_CACHE_KEY = "userAccessConfigEnabledRuntime";
+window.__userAccessPermissionsLoaded = false;
+window.__waitForUserAccessPermissions = function __waitForUserAccessPermissions(){
+    if(window.__userAccessPermissionsLoaded){
+        return Promise.resolve();
+    }
+    return new Promise((resolve) => {
+        const done = () => resolve();
+        document.addEventListener("app:user-access-ready", done, { once: true });
+        window.setTimeout(done, 1500);
+    });
+};
 
 const MANAGER_BLOCKED_PATHS = [
     "/users/add-user.html",
@@ -624,6 +635,8 @@ window.addEventListener("DOMContentLoaded", async () => {
     if(!enforceIdleTimeout()) return;
     if(!enforceAuthentication()) return;
     await loadUserAccessPermissions();
+    window.__userAccessPermissionsLoaded = true;
+    document.dispatchEvent(new CustomEvent("app:user-access-ready"));
     enforceUserAccess();
     enforceManagerAccess();
     applyUserNavRestrictions();

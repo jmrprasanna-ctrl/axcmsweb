@@ -368,6 +368,9 @@
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
+            if(typeof window.__waitForUserAccessPermissions === "function"){
+                await window.__waitForUserAccessPermissions();
+            }
             applyTopButtonVisibility();
             const healthRefreshBtn = document.getElementById("healthRefreshBtn");
             if(healthRefreshBtn){
