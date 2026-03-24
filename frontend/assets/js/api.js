@@ -899,15 +899,7 @@ async function forgotPassword(){
 function hasUserGrantedPath(path){
     const target = String(path || "").trim().toLowerCase();
     if(!target) return false;
-    if(USER_ALLOWED_PATHS_RUNTIME.some((x) => String(x || "").trim().toLowerCase() === target)){
-        return true;
-    }
-    try{
-        const cached = JSON.parse(localStorage.getItem(USER_ALLOWED_CACHE_KEY) || "[]");
-        return Array.isArray(cached) && cached.some((x) => String(x || "").trim().toLowerCase() === target);
-    }catch(_err){
-        return false;
-    }
+    return USER_ALLOWED_PATHS_RUNTIME.some((x) => String(x || "").trim().toLowerCase() === target);
 }
 window.hasUserGrantedPath = hasUserGrantedPath;
 
@@ -922,14 +914,6 @@ function hasUserActionPermission(path, action){
     }
 
     const actionKey = `${String(path || "").trim().toLowerCase()}::${String(action || "").trim().toLowerCase()}`;
-    if(USER_ALLOWED_ACTIONS_RUNTIME.includes(actionKey)){
-        return true;
-    }
-    try{
-        const cached = JSON.parse(localStorage.getItem(USER_ALLOWED_ACTIONS_CACHE_KEY) || "[]");
-        return Array.isArray(cached) && cached.map((x)=>String(x || "").trim().toLowerCase()).includes(actionKey);
-    }catch(_err){
-        return false;
-    }
+    return USER_ALLOWED_ACTIONS_RUNTIME.includes(actionKey);
 }
 window.hasUserActionPermission = hasUserActionPermission;
