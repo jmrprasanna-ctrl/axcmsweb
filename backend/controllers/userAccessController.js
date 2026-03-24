@@ -250,9 +250,10 @@ async function findAccessFromMainDb(userId, userDatabase = INVENTORY_DB_NAME) {
   try {
     await client.connect();
     const rs = await client.query(
-      `SELECT allowed_pages_json, allowed_actions_json, database_name, user_database
+      `SELECT id, allowed_pages_json, allowed_actions_json, database_name, user_database, "updatedAt", "createdAt"
        FROM user_accesses
        WHERE user_id = $1 AND (LOWER(COALESCE(user_database, 'inventory')) = $2)
+       ORDER BY "updatedAt" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
        LIMIT 1`,
       [userId, normalizeUserDatabase(userDatabase)]
     );
@@ -497,7 +498,10 @@ exports.getUserAccess = async (req, res) => {
     return res.status(404).json({ message: "User not found" });
   }
 
-  const row = await UserAccess.findOne({ where: { user_id: ref.user_id, user_database: ref.user_database } });
+  const row = await UserAccess.findOne({
+    where: { user_id: ref.user_id, user_database: ref.user_database },
+    order: [["updatedAt", "DESC"], ["id", "DESC"]],
+  });
   res.json({
     user: {
       ...(user.toJSON ? user.toJSON() : user),
@@ -527,7 +531,10 @@ exports.saveUserAccess = async (req, res) => {
   const allowedPages = derivePagesFromActions(allowedActions, requestedPages);
   const databaseName = normalizeDatabaseName(req.body.database_name);
 
-  let row = await UserAccess.findOne({ where: { user_id: ref.user_id, user_database: ref.user_database } });
+  let row = await UserAccess.findOne({
+    where: { user_id: ref.user_id, user_database: ref.user_database },
+    order: [["updatedAt", "DESC"], ["id", "DESC"]],
+  });
   if (!row) {
     row = await UserAccess.create({
       user_id: ref.user_id,
@@ -566,12 +573,18 @@ exports.getMyAccess = async (req, res) => {
   // Data DB (inventory/demo) can switch per user, but access config must remain stable.
   let row = await findAccessFromMainDb(userId, userDatabase);
   if (!row) {
-    row = await UserAccess.findOne({ where: { user_id: userId, user_database: userDatabase } });
+    row = await UserAccess.findOne({
+      where: { user_id: userId, user_database: userDatabase },
+      order: [["updatedAt", "DESC"], ["id", "DESC"]],
+    });
   }
   if (!row && userDatabase !== INVENTORY_DB_NAME) {
     row = await findAccessFromMainDb(userId, INVENTORY_DB_NAME);
     if (!row) {
-      row = await UserAccess.findOne({ where: { user_id: userId, user_database: INVENTORY_DB_NAME } });
+      row = await UserAccess.findOne({
+        where: { user_id: userId, user_database: INVENTORY_DB_NAME },
+        order: [["updatedAt", "DESC"], ["id", "DESC"]],
+      });
     }
   }
   const allowedActions = parseAllowedActions(row);

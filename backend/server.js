@@ -415,8 +415,28 @@ async function ensureUserAccessSchema() {
     `);
 
     await db.query(`
-      CREATE UNIQUE INDEX IF NOT EXISTS user_accesses_user_db_unique_idx
-      ON user_accesses(user_id, user_database);
+      WITH ranked AS (
+        SELECT
+          id,
+          ROW_NUMBER() OVER (
+            PARTITION BY user_id, LOWER(COALESCE(user_database, 'inventory'))
+            ORDER BY "updatedAt" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
+          ) AS rn
+        FROM user_accesses
+      )
+      DELETE FROM user_accesses ua
+      USING ranked r
+      WHERE ua.id = r.id
+        AND r.rn > 1;
+    `);
+
+    await db.query(`
+      DROP INDEX IF EXISTS user_accesses_user_db_unique_idx;
+    `);
+
+    await db.query(`
+      CREATE UNIQUE INDEX user_accesses_user_db_unique_idx
+      ON user_accesses(user_id, LOWER(COALESCE(user_database, 'inventory')));
     `);
   });
 }

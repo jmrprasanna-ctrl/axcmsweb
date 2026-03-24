@@ -24,6 +24,7 @@ async function resolveUserAssignedDatabase(userId) {
        FROM user_accesses
        WHERE user_id = $1
          AND LOWER(COALESCE(user_database, 'inventory')) = 'inventory'
+       ORDER BY "updatedAt" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
        LIMIT 1`,
       [userId]
     );

@@ -89,40 +89,29 @@ function renderDashboardSidebarMenu(entries){
         .join("");
 }
 
-async function enforceDashboardSidebarAccess(){
-    if(typeof request !== "function") return;
+function enforceDashboardSidebarAccess(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
     if(role !== "admin" && role !== "manager" && role !== "user") return;
-
-    try{
-        const data = await request("/users/access/me","GET");
-        const allowedPages = Array.isArray(data?.allowed_pages) ? data.allowed_pages : [];
-        const allowedActions = Array.isArray(data?.allowed_actions) ? data.allowed_actions : [];
-        const fromActions = allowedActions
-            .map((x) => String(x || "").trim().toLowerCase())
-            .filter((x) => x.endsWith("::view"))
-            .map((x) => x.slice(0, x.lastIndexOf("::")));
-        const allowedSet = new Set(
-            ["/dashboard.html", ...fromActions].map((p) => normalizeAccessPath(p))
-        );
-
-        dashboardAllowedMenuEntries = DASHBOARD_MENU_ENTRIES.filter((e) => allowedSet.has(normalizeAccessPath(e.path)));
-        renderDashboardSidebarMenu(dashboardAllowedMenuEntries);
-    }catch(_err){
-        // keep existing menu if access endpoint fails
-    }
+    const granted = DASHBOARD_MENU_ENTRIES.filter((entry) => {
+        if(typeof hasUserGrantedPath !== "function"){
+            return true;
+        }
+        return hasUserGrantedPath(entry.path);
+    });
+    dashboardAllowedMenuEntries = granted.length
+        ? granted
+        : [{ path: "/dashboard.html", label: "Dashboard" }];
+    renderDashboardSidebarMenu(dashboardAllowedMenuEntries);
 }
 
 function startDashboardSidebarGuard(){
     if(window.__dashboardSidebarGuardStarted) return;
     window.__dashboardSidebarGuardStarted = true;
-    const tick = () => {
-        if(dashboardAllowedMenuEntries){
-            renderDashboardSidebarMenu(dashboardAllowedMenuEntries);
-        }
-    };
-    tick();
-    window.setInterval(tick, 1200);
+    const sync = () => enforceDashboardSidebarAccess();
+    sync();
+    window.setTimeout(sync, 200);
+    window.setTimeout(sync, 800);
+    document.addEventListener("app:user-access-ready", sync, { once: true });
 }
 
 // Logout
@@ -375,9 +364,6 @@ if(summaryDateEl){
     });
 }
 fetchSummary();
-enforceDashboardSidebarAccess();
-setTimeout(enforceDashboardSidebarAccess, 500);
-setTimeout(enforceDashboardSidebarAccess, 1500);
 startDashboardSidebarGuard();
 
 function setHealthBadge(id, ok){
