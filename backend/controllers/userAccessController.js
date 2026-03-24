@@ -97,6 +97,7 @@ const ACCESS_MODULE_OPTIONS = [
     module: "Core",
     items: [
       { path: "/dashboard.html", label: "Dashboard", actions: ["view"] },
+      { path: "/users/super-user-admin.html", label: "Super User Admin", actions: ["view"] },
     ],
   },
 ];
