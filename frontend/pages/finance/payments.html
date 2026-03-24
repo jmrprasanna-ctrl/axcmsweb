@@ -141,7 +141,7 @@ const allowedPaths = (() => {
 })();
 const canAccessFinance = (role === "admin" || role === "manager")
     ? true
-    : (role === "user" && allowedPaths.has("/finance/finance.html"));
+    : (role === "user" && (allowedPaths.has("/finance/payments.html") || allowedPaths.has("/finance/finance.html")));
 if(!canAccessFinance){
     alert("You don't have access to Payments.");
     window.location.href = "../dashboard.html";

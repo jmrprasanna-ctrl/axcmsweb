@@ -65,6 +65,7 @@ const ACCESS_MODULE_OPTIONS = [
       { path: "/reports/sales-report.html", label: "Sales Report", actions: ["view"] },
       { path: "/analytics/sales-chart.html", label: "Sales Chart", actions: ["view"] },
       { path: "/finance/finance.html", label: "Finance", actions: ["view"] },
+      { path: "/finance/payments.html", label: "Payments", actions: ["view"] },
       { path: "/stock/stock.html", label: "Stock", actions: ["view", "edit"] },
     ],
   },
