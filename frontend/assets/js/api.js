@@ -337,19 +337,8 @@ function renderSidebarMenuByAccess(){
 }
 
 function setupSidebarAccessObserver(){
-    if(window.__sidebarAccessObserverBound) return;
-    window.__sidebarAccessObserverBound = true;
-    const observer = new MutationObserver(() => {
-        if(window.__accessMenuRenderLock) return;
-        if(!window.__userAccessPermissionsLoaded) return;
-        renderSidebarMenuByAccess();
-        applyUserNavRestrictions();
-        applyManagerNavRestrictions();
-    });
-    document.querySelectorAll(".sidebar .nav-links, .sidebar ul").forEach((nav) => {
-        observer.observe(nav, { childList: true, subtree: true });
-    });
-    window.__sidebarAccessObserver = observer;
+    // Disabled: Mutation observer can cause render loops on some browsers.
+    // We enforce menu restrictions through explicit guard passes instead.
 }
 
 function applyFinanceNav(){
@@ -451,7 +440,6 @@ function applyStockNav(){
 }
 
 function applyAccessGuards(){
-    setupSidebarAccessObserver();
     renderSidebarMenuByAccess();
     enforceUserAccess();
     enforceManagerAccess();
