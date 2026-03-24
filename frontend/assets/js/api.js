@@ -327,11 +327,29 @@ function renderSidebarMenuByAccess(){
     const granted = menuEntries.filter((entry) => hasUserGrantedPath(entry.path));
     const finalMenu = granted.length ? granted : [{ path: "/dashboard.html", label: "Dashboard" }];
 
+    window.__accessMenuRenderLock = true;
     document.querySelectorAll(".sidebar .nav-links, .sidebar ul").forEach((nav) => {
         nav.innerHTML = finalMenu
             .map((entry) => `<li><a href="${toMenuHref(entry.path)}">${entry.label}</a></li>`)
             .join("");
     });
+    window.__accessMenuRenderLock = false;
+}
+
+function setupSidebarAccessObserver(){
+    if(window.__sidebarAccessObserverBound) return;
+    window.__sidebarAccessObserverBound = true;
+    const observer = new MutationObserver(() => {
+        if(window.__accessMenuRenderLock) return;
+        if(!window.__userAccessPermissionsLoaded) return;
+        renderSidebarMenuByAccess();
+        applyUserNavRestrictions();
+        applyManagerNavRestrictions();
+    });
+    document.querySelectorAll(".sidebar .nav-links, .sidebar ul").forEach((nav) => {
+        observer.observe(nav, { childList: true, subtree: true });
+    });
+    window.__sidebarAccessObserver = observer;
 }
 
 function applyFinanceNav(){
@@ -433,6 +451,7 @@ function applyStockNav(){
 }
 
 function applyAccessGuards(){
+    setupSidebarAccessObserver();
     renderSidebarMenuByAccess();
     enforceUserAccess();
     enforceManagerAccess();
@@ -723,6 +742,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     applyAccessGuards();
     // Some pages inject sidebar/nav slightly later; re-apply once after render settles.
     window.setTimeout(applyAccessGuards, 250);
+    window.setTimeout(applyAccessGuards, 1000);
     ensureMobileSidebar();
     ensureGlobalFooter();
     loadPublicUiSettings();
