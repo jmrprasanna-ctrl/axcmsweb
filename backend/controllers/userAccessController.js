@@ -75,6 +75,7 @@ const ACCESS_MODULE_OPTIONS = [
       { path: "/messages/messages.html", label: "Messages", actions: ["view", "add", "delete"] },
       { path: "/notifications/notifications.html", label: "Notifications", actions: ["view"] },
       { path: "/support/support.html", label: "Support", actions: ["view", "add", "edit", "delete"] },
+      { path: "/support/warrenty.html", label: "Warrenty", actions: ["view"] },
       { path: "/users/technician-list.html", label: "Support Technician", actions: ["view", "add", "edit", "delete"] },
     ],
   },
@@ -183,6 +184,15 @@ function expandImplicitActionDependencies(actionKeys) {
     add("/users/add-technician.html", "view");
     add("/users/add-technician.html", "add");
   }
+  if (
+    set.has(toActionKey("/support/support.html", "view")) ||
+    set.has(toActionKey("/support/support.html", "add")) ||
+    set.has(toActionKey("/support/support.html", "edit")) ||
+    set.has(toActionKey("/support/support.html", "delete"))
+  ) {
+    add("/support/warrenty.html", "view");
+  }
+
   if (
     set.has(toActionKey("/users/technician-list.html", "add")) ||
     set.has(toActionKey("/users/technician-list.html", "edit")) ||

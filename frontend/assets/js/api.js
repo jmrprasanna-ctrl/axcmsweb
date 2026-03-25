@@ -624,6 +624,12 @@ async function loadUserAccessPermissions(){
         const dynamicPages = Array.from(new Set([
             ...normalizedAllowedPages,
             ...pagesFromActions,
+            ...(
+                normalizedAllowedPages.includes("/support/support.html")
+                || normalizedActionKeys.some((x) => x.startsWith("/support/support.html::"))
+                    ? ["/support/warrenty.html"]
+                    : []
+            ),
             ...(normalizedActionKeys.includes("/users/technician-list.html::add") ? ["/users/add-technician.html"] : []),
             ...(normalizedActionKeys.includes("/users/technician-list.html::edit") ? ["/users/edit-technician.html"] : [])
         ]));
