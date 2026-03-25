@@ -34,17 +34,40 @@ if(userRole === "manager"){
     });
 }
 
-if(userRole === "user"){
+function hasDashboardAccessFor(path, actions = ["view"]){
+    const target = String(path || "").trim();
+    if(!target) return false;
+    if(typeof hasUserGrantedPath === "function" && hasUserGrantedPath(target)){
+        return true;
+    }
+    if(typeof hasUserActionPermission === "function"){
+        return actions.some((action) => hasUserActionPermission(target, action));
+    }
+    return true;
+}
+
+function syncDashboardCommunicationButtons(){
+    const role = (localStorage.getItem("role") || "").toLowerCase();
+    if(role !== "admin" && role !== "manager" && role !== "user") return;
+
     const messagesBtn = document.getElementById("messagesBtn");
     const noticeBtn = document.getElementById("noticeBtn");
 
-    if(messagesBtn && typeof hasUserGrantedPath === "function" && !hasUserGrantedPath("/messages/messages.html")){
-        messagesBtn.style.display = "none";
+    if(messagesBtn){
+        const allowMessages = hasDashboardAccessFor("/messages/messages.html", ["view", "add", "delete"]);
+        messagesBtn.style.display = allowMessages ? "" : "none";
     }
 
-    if(noticeBtn && typeof hasUserGrantedPath === "function" && !hasUserGrantedPath("/notifications/notifications.html")){
-        noticeBtn.style.display = "none";
+    if(noticeBtn){
+        const allowNotifications = hasDashboardAccessFor("/notifications/notifications.html", ["view", "add", "delete"]);
+        noticeBtn.style.display = allowNotifications ? "" : "none";
     }
+}
+
+if(window.__userAccessPermissionsLoaded){
+    syncDashboardCommunicationButtons();
+}else{
+    document.addEventListener("app:user-access-ready", syncDashboardCommunicationButtons, { once: true });
 }
 
 function normalizeAccessPath(path){
