@@ -5,6 +5,8 @@ const {
   getAccessPages,
   getDatabases,
   createDatabase,
+  getCreatedDatabases,
+  deleteDatabase,
   getUserAccess,
   saveUserAccess,
   getMyAccess
@@ -26,6 +28,8 @@ router.get("/access-users", getAccessUsers);
 router.get("/access-pages", getAccessPages);
 router.get("/databases", getDatabases);
 router.post("/databases/create", createDatabase);
+router.get("/databases/created", getCreatedDatabases);
+router.delete("/databases/:databaseName", deleteDatabase);
 router.get("/logs", getLoginLogs);
 router.delete("/logs", clearLoginLogs);
 router.get("/access/:userId", getUserAccess);

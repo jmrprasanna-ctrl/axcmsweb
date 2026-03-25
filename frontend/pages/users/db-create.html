@@ -9,6 +9,11 @@
     <style>
         .db-create-wrap{max-width:760px}
         .db-create-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+        .db-table-wrap{margin-top:20px;overflow:auto}
+        .db-table{width:100%;border-collapse:collapse;background:#fff}
+        .db-table th,.db-table td{border-bottom:1px solid #e5edf5;padding:10px 8px;text-align:left;font-size:.9rem}
+        .db-table th{background:#f5f9ff;color:#234b71}
+        .db-table td.actions{text-align:right}
         @media (max-width: 900px){
             .db-create-grid{grid-template-columns:1fr}
         }
@@ -53,6 +58,23 @@
                 <button class="btn btn-primary" type="button" onclick="saveDatabase()">Save</button>
                 <a class="btn btn-secondary" href="user-access.html">Back</a>
             </div>
+
+            <div class="db-table-wrap">
+                <label>Created Databases (Super User Admin)</label>
+                <table class="db-table">
+                    <thead>
+                        <tr>
+                            <th>Database</th>
+                            <th>Company</th>
+                            <th>Created Date</th>
+                            <th style="width: 120px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="createdDbTableBody">
+                        <tr><td colspan="4">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -60,6 +82,7 @@
     <script>
         const databaseNameEl = document.getElementById("databaseName");
         const companyNameEl = document.getElementById("companyName");
+        const createdDbTableBodyEl = document.getElementById("createdDbTableBody");
 
         function sanitizeDbName(value){
             return String(value || "")
@@ -90,11 +113,60 @@
                     company_name: companyName
                 });
                 showMessageBox(res.message || "Database created");
+                await loadCreatedDatabases();
                 setTimeout(() => {
                     window.location.href = "user-access.html";
                 }, 500);
             }catch(err){
                 alert(err.message || "Failed to create database");
+            }
+        }
+
+        function formatDate(value){
+            if(!value) return "-";
+            const dt = new Date(value);
+            if(Number.isNaN(dt.getTime())) return "-";
+            return dt.toLocaleDateString();
+        }
+
+        async function loadCreatedDatabases(){
+            createdDbTableBodyEl.innerHTML = `<tr><td colspan="4">Loading...</td></tr>`;
+            try{
+                const res = await request("/users/databases/created", "GET");
+                const rows = Array.isArray(res.databases) ? res.databases : [];
+                if(!rows.length){
+                    createdDbTableBodyEl.innerHTML = `<tr><td colspan="4">No created databases found.</td></tr>`;
+                    return;
+                }
+                createdDbTableBodyEl.innerHTML = "";
+                rows.forEach((row) => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td>${String(row.name || "")}</td>
+                        <td>${String(row.company_name || "")}</td>
+                        <td>${formatDate(row.created_at)}</td>
+                        <td class="actions">
+                            <button class="btn btn-secondary" type="button" data-delete-db="${String(row.name || "")}" style="min-width:90px;">Delete</button>
+                        </td>
+                    `;
+                    createdDbTableBodyEl.appendChild(tr);
+                });
+            }catch(err){
+                createdDbTableBodyEl.innerHTML = `<tr><td colspan="4">${String(err.message || "Failed to load databases")}</td></tr>`;
+            }
+        }
+
+        async function deleteDatabase(databaseName){
+            const name = String(databaseName || "").trim().toLowerCase();
+            if(!name) return;
+            const ok = window.confirm(`Delete database '${name}'?`);
+            if(!ok) return;
+            try{
+                await request(`/users/databases/${encodeURIComponent(name)}`, "DELETE");
+                showMessageBox("Database deleted");
+                await loadCreatedDatabases();
+            }catch(err){
+                alert(err.message || "Failed to delete database");
             }
         }
 
@@ -104,15 +176,22 @@
                 databaseNameEl.value = cleaned;
             }
         });
+        createdDbTableBodyEl.addEventListener("click", async (ev) => {
+            const btn = ev.target.closest("button[data-delete-db]");
+            if(!btn) return;
+            await deleteDatabase(btn.getAttribute("data-delete-db"));
+        });
 
         window.saveDatabase = saveDatabase;
 
-        (function init(){
+        (async function init(){
             const role = (localStorage.getItem("role") || "").toLowerCase();
             if(role !== "admin"){
                 alert("Only admin can access this page.");
                 window.location.href = "../dashboard.html";
+                return;
             }
+            await loadCreatedDatabases();
         })();
     </script>
 </body>

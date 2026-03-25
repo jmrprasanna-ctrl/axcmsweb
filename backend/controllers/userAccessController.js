@@ -455,6 +455,30 @@ async function fetchCompanyDatabaseMap(mainDbClient) {
   return map;
 }
 
+async function fetchCreatedDatabases(mainDbClient) {
+  await ensureDatabaseRegistryTable(mainDbClient);
+  const rs = await mainDbClient.query(
+    `SELECT database_name, company_name, created_by, "createdAt", "updatedAt"
+     FROM ${DATABASE_REGISTRY_TABLE}
+     WHERE LOWER(database_name) <> $1
+     ORDER BY "createdAt" DESC NULLS LAST, id DESC`,
+    [INVENTORY_DB_NAME]
+  );
+  return (rs.rows || [])
+    .map((row) => {
+      const name = normalizeDatabaseName(row?.database_name);
+      if (!name || name === INVENTORY_DB_NAME) return null;
+      return {
+        name,
+        company_name: normalizeCompanyName(row?.company_name),
+        created_by: Number(row?.created_by || 0) || null,
+        created_at: row?.createdAt || null,
+        updated_at: row?.updatedAt || null,
+      };
+    })
+    .filter(Boolean);
+}
+
 async function getUserFromDatabase(databaseName, userId) {
   return db.withDatabase(databaseName, async () => {
     return User.findByPk(userId, {
@@ -660,6 +684,90 @@ exports.createDatabase = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to create database." });
+  } finally {
+    await adminClient.end().catch(() => {});
+    await mainDbClient.end().catch(() => {});
+  }
+};
+
+exports.getCreatedDatabases = async (_req, res) => {
+  const cfg = getDbConfig();
+  const mainDbClient = new Client({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: cfg.database || INVENTORY_DB_NAME,
+  });
+  try {
+    await mainDbClient.connect();
+    const databases = await fetchCreatedDatabases(mainDbClient);
+    res.json({ databases });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to load created databases." });
+  } finally {
+    await mainDbClient.end().catch(() => {});
+  }
+};
+
+exports.deleteDatabase = async (req, res) => {
+  const databaseName = normalizeDatabaseName(req.params.databaseName);
+  if (!databaseName || databaseName === INVENTORY_DB_NAME) {
+    return res.status(400).json({ message: "Invalid database name." });
+  }
+
+  const cfg = getDbConfig();
+  const adminClient = new Client({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: "postgres",
+  });
+  const mainDbClient = new Client({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: cfg.database || INVENTORY_DB_NAME,
+  });
+
+  try {
+    await mainDbClient.connect();
+    await ensureDatabaseRegistryTable(mainDbClient);
+    const exists = await mainDbClient.query(
+      `SELECT 1 FROM ${DATABASE_REGISTRY_TABLE} WHERE LOWER(database_name) = $1 LIMIT 1`,
+      [databaseName]
+    );
+    if (!exists.rowCount) {
+      return res.status(404).json({ message: "Database not found in created list." });
+    }
+
+    await adminClient.connect();
+    await adminClient.query(
+      `SELECT pg_terminate_backend(pid)
+       FROM pg_stat_activity
+       WHERE datname = $1
+         AND pid <> pg_backend_pid()`,
+      [databaseName]
+    );
+    await adminClient.query(`DROP DATABASE IF EXISTS ${quoteIdentifier(databaseName)}`);
+
+    await mainDbClient.query(
+      `DELETE FROM ${DATABASE_REGISTRY_TABLE}
+       WHERE LOWER(database_name) = $1`,
+      [databaseName]
+    );
+    await mainDbClient.query(
+      `UPDATE user_accesses
+       SET database_name = NULL
+       WHERE LOWER(COALESCE(database_name, '')) = $1`,
+      [databaseName]
+    );
+
+    res.json({ message: "Database deleted successfully." });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to delete database." });
   } finally {
     await adminClient.end().catch(() => {});
     await mainDbClient.end().catch(() => {});
