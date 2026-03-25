@@ -57,6 +57,9 @@
 
     <div class="form-container">
         <form id="rentalCountForm">
+            <label>Entry Date</label>
+            <input type="date" id="entryDate" required>
+
             <label>Transaction ID</label>
             <input type="text" id="transactionId" placeholder="RMC-0001" required>
 
@@ -228,7 +231,8 @@ function renderRentalCounts(){
     tbody.innerHTML = "";
     rows.forEach(r => {
         const tr = document.createElement("tr");
-        const dateText = r.createdAt ? new Date(r.createdAt).toLocaleString() : "";
+        const rowDate = r.entry_date || (r.createdAt ? new Date(r.createdAt).toISOString().slice(0,10) : "");
+        const dateText = rowDate ? new Date(`${rowDate}T00:00:00`).toLocaleDateString() : "";
         const machineId = r.RentalMachine ? (r.RentalMachine.machine_id || "") : "";
         const machineTitle = r.RentalMachine ? (r.RentalMachine.machine_title || "") : "";
         const customer = r.Customer ? (r.Customer.name || "") : "";
@@ -278,9 +282,14 @@ document.getElementById("rentalCountForm").addEventListener("submit", async (e) 
     const rental_machine_id = Number(document.getElementById("rentalMachineId").value);
     const updated_count = Number.parseInt(document.getElementById("updatedCount").value, 10);
     const transaction_id = normalizeTransaction(document.getElementById("transactionId").value);
+    const entry_date = String(document.getElementById("entryDate").value || "").trim();
 
     if(!Number.isFinite(rental_machine_id) || rental_machine_id <= 0 || Number.isNaN(updated_count)){
         alert("Please select rental machine and enter valid updated count.");
+        return;
+    }
+    if(!entry_date){
+        alert("Please select entry date.");
         return;
     }
     if(updated_count < 0){
@@ -292,7 +301,8 @@ document.getElementById("rentalCountForm").addEventListener("submit", async (e) 
         await request("/rental-machine-counts", "POST", {
             transaction_id,
             rental_machine_id,
-            updated_count
+            updated_count,
+            entry_date
         });
         showMessageBox("Rental count saved successfully");
         await loadMachines();
@@ -332,6 +342,7 @@ function logout(){
 }
 
 (async function init(){
+    document.getElementById("entryDate").value = new Date().toISOString().slice(0, 10);
     await loadMachines();
     await loadRentalCounts();
     await generateTransactionId();

@@ -20,6 +20,7 @@ const RentalMachineCount = db.define(
     },
     input_count: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
     updated_count: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+    entry_date: { type: DataTypes.DATEONLY, allowNull: true },
     createdAt: { type: DataTypes.DATE, allowNull: true, defaultValue: DataTypes.NOW },
     updatedAt: { type: DataTypes.DATE, allowNull: true, defaultValue: DataTypes.NOW },
   },

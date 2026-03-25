@@ -762,7 +762,9 @@ exports.financeOverview = async (req,res)=>{
             const qty = Number(row.quantity || 0);
             const dealer = Number((row.Product && row.Product.dealer_price) || 0);
             const amount = qty * dealer;
-            const date = new Date(row.createdAt);
+            const dateSource = row.entry_date || row.createdAt;
+            const date = new Date(dateSource);
+            if(Number.isNaN(date.getTime())) return;
             const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
             const yearKey = String(date.getFullYear());
             const customerName = row.Customer ? row.Customer.name : "Unknown";
@@ -825,7 +827,9 @@ exports.financeOverview = async (req,res)=>{
         const rentalCountYearSet = new Set();
         const rentalCountMonthMap = new Map();
         rentalCountRows.forEach((row) => {
-            const dt = new Date(row.createdAt);
+            const dtSource = row.entry_date || row.createdAt;
+            const dt = new Date(dtSource);
+            if(Number.isNaN(dt.getTime())) return;
             const rowYear = dt.getFullYear();
             const rowMonthNum = dt.getMonth() + 1;
             const monthKey = `${rowYear}-${String(rowMonthNum).padStart(2, "0")}`;

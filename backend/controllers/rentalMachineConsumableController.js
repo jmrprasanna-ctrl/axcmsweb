@@ -23,7 +23,7 @@ exports.getConsumables = async (req, res) => {
     const rows = await RentalMachineConsumable.findAll({
       where,
       include: [{ model: RentalMachine }, { model: Customer }, { model: Product }],
-      order: [["createdAt", "DESC"], ["id", "DESC"]],
+      order: [["entry_date", "DESC"], ["createdAt", "DESC"], ["id", "DESC"]],
     });
     res.json(rows);
   } catch (err) {
@@ -41,9 +41,15 @@ exports.createConsumable = async (req, res) => {
     const count = Number.parseInt(req.body.count, 10);
     const notes = String(req.body.notes || "").trim();
     const save_batch_id = String(req.body.save_batch_id || "").trim();
+    const rawEntryDate = String(req.body.entry_date || "").trim();
+    const entry_date = rawEntryDate || new Date().toISOString().slice(0, 10);
 
     if (!Number.isFinite(customer_id) || customer_id <= 0 || !consumable_name || Number.isNaN(quantity)) {
       return res.status(400).json({ message: "Missing required fields." });
+    }
+    const isValidEntryDate = /^\d{4}-\d{2}-\d{2}$/.test(entry_date) && !Number.isNaN(new Date(`${entry_date}T00:00:00`).getTime());
+    if (!isValidEntryDate) {
+      return res.status(400).json({ message: "Invalid entry date." });
     }
 
     const customer = await Customer.findByPk(customer_id);
@@ -83,6 +89,7 @@ exports.createConsumable = async (req, res) => {
       consumable_name,
       quantity,
       count: Number.isNaN(count) ? 0 : count,
+      entry_date,
       notes: notes || null,
     });
 
@@ -98,10 +105,17 @@ exports.createConsumablesBatch = async (req, res) => {
     const customer_id = Number(req.body.customer_id);
     const rental_machine_id = Number(req.body.rental_machine_id);
     const items = Array.isArray(req.body.items) ? req.body.items : [];
+    const rawEntryDate = String(req.body.entry_date || "").trim();
+    const entry_date = rawEntryDate || new Date().toISOString().slice(0, 10);
 
     if (!Number.isFinite(customer_id) || customer_id <= 0 || !items.length) {
       await transaction.rollback();
       return res.status(400).json({ message: "Customer and at least one consumable item are required." });
+    }
+    const isValidEntryDate = /^\d{4}-\d{2}-\d{2}$/.test(entry_date) && !Number.isNaN(new Date(`${entry_date}T00:00:00`).getTime());
+    if (!isValidEntryDate) {
+      await transaction.rollback();
+      return res.status(400).json({ message: "Invalid entry date." });
     }
 
     const customer = await Customer.findByPk(customer_id, { transaction });
@@ -161,6 +175,7 @@ exports.createConsumablesBatch = async (req, res) => {
           consumable_name,
           quantity,
           count: Number.isNaN(count) ? 0 : count,
+          entry_date,
         },
         { transaction }
       );

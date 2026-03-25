@@ -64,7 +64,7 @@ exports.getRentalMachineCounts = async (req, res) => {
     const rows = await RentalMachineCount.findAll({
       where,
       include: [{ model: RentalMachine }, { model: Customer }],
-      order: [["createdAt", "DESC"], ["id", "DESC"]],
+      order: [["entry_date", "DESC"], ["createdAt", "DESC"], ["id", "DESC"]],
     });
     res.json(rows);
   } catch (err) {
@@ -78,10 +78,17 @@ exports.createRentalMachineCount = async (req, res) => {
     const rental_machine_id = Number(req.body.rental_machine_id);
     const updated_count = Number.parseInt(req.body.updated_count, 10);
     let transaction_id = String(req.body.transaction_id || "").trim().toUpperCase();
+    const rawEntryDate = String(req.body.entry_date || "").trim();
+    const entry_date = rawEntryDate || new Date().toISOString().slice(0, 10);
 
     if (!Number.isFinite(rental_machine_id) || rental_machine_id <= 0 || Number.isNaN(updated_count)) {
       await transaction.rollback();
       return res.status(400).json({ message: "Rental machine and updated count are required." });
+    }
+    const isValidEntryDate = /^\d{4}-\d{2}-\d{2}$/.test(entry_date) && !Number.isNaN(new Date(`${entry_date}T00:00:00`).getTime());
+    if (!isValidEntryDate) {
+      await transaction.rollback();
+      return res.status(400).json({ message: "Invalid entry date." });
     }
     if (updated_count < 0) {
       await transaction.rollback();
@@ -130,6 +137,7 @@ exports.createRentalMachineCount = async (req, res) => {
         customer_id: machine.customer_id,
         input_count,
         updated_count,
+        entry_date,
       },
       { transaction }
     );

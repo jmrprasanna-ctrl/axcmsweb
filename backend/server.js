@@ -207,6 +207,19 @@ async function ensureRentalConsumableSchema() {
       ALTER TABLE rental_machine_consumables
       ADD COLUMN IF NOT EXISTS count INTEGER DEFAULT 0;
     `);
+    await db.query(`
+      ALTER TABLE rental_machine_consumables
+      ADD COLUMN IF NOT EXISTS entry_date DATE;
+    `);
+    await db.query(`
+      UPDATE rental_machine_consumables
+      SET entry_date = COALESCE(entry_date, DATE("createdAt"), CURRENT_DATE)
+      WHERE entry_date IS NULL;
+    `);
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS rental_machine_consumables_entry_date_idx
+      ON rental_machine_consumables(entry_date);
+    `);
   });
 }
 
@@ -220,6 +233,7 @@ async function ensureRentalMachineCountSchema() {
         customer_id INTEGER NOT NULL REFERENCES customers(id),
         input_count INTEGER DEFAULT 0,
         updated_count INTEGER DEFAULT 0,
+        entry_date DATE,
         "createdAt" TIMESTAMP DEFAULT NOW(),
         "updatedAt" TIMESTAMP DEFAULT NOW()
       );
@@ -233,6 +247,19 @@ async function ensureRentalMachineCountSchema() {
     await db.query(`
       ALTER TABLE rental_machine_counts
       ADD COLUMN IF NOT EXISTS updated_count INTEGER DEFAULT 0;
+    `);
+    await db.query(`
+      ALTER TABLE rental_machine_counts
+      ADD COLUMN IF NOT EXISTS entry_date DATE;
+    `);
+    await db.query(`
+      UPDATE rental_machine_counts
+      SET entry_date = COALESCE(entry_date, DATE("createdAt"), CURRENT_DATE)
+      WHERE entry_date IS NULL;
+    `);
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS rental_machine_counts_entry_date_idx
+      ON rental_machine_counts(entry_date);
     `);
 
     await db.query(`

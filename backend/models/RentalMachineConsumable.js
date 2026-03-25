@@ -27,6 +27,7 @@ const RentalMachineConsumable = db.define(
     consumable_name: { type: DataTypes.STRING, allowNull: false },
     quantity: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
     count: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
+    entry_date: { type: DataTypes.DATEONLY, allowNull: true },
     unit: { type: DataTypes.STRING, allowNull: true },
     notes: { type: DataTypes.TEXT, allowNull: true },
     createdAt: { type: DataTypes.DATE, allowNull: true, defaultValue: DataTypes.NOW },

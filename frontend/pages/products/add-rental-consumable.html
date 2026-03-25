@@ -136,6 +136,11 @@
         <form id="consumableForm">
             <div class="add-product-grid">
                 <div class="field">
+                    <label for="entryDate">Entry Date</label>
+                    <input type="date" id="entryDate" required>
+                </div>
+
+                <div class="field">
                     <label for="rentalMachineId">Rental Machine</label>
                     <select id="rentalMachineId" required>
                         <option value="">Select Rental Machine</option>
@@ -442,10 +447,15 @@ async function loadAddedConsumables(){
 
 async function saveEntry(){
     const rentalMachineId = Number(document.getElementById("rentalMachineId").value);
+    const entryDate = String(document.getElementById("entryDate").value || "").trim();
     const selectedMachine = rentalMachines.find(m => Number(m.id) === rentalMachineId);
     const customerId = Number(selectedMachine ? selectedMachine.customer_id : 0);
     if(!selectedMachine || !customerId){
         alert("Please select Rental machine.");
+        return;
+    }
+    if(!entryDate){
+        alert("Please select entry date.");
         return;
     }
     if(!pendingItems.length){
@@ -457,6 +467,7 @@ async function saveEntry(){
         await request("/rental-machine-consumables/batch", "POST", {
             rental_machine_id: rentalMachineId,
             customer_id: customerId,
+            entry_date: entryDate,
             items: pendingItems
         });
         showMessageBox("Consumables saved in one entry");
@@ -523,6 +534,7 @@ function logout(){
 }
 
 (async function init(){
+    document.getElementById("entryDate").value = new Date().toISOString().slice(0, 10);
     await loadRentalMachines();
     await loadConsumableProducts();
     await loadAddedConsumables();
