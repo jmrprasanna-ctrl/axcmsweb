@@ -4,13 +4,34 @@ const User = require("../models/User");
 const UserAccess = require("../models/UserAccess");
 const UserLoginLog = require("../models/UserLoginLog");
 
+async function isRequesterSuperAdmin(req) {
+  const role = String(req?.user?.role || "").toLowerCase();
+  if (role !== "admin") return false;
+  const requesterId = Number(req?.user?.id || req?.user?.userId || 0);
+  if (!Number.isFinite(requesterId) || requesterId <= 0) return false;
+  const me = await User.findByPk(requesterId, { attributes: ["id", "role", "is_super_user"] });
+  return Boolean(me && String(me.role || "").toLowerCase() === "admin" && me.is_super_user);
+}
+
+function isTargetProtectedSuperAdmin(targetUser, requesterId, requesterIsSuper) {
+  const isTargetAdmin = String(targetUser?.role || "").toLowerCase() === "admin";
+  const isTargetSuper = Boolean(targetUser?.is_super_user);
+  return isTargetAdmin && isTargetSuper && Number(targetUser?.id || 0) !== Number(requesterId || 0) && !requesterIsSuper;
+}
+
 exports.getUsers = async (req, res) => {
   try {
     const users = await User.findAll({
-      attributes: ["id", "username", "company", "department", "telephone", "email", "role", "createdAt"],
+      attributes: ["id", "username", "company", "department", "telephone", "email", "role", "is_super_user", "createdAt"],
       order: [["id", "DESC"]],
     });
-    res.json(users);
+    const requesterId = Number(req?.user?.id || req?.user?.userId || 0);
+    const requesterIsSuper = await isRequesterSuperAdmin(req);
+    const filtered = (Array.isArray(users) ? users : []).filter((u) => {
+      if (!isTargetProtectedSuperAdmin(u, requesterId, requesterIsSuper)) return true;
+      return false;
+    });
+    res.json(filtered);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
@@ -21,10 +42,15 @@ exports.getUserById = async (req, res) => {
   const { id } = req.params;
   try {
     const user = await User.findByPk(id, {
-      attributes: ["id", "username", "company", "department", "telephone", "email", "role"],
+      attributes: ["id", "username", "company", "department", "telephone", "email", "role", "is_super_user"],
     });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
+    }
+    const requesterId = Number(req?.user?.id || req?.user?.userId || 0);
+    const requesterIsSuper = await isRequesterSuperAdmin(req);
+    if (isTargetProtectedSuperAdmin(user, requesterId, requesterIsSuper)) {
+      return res.status(403).json({ message: "Forbidden: Super admin user is protected." });
     }
     res.json(user);
   } catch (err) {
@@ -74,6 +100,11 @@ exports.updateUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+    const requesterId = Number(req?.user?.id || req?.user?.userId || 0);
+    const requesterIsSuper = await isRequesterSuperAdmin(req);
+    if (isTargetProtectedSuperAdmin(user, requesterId, requesterIsSuper)) {
+      return res.status(403).json({ message: "Forbidden: Super admin user is protected." });
+    }
 
     if (email && email !== user.email) {
       const existing = await User.findOne({ where: { email } });
@@ -121,6 +152,11 @@ exports.deleteUser = async (req, res) => {
       if (!user) {
         throw Object.assign(new Error("User not found"), { statusCode: 404 });
       }
+      const requesterId = Number(req?.user?.id || req?.user?.userId || 0);
+      const requesterIsSuper = await isRequesterSuperAdmin(req);
+      if (isTargetProtectedSuperAdmin(user, requesterId, requesterIsSuper)) {
+        throw Object.assign(new Error("Forbidden: Super admin user is protected."), { statusCode: 403 });
+      }
 
       await UserLoginLog.destroy({ where: { user_id: userId }, transaction: t });
       await UserAccess.destroy({ where: { user_id: userId }, transaction: t });
@@ -131,6 +167,9 @@ exports.deleteUser = async (req, res) => {
   } catch (err) {
     if (err && err.statusCode === 404) {
       return res.status(404).json({ message: "User not found" });
+    }
+    if (err && err.statusCode === 403) {
+      return res.status(403).json({ message: err.message || "Forbidden" });
     }
     console.error(err);
     res.status(500).json({ message: "Server error" });

@@ -152,6 +152,13 @@
                         <option value="">Select database</option>
                     </select>
                 </div>
+                <div>
+                    <label for="superUserCheckbox">Super User</label>
+                    <div style="display:flex; align-items:center; gap:8px; min-height:42px;">
+                        <input id="superUserCheckbox" type="checkbox" style="width:18px; height:18px;">
+                        <span class="path-hint">Protect admin from other admins (edit/delete/view).</span>
+                    </div>
+                </div>
             </div>
 
             <label>Page Access Matrix (View / Add / Edit / Delete)</label>
@@ -174,6 +181,7 @@
     <script>
         const userSelectEl = document.getElementById("userSelect");
         const databaseSelectEl = document.getElementById("databaseSelect");
+        const superUserCheckboxEl = document.getElementById("superUserCheckbox");
         const accessMatrixEl = document.getElementById("accessMatrix");
         let moduleOptions = [];
         let defaultDatabaseName = "inventory";
@@ -341,6 +349,8 @@
                 const res = await request(`/users/access/${encodeURIComponent(selectedRef)}`, "GET");
                 const actions = Array.isArray(res.allowed_actions) ? res.allowed_actions : [];
                 setCheckedActions(actions);
+                superUserCheckboxEl.checked = !!res.super_user;
+                superUserCheckboxEl.disabled = res.can_edit_super_user === false;
                 if(res.database_name){
                     databaseSelectEl.value = res.database_name;
                 }else if(defaultDatabaseName){
@@ -369,7 +379,8 @@
             const payload = {
                 allowed_actions: allowedActions,
                 allowed_pages: allowedPages,
-                database_name: databaseSelectEl.value || null
+                database_name: databaseSelectEl.value || null,
+                super_user: !!superUserCheckboxEl.checked
             };
 
             try{
@@ -397,6 +408,8 @@
                 await editAccess();
             }else{
                 clearAccess();
+                superUserCheckboxEl.checked = false;
+                superUserCheckboxEl.disabled = true;
                 if(defaultDatabaseName){
                     databaseSelectEl.value = defaultDatabaseName;
                 }
@@ -416,6 +429,8 @@
                 return;
             }
             await Promise.all([loadUsers(), loadAccessPages(), loadDatabases()]);
+            superUserCheckboxEl.checked = false;
+            superUserCheckboxEl.disabled = true;
             const queryUserId = new URLSearchParams(window.location.search).get("userId");
             if(queryUserId){
                 const inventoryRef = `inventory:${queryUserId}`;

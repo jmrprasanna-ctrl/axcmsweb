@@ -596,9 +596,24 @@ async function fetchCreatedDatabases(mainDbClient) {
 async function getUserFromDatabase(databaseName, userId) {
   return db.withDatabase(databaseName, async () => {
     return User.findByPk(userId, {
-      attributes: ["id", "username", "email", "role"],
+      attributes: ["id", "username", "email", "role", "is_super_user", "company"],
     });
   });
+}
+
+async function isRequesterSuperAdmin(req) {
+  const role = String(req?.user?.role || "").toLowerCase();
+  if (role !== "admin") return false;
+  const requesterId = Number(req?.user?.id || req?.user?.userId || 0);
+  if (!Number.isFinite(requesterId) || requesterId <= 0) return false;
+  const me = await getUserFromDatabase(INVENTORY_DB_NAME, requesterId).catch(() => null);
+  return Boolean(me && String(me.role || "").toLowerCase() === "admin" && me.is_super_user);
+}
+
+function isProtectedSuperAdminTarget(userLike, requesterId, requesterIsSuper) {
+  const isTargetAdmin = String(userLike?.role || "").toLowerCase() === "admin";
+  const isTargetSuper = Boolean(userLike?.is_super_user);
+  return isTargetAdmin && isTargetSuper && Number(userLike?.id || 0) !== Number(requesterId || 0) && !requesterIsSuper;
 }
 
 async function hasDbCreateActionPermission(req, action) {
@@ -717,6 +732,9 @@ exports.getAccessUsers = async (_req, res) => {
       ? [INVENTORY_DB_NAME, DEMO_DB_NAME]
       : [INVENTORY_DB_NAME];
 
+    const requesterId = Number(_req?.user?.id || _req?.user?.userId || 0);
+    const requesterIsSuper = await isRequesterSuperAdmin(_req);
+
     for (const databaseName of sourceDbs) {
       let users = [];
       try{
@@ -733,6 +751,9 @@ exports.getAccessUsers = async (_req, res) => {
       (Array.isArray(users) ? users : []).forEach((user) => {
         const plain = user.toJSON ? user.toJSON() : user;
         const role = String(plain.role || "").toLowerCase() || "user";
+        if (isProtectedSuperAdminTarget(plain, requesterId, requesterIsSuper)) {
+          return;
+        }
         const sourceDb = normalizeUserDatabase(databaseName);
         const accessLinkedDb =
           linkedByUserDbKey.get(`${sourceDb}:${plain.id}`) ||
@@ -1465,6 +1486,12 @@ exports.getUserAccess = async (req, res) => {
   if (!user) {
     return res.status(404).json({ message: "User not found" });
   }
+  const requesterId = Number(req?.user?.id || req?.user?.userId || 0);
+  const requesterIsSuper = await isRequesterSuperAdmin(req);
+  const userPlain = user.toJSON ? user.toJSON() : user;
+  if (isProtectedSuperAdminTarget(userPlain, requesterId, requesterIsSuper)) {
+    return res.status(403).json({ message: "Forbidden: Super admin user is protected." });
+  }
 
   const row = await UserAccess.findOne({
     where: { user_id: ref.user_id, user_database: ref.user_database },
@@ -1480,6 +1507,8 @@ exports.getUserAccess = async (req, res) => {
     allowed_actions: parseAllowedActions(row),
     database_name: normalizeDatabaseName(row?.database_name),
     user_database: ref.user_database,
+    super_user: Boolean(userPlain.is_super_user),
+    can_edit_super_user: requesterIsSuper,
   });
 };
 
@@ -1492,6 +1521,11 @@ exports.saveUserAccess = async (req, res) => {
   const user = await getUserFromDatabase(ref.user_database, ref.user_id);
   if (!user) {
     return res.status(404).json({ message: "User not found" });
+  }
+  const requesterId = Number(req?.user?.id || req?.user?.userId || 0);
+  const requesterIsSuper = await isRequesterSuperAdmin(req);
+  if (isProtectedSuperAdminTarget(user, requesterId, requesterIsSuper)) {
+    return res.status(403).json({ message: "Forbidden: Super admin user is protected." });
   }
 
   const allowedActions = expandImplicitActionDependencies(normalizeActions(req.body.allowed_actions));
@@ -1519,6 +1553,11 @@ exports.saveUserAccess = async (req, res) => {
     await row.save();
   }
 
+  if (requesterIsSuper && req.body && Object.prototype.hasOwnProperty.call(req.body, "super_user")) {
+    user.is_super_user = Boolean(req.body.super_user);
+    await user.save();
+  }
+
   res.json({
     message: "Access settings saved",
     user_id: ref.user_id,
@@ -1526,6 +1565,7 @@ exports.saveUserAccess = async (req, res) => {
     allowed_pages: allowedPages,
     allowed_actions: allowedActions,
     database_name: databaseName,
+    super_user: Boolean(user.is_super_user),
   });
 };
 

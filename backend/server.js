@@ -575,6 +575,24 @@ async function ensureUserMappingSchema() {
   });
 }
 
+async function ensureUserSuperSchema() {
+  await runOnBusinessDatabases(async () => {
+    await db.query(`
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS is_super_user BOOLEAN DEFAULT FALSE;
+    `);
+    await db.query(`
+      UPDATE users
+      SET is_super_user = FALSE
+      WHERE is_super_user IS NULL;
+    `);
+    await db.query(`
+      ALTER TABLE users
+      ALTER COLUMN is_super_user SET DEFAULT FALSE;
+    `);
+  });
+}
+
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
@@ -644,6 +662,7 @@ async function startServer() {
     await ensureUserAccessSchema();
     await ensureCompanyProfilesSchema();
     await ensureUserMappingSchema();
+    await ensureUserSuperSchema();
     await ensureInvoiceDateSchema();
     await ensureInvoicePaymentSchema();
     await ensureSupportImportantSchema();
