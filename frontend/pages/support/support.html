@@ -146,11 +146,7 @@ function canViewWarrenty(){
             return true;
         }
         if(typeof hasUserActionPermission === "function"){
-            return hasUserActionPermission("/support/warrenty.html", "view")
-                || hasUserActionPermission("/support/support.html", "view")
-                || hasUserActionPermission("/support/support.html", "add")
-                || hasUserActionPermission("/support/support.html", "edit")
-                || hasUserActionPermission("/support/support.html", "delete");
+            return hasUserActionPermission("/support/warrenty.html", "view");
         }
         return false;
     };

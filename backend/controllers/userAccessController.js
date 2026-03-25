@@ -185,15 +185,6 @@ function expandImplicitActionDependencies(actionKeys) {
     add("/users/add-technician.html", "add");
   }
   if (
-    set.has(toActionKey("/support/support.html", "view")) ||
-    set.has(toActionKey("/support/support.html", "add")) ||
-    set.has(toActionKey("/support/support.html", "edit")) ||
-    set.has(toActionKey("/support/support.html", "delete"))
-  ) {
-    add("/support/warrenty.html", "view");
-  }
-
-  if (
     set.has(toActionKey("/users/technician-list.html", "add")) ||
     set.has(toActionKey("/users/technician-list.html", "edit")) ||
     set.has(toActionKey("/users/technician-list.html", "delete"))
