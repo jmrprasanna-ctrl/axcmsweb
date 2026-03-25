@@ -53,7 +53,7 @@
     <div class="card" style="margin-bottom:12px;">
         <div class="support-link-row">
             <a id="addTechnicianBtn" class="btn btn-primary" href="../users/technician-list.html">Support Technician</a>
-            <a id="warrentyBtn" class="btn btn-secondary" href="warrenty.html">Warrenty</a>
+            <a id="warrentyBtn" class="btn btn-secondary" href="warrenty.html" style="display:none;">Warrenty</a>
         </div>
     </div>
 
@@ -237,8 +237,8 @@ window.addEventListener("DOMContentLoaded", async () => {
     if(addTechnicianBtn && !canAddTechnician()){
         addTechnicianBtn.style.display = "none";
     }
-    if(warrentyBtn && !canViewWarrenty()){
-        warrentyBtn.style.display = "none";
+    if(warrentyBtn){
+        warrentyBtn.style.display = canViewWarrenty() ? "" : "none";
     }
     if(!canManage()){
         form.style.display = "none";
