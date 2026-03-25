@@ -251,8 +251,20 @@ async function login(){
         }
         localStorage.setItem("userId", res.user.id);
         localStorage.setItem("userEmail", res.user.email || email);
-        if (res.user.name) {
-            localStorage.setItem("userName", res.user.name);
+        if (res.user.username) {
+            localStorage.setItem("userName", res.user.username);
+        } else {
+            localStorage.removeItem("userName");
+        }
+        if (res.user && res.user.mapped_company_name) {
+            localStorage.setItem("mappedCompanyName", String(res.user.mapped_company_name).trim());
+        } else {
+            localStorage.removeItem("mappedCompanyName");
+        }
+        if (res.user && res.user.mapped_company_logo_url) {
+            localStorage.setItem("mappedCompanyLogoUrl", String(res.user.mapped_company_logo_url).trim());
+        } else {
+            localStorage.removeItem("mappedCompanyLogoUrl");
         }
         window.location.href = "dashboard.html";
     }catch(err){
