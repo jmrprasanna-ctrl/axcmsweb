@@ -373,6 +373,27 @@ async function ensureSupportImportantSchema() {
   });
 }
 
+async function ensureInvoiceImportantWarrantySchema() {
+  await runOnBusinessDatabases(async () => {
+    await db.query(`
+      ALTER TABLE invoice_importants
+      ADD COLUMN IF NOT EXISTS warranty_period VARCHAR(20);
+    `);
+
+    await db.query(`
+      UPDATE invoice_importants
+      SET warranty_period = CASE
+        WHEN LOWER(COALESCE(note, '')) ~ '\\m3\\s*month\\M' THEN '3 month'
+        WHEN LOWER(COALESCE(note, '')) ~ '\\m6\\s*month\\M' THEN '6 month'
+        WHEN LOWER(COALESCE(note, '')) ~ '\\m1\\s*year\\M' THEN '1 year'
+        WHEN LOWER(COALESCE(note, '')) ~ '\\m2\\s*year\\M' THEN '2 year'
+        ELSE NULL
+      END
+      WHERE warranty_period IS NULL OR TRIM(warranty_period) = '';
+    `);
+  });
+}
+
 async function ensureVendorCategorySchema() {
   await runOnBusinessDatabases(async () => {
     await db.query(`
@@ -525,6 +546,7 @@ async function startServer() {
     await ensureInvoiceDateSchema();
     await ensureInvoicePaymentSchema();
     await ensureSupportImportantSchema();
+    await ensureInvoiceImportantWarrantySchema();
     await ensureDefaultCategories();
     await ensureDefaultCategoryModelOptions();
     await ensureDefaultUiSettings();

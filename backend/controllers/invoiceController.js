@@ -10,6 +10,23 @@ const EmailSetup = require("../models/EmailSetup");
 const UiSetting = require("../models/UiSetting");
 const { sendEmail } = require("../services/emailService");
 const Op = Sequelize.Op;
+const ALLOWED_WARRANTY_PERIODS = new Set(["3 month", "6 month", "1 year", "2 year"]);
+
+function normalizeWarrantyPeriod(value){
+    const raw = String(value || "").trim().toLowerCase();
+    if(ALLOWED_WARRANTY_PERIODS.has(raw)) return raw;
+    return "";
+}
+
+function extractWarrantyPeriodFromText(noteText){
+    const text = String(noteText || "").toLowerCase();
+    if(!text) return "";
+    if(/\b3\s*month\b/.test(text)) return "3 month";
+    if(/\b6\s*month\b/.test(text)) return "6 month";
+    if(/\b1\s*year\b/.test(text)) return "1 year";
+    if(/\b2\s*year\b/.test(text)) return "2 year";
+    return "";
+}
 
 function safeFilePart(value, fallback = "value"){
     const normalized = String(value || "")
@@ -223,7 +240,7 @@ exports.getInvoice = async (req,res)=>{
             include:[
                 { model: Customer, attributes:["id","name","address","tel","email"] },
                 { model: InvoiceItem, include:[{ model: Product, attributes:["id","product_id","description","model"] }] },
-                { model: InvoiceImportant, attributes:["id","line_no","note"] }
+                { model: InvoiceImportant, attributes:["id","line_no","note","warranty_period"] }
             ]
         });
         if(!invoice) return res.status(404).json({ message: "Invoice not found" });
@@ -529,12 +546,19 @@ exports.createInvoice = async (req,res)=>{
         if(Array.isArray(importants) && importants.length){
             let lineNo = 1;
             for(const rawNote of importants){
-                const note = String(rawNote || "").trim();
+                const rawValue = rawNote && typeof rawNote === "object" ? rawNote.note : rawNote;
+                const note = String(rawValue || "").trim();
                 if(!note) continue;
+                const explicitWarranty = rawNote && typeof rawNote === "object"
+                    ? normalizeWarrantyPeriod(rawNote.warranty_period)
+                    : "";
+                const detectedWarranty = extractWarrantyPeriodFromText(note);
+                const warrantyPeriod = explicitWarranty || detectedWarranty || null;
                 await InvoiceImportant.create({
                     invoice_id: invoice.id,
                     line_no: lineNo,
-                    note
+                    note,
+                    warranty_period: warrantyPeriod
                 });
                 lineNo += 1;
             }
@@ -548,6 +572,56 @@ exports.createInvoice = async (req,res)=>{
         res.status(500).json({message: err.message || "Failed to create invoice"});
     }
 }
+
+exports.listWarrantyInvoices = async (_req, res) => {
+    try{
+        const invoices = await Invoice.findAll({
+            include: [
+                { model: Customer, attributes: ["id","name"] },
+                { model: InvoiceImportant, attributes: ["id","note","warranty_period"] }
+            ],
+            order:[["invoice_date","DESC"],["createdAt","DESC"]]
+        });
+
+        const rows = [];
+        invoices.forEach((inv) => {
+            const importants = Array.isArray(inv.InvoiceImportants) ? inv.InvoiceImportants : [];
+            const periods = new Set();
+            importants.forEach((imp) => {
+                const explicit = normalizeWarrantyPeriod(imp.warranty_period);
+                const detected = extractWarrantyPeriodFromText(imp.note);
+                const period = explicit || detected;
+                if(period){
+                    periods.add(period);
+                }
+            });
+
+            periods.forEach((period) => {
+                rows.push({
+                    invoice_id: inv.id,
+                    invoice_no: inv.invoice_no,
+                    invoice_date: inv.invoice_date || inv.createdAt,
+                    customer_name: inv.Customer ? inv.Customer.name : "",
+                    total: Number(inv.total_amount || 0),
+                    payment_status: inv.payment_status || "Pending",
+                    warranty_period: period
+                });
+            });
+        });
+
+        const rank = { "3 month": 1, "6 month": 2, "1 year": 3, "2 year": 4 };
+        rows.sort((a, b) => {
+            const p = (rank[a.warranty_period] || 99) - (rank[b.warranty_period] || 99);
+            if(p !== 0) return p;
+            return new Date(b.invoice_date || 0) - new Date(a.invoice_date || 0);
+        });
+
+        res.json(rows);
+    }catch(err){
+        console.error(err);
+        res.status(500).json({ message: err.message || "Failed to load warranty invoices." });
+    }
+};
 
 exports.updateInvoicePayment = async (req,res)=>{
     const { id } = req.params;

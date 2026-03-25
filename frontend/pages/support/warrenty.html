@@ -36,6 +36,7 @@
         <table class="table" style="margin-top:12px;">
             <thead>
                 <tr>
+                    <th>Warranty</th>
                     <th>Invoice Date</th>
                     <th>Invoice No</th>
                     <th>Customer</th>
@@ -93,9 +94,8 @@ function fmtMoney(value){
 
 async function loadWarrentyInvoices(){
     try{
-        const rows = await request("/invoices","GET");
+        const rows = await request("/invoices/warranty-invoices","GET");
         const list = Array.isArray(rows) ? rows : [];
-        list.sort((a, b) => new Date(b.invoice_date || 0) - new Date(a.invoice_date || 0));
 
         const tbody = document.getElementById("warrentyInvoiceBody");
         tbody.innerHTML = "";
@@ -103,6 +103,7 @@ async function loadWarrentyInvoices(){
         list.forEach((inv) => {
             const tr = document.createElement("tr");
             tr.innerHTML = `
+                <td>${inv.warranty_period || ""}</td>
                 <td>${fmtDate(inv.invoice_date)}</td>
                 <td>${inv.invoice_no || ""}</td>
                 <td>${inv.customer_name || ""}</td>
@@ -114,7 +115,7 @@ async function loadWarrentyInvoices(){
 
         if(!list.length){
             const tr = document.createElement("tr");
-            tr.innerHTML = `<td colspan="5" style="text-align:center;">No invoices found.</td>`;
+            tr.innerHTML = `<td colspan="6" style="text-align:center;">No warranty-linked invoices found.</td>`;
             tbody.appendChild(tr);
         }
     }catch(err){
