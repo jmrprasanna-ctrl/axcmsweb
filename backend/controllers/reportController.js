@@ -795,6 +795,13 @@ exports.financeOverview = async (req,res)=>{
 
         const rentalCountCustomerId = Number(req.query.rentalCountCustomerId || 0);
         const rentalCountMonth = String(req.query.rentalCountMonth || "").trim();
+        const rentalMachines = await RentalMachine.findAll({
+            include: [
+                { model: Customer, attributes: ["id", "name"] }
+            ],
+            order: [["machine_id", "ASC"]]
+        });
+
         const rentalCountRows = await RentalMachineCount.findAll({
             include: [
                 { model: Customer, attributes: ["id", "name"] },
@@ -804,6 +811,16 @@ exports.financeOverview = async (req,res)=>{
         });
 
         const rentalCountCustomerMap = new Map();
+        rentalMachines.forEach((m) => {
+            const customerId = Number(m.customer_id || (m.Customer && m.Customer.id) || 0);
+            const customerName = (m.Customer && m.Customer.name) || "";
+            if(customerId > 0 && !rentalCountCustomerMap.has(customerId)){
+                rentalCountCustomerMap.set(customerId, {
+                    customer_id: customerId,
+                    customer_name: customerName || `Customer ${customerId}`
+                });
+            }
+        });
         const rentalCountMonthSet = new Set();
         const rentalCountMonthMap = new Map();
         rentalCountRows.forEach((row) => {
@@ -811,12 +828,6 @@ exports.financeOverview = async (req,res)=>{
             const monthKey = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
             const customerId = Number((row.Customer && row.Customer.id) || row.customer_id || 0);
             const customerName = row.Customer ? row.Customer.name : "Unknown";
-            if(customerId > 0 && !rentalCountCustomerMap.has(customerId)){
-                rentalCountCustomerMap.set(customerId, {
-                    customer_id: customerId,
-                    customer_name: customerName
-                });
-            }
             rentalCountMonthSet.add(monthKey);
             if(rentalCountCustomerId > 0 && customerId !== rentalCountCustomerId){
                 return;
@@ -873,6 +884,46 @@ exports.financeOverview = async (req,res)=>{
                 if(c !== 0) return c;
                 return a.machine_id.localeCompare(b.machine_id);
             });
+
+        if(!rentalCountMonthSet.size){
+            const todayMonth = new Date().toISOString().slice(0, 7);
+            rentalCountMonthSet.add(todayMonth);
+        }
+
+        if(rentalCountCustomerId > 0 && rentalCountMonth){
+            const customerMachines = rentalMachines.filter((m) => Number(m.customer_id || 0) === rentalCountCustomerId);
+            customerMachines.forEach((m) => {
+                const customerName = (m.Customer && m.Customer.name) || `Customer ${rentalCountCustomerId}`;
+                const machineId = String(m.machine_id || "");
+                const serialNo = String(m.serial_no || "");
+                const exists = rentalCountMonthWise.some((r) =>
+                    r.month_name === rentalCountMonth
+                    && Number(r.customer_id || 0) === rentalCountCustomerId
+                    && String(r.machine_id || "") === machineId
+                    && String(r.serial_no || "") === serialNo
+                );
+                if(exists) return;
+                rentalCountMonthWise.push({
+                    month_name: rentalCountMonth,
+                    customer_id: rentalCountCustomerId,
+                    customer_name: customerName,
+                    machine_id: machineId,
+                    serial_no: serialNo,
+                    transactions: 0,
+                    machine_count: Number(m.updated_count || m.start_count || 0),
+                    total_price: 0,
+                    latest_entry_at: null
+                });
+            });
+
+            rentalCountMonthWise.sort((a, b) => {
+                const m = a.month_name.localeCompare(b.month_name);
+                if(m !== 0) return m;
+                const c = a.customer_name.localeCompare(b.customer_name);
+                if(c !== 0) return c;
+                return a.machine_id.localeCompare(b.machine_id);
+            });
+        }
 
         res.json({
             summary_by_period: summaryByPeriod,
