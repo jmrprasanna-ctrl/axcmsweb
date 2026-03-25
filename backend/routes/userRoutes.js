@@ -4,6 +4,7 @@ const {
   getAccessUsers,
   getAccessPages,
   getDatabases,
+  createDatabase,
   getUserAccess,
   saveUserAccess,
   getMyAccess
@@ -24,6 +25,7 @@ router.use(roleMiddleware(["admin"]));
 router.get("/access-users", getAccessUsers);
 router.get("/access-pages", getAccessPages);
 router.get("/databases", getDatabases);
+router.post("/databases/create", createDatabase);
 router.get("/logs", getLoginLogs);
 router.delete("/logs", clearLoginLogs);
 router.get("/access/:userId", getUserAccess);

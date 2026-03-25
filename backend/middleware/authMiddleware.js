@@ -3,7 +3,6 @@ const db = require("../config/database");
 const { Client } = require("pg");
 
 const DEFAULT_DB = db.normalizeDatabaseName(process.env.DB_NAME || "inventory") || "inventory";
-const ALLOWED_USER_DBS = new Set(["inventory", "demo"]);
 
 function getAuthDbClient() {
   return new Client({
@@ -29,7 +28,7 @@ async function resolveUserAssignedDatabase(userId) {
       [userId]
     );
     const selected = db.normalizeDatabaseName(rs.rows[0]?.database_name || "");
-    if (selected && ALLOWED_USER_DBS.has(selected)) {
+    if (selected) {
       return selected;
     }
     return DEFAULT_DB;
@@ -56,7 +55,9 @@ const authMiddleware = async (req, res, next) => {
       if (!assignedDb) {
         return res.status(503).json({ message: "Unable to resolve user database assignment." });
       }
-      if (!ALLOWED_USER_DBS.has(assignedDb)) {
+      try {
+        await db.registerDatabase(assignedDb);
+      } catch (_err) {
         return res.status(403).json({ message: "Invalid assigned database access." });
       }
       targetDb = assignedDb;

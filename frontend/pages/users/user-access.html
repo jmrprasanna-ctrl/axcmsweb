@@ -160,6 +160,7 @@
             <div class="access-actions">
                 <button class="btn btn-primary" type="button" onclick="saveAccess()">Save</button>
                 <button class="btn btn-primary" type="button" onclick="editAccess()">Load</button>
+                <a class="btn btn-primary" href="db-create.html">DB Create</a>
                 <button class="btn btn-secondary" type="button" onclick="selectAllAccess()">Select All</button>
                 <button class="btn btn-secondary" type="button" onclick="clearAccess()">Clear</button>
                 <a class="btn btn-secondary" href="user-list.html">Back</a>
@@ -294,25 +295,31 @@
             try{
                 const res = await request("/users/databases", "GET");
                 const rows = Array.isArray(res.databases) ? res.databases : [];
-                const normalizedRows = Array.from(
-                    new Set(
-                        rows
-                            .map((db) => String(db || "").trim().toLowerCase())
-                            .filter((db) => db === "inventory" || db === "demo")
-                    )
-                );
+                const normalizedRows = [];
+                const seen = new Set();
+                rows.forEach((entry) => {
+                    const dbName = String(entry?.name || entry || "").trim().toLowerCase();
+                    if(!dbName || seen.has(dbName)) return;
+                    seen.add(dbName);
+                    normalizedRows.push({
+                        name: dbName,
+                        label: String(entry?.label || dbName).trim() || dbName
+                    });
+                });
                 const currentDb = String(res.current || "").trim().toLowerCase();
                 databaseSelectEl.innerHTML = `<option value="">Select database</option>`;
-                normalizedRows.forEach((db) => {
+                normalizedRows.forEach((entry) => {
                     const opt = document.createElement("option");
-                    opt.value = db;
-                    opt.textContent = db;
+                    opt.value = entry.name;
+                    opt.textContent = entry.label;
                     databaseSelectEl.appendChild(opt);
                 });
-                if(normalizedRows.includes("inventory")){
+                if(normalizedRows.some((x) => x.name === "inventory")){
                     defaultDatabaseName = "inventory";
                 }else if(currentDb){
                     defaultDatabaseName = currentDb;
+                }else if(normalizedRows.length){
+                    defaultDatabaseName = normalizedRows[0].name;
                 }
                 if(defaultDatabaseName){
                     databaseSelectEl.value = defaultDatabaseName;

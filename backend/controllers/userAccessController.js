@@ -5,7 +5,8 @@ const User = require("../models/User");
 const UserAccess = require("../models/UserAccess");
 const DEMO_DB_NAME = "demo";
 const INVENTORY_DB_NAME = "inventory";
-const ALLOWED_DBS = new Set([INVENTORY_DB_NAME, DEMO_DB_NAME]);
+const RESERVED_DATABASES = new Set(["postgres", "template0", "template1"]);
+const DATABASE_REGISTRY_TABLE = "company_databases";
 
 const ACCESS_MODULE_OPTIONS = [
   {
@@ -86,6 +87,7 @@ const ACCESS_MODULE_OPTIONS = [
       { path: "/users/add-user.html", label: "Add User", actions: ["view", "add"] },
       { path: "/users/edit-user.html", label: "Edit User", actions: ["view", "edit"] },
       { path: "/users/user-access.html", label: "User Access", actions: ["view", "edit"] },
+      { path: "/users/db-create.html", label: "DB Create", actions: ["view", "add"] },
       { path: "/users/preference.html", label: "Preference", actions: ["view", "edit"] },
       { path: "/users/user-logged.html", label: "User Logged Times", actions: ["view"] },
       { path: "/support/email-setup.html", label: "Email Setup", actions: ["view", "edit"] },
@@ -227,17 +229,38 @@ function derivePagesFromActions(actionKeys, fallbackPages) {
 }
 
 function normalizeDatabaseName(value) {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = db.normalizeDatabaseName(value);
   if (!normalized) return null;
-  if (!ALLOWED_DBS.has(normalized)) return null;
+  if (RESERVED_DATABASES.has(normalized)) return null;
   return normalized;
 }
 
 function normalizeUserDatabase(value) {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = normalizeDatabaseName(value);
   if (!normalized) return INVENTORY_DB_NAME;
-  if (!ALLOWED_DBS.has(normalized)) return INVENTORY_DB_NAME;
   return normalized;
+}
+
+function quoteIdentifier(identifier) {
+  return `"${String(identifier || "").replace(/"/g, "\"\"")}"`;
+}
+
+function normalizeCompanyName(value) {
+  const normalized = String(value || "").trim().replace(/\s+/g, " ");
+  return normalized ? normalized.slice(0, 200) : "";
+}
+
+async function ensureDatabaseRegistryTable(client) {
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS ${DATABASE_REGISTRY_TABLE} (
+      id SERIAL PRIMARY KEY,
+      database_name VARCHAR(120) UNIQUE NOT NULL,
+      company_name VARCHAR(200) NOT NULL,
+      created_by INTEGER,
+      "createdAt" TIMESTAMP DEFAULT NOW(),
+      "updatedAt" TIMESTAMP DEFAULT NOW()
+    );
+  `);
 }
 
 function parseUserReference(raw) {
@@ -378,6 +401,60 @@ async function ensureDemoDatabaseSchema() {
   return { demoExists: true, schemaCloned: true };
 }
 
+async function cloneSchemaToDatabase(targetDatabaseName) {
+  const cfg = getDbConfig();
+  const pgDumpPath = (process.env.PG_DUMP_PATH || "pg_dump").trim();
+  const psqlPath = (process.env.PSQL_PATH || "psql").trim();
+  const sourceDb = String(cfg.database || "").trim();
+  const targetDb = String(targetDatabaseName || "").trim();
+  if (!sourceDb || !targetDb) {
+    throw new Error("Invalid source or target database.");
+  }
+  if (sourceDb.toLowerCase() === targetDb.toLowerCase()) {
+    return;
+  }
+
+  const escapedSource = `'${sourceDb.replace(/'/g, "'\\''")}'`;
+  const escapedTarget = `'${targetDb.replace(/'/g, "'\\''")}'`;
+  const escapedHost = `'${String(cfg.host).replace(/'/g, "'\\''")}'`;
+  const escapedPort = `'${String(cfg.port).replace(/'/g, "'\\''")}'`;
+  const escapedUser = `'${String(cfg.user).replace(/'/g, "'\\''")}'`;
+  const escapedDump = `'${pgDumpPath.replace(/'/g, "'\\''")}'`;
+  const escapedPsql = `'${psqlPath.replace(/'/g, "'\\''")}'`;
+
+  const cmd = [
+    `${escapedDump} --schema-only`,
+    `-h ${escapedHost}`,
+    `-p ${escapedPort}`,
+    `-U ${escapedUser}`,
+    `-d ${escapedSource}`,
+    `|`,
+    `${escapedPsql}`,
+    `-h ${escapedHost}`,
+    `-p ${escapedPort}`,
+    `-U ${escapedUser}`,
+    `-d ${escapedTarget}`,
+  ].join(" ");
+
+  await runBash(cmd, { PGPASSWORD: cfg.password || "" });
+}
+
+async function fetchCompanyDatabaseMap(mainDbClient) {
+  await ensureDatabaseRegistryTable(mainDbClient);
+  const rs = await mainDbClient.query(
+    `SELECT database_name, company_name
+     FROM ${DATABASE_REGISTRY_TABLE}
+     ORDER BY LOWER(company_name) ASC, LOWER(database_name) ASC`
+  );
+  const map = new Map();
+  (rs.rows || []).forEach((row) => {
+    const dbName = normalizeDatabaseName(row?.database_name);
+    if (!dbName) return;
+    map.set(dbName, normalizeCompanyName(row?.company_name));
+  });
+  return map;
+}
+
 async function getUserFromDatabase(databaseName, userId) {
   return db.withDatabase(databaseName, async () => {
     return User.findByPk(userId, {
@@ -464,12 +541,19 @@ exports.getAccessPages = async (_req, res) => {
 
 exports.getDatabases = async (_req, res) => {
   const cfg = getDbConfig();
-  const client = new Client({
+  const adminClient = new Client({
     host: cfg.host,
     port: cfg.port,
     user: cfg.user,
     password: cfg.password,
     database: "postgres",
+  });
+  const mainDbClient = new Client({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: cfg.database || INVENTORY_DB_NAME,
   });
 
   try {
@@ -478,31 +562,107 @@ exports.getDatabases = async (_req, res) => {
   }
 
   try {
-    await client.connect();
-    const rows = await client.query(
+    await adminClient.connect();
+    await mainDbClient.connect();
+
+    const rows = await adminClient.query(
       "SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname ASC"
     );
-    const names = rows.rows.map((r) => String(r.datname || "").trim()).filter(Boolean);
-    const linked = new Set([String(cfg.database || "").trim().toLowerCase(), DEMO_DB_NAME]);
-    const filtered = [];
+    const companyMap = await fetchCompanyDatabaseMap(mainDbClient);
     const seen = new Set();
+    const databases = [];
 
-    names.forEach((n) => {
-      const lowered = n.toLowerCase();
-      if (!linked.has(lowered) || seen.has(lowered)) return;
-      filtered.push(lowered);
-      seen.add(lowered);
+    (rows.rows || []).forEach((row) => {
+      const dbName = normalizeDatabaseName(row?.datname);
+      if (!dbName || RESERVED_DATABASES.has(dbName) || seen.has(dbName)) return;
+      seen.add(dbName);
+      const companyName = companyMap.get(dbName) || "";
+      const label = companyName ? `${companyName} (${dbName})` : dbName;
+      databases.push({
+        name: dbName,
+        company_name: companyName,
+        label,
+      });
     });
 
-    if (!seen.has(DEMO_DB_NAME)) {
-      filtered.push(DEMO_DB_NAME);
-    }
-
-    res.json({ current: cfg.database, databases: filtered.sort((a, b) => a.localeCompare(b)) });
+    res.json({
+      current: normalizeDatabaseName(cfg.database) || INVENTORY_DB_NAME,
+      databases: databases.sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""))),
+    });
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to list databases." });
   } finally {
-    await client.end().catch(() => {});
+    await adminClient.end().catch(() => {});
+    await mainDbClient.end().catch(() => {});
+  }
+};
+
+exports.createDatabase = async (req, res) => {
+  const databaseName = normalizeDatabaseName(req.body?.database_name);
+  const companyName = normalizeCompanyName(req.body?.company_name);
+  if (!databaseName) {
+    return res.status(400).json({ message: "Valid database name is required." });
+  }
+  if (!companyName) {
+    return res.status(400).json({ message: "Company name is required." });
+  }
+
+  const cfg = getDbConfig();
+  const adminClient = new Client({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: "postgres",
+  });
+  const mainDbClient = new Client({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: cfg.database || INVENTORY_DB_NAME,
+  });
+
+  try {
+    await adminClient.connect();
+    const existsRs = await adminClient.query(
+      "SELECT 1 FROM pg_database WHERE datname = $1 LIMIT 1",
+      [databaseName]
+    );
+    if (existsRs.rowCount > 0) {
+      return res.status(409).json({ message: "Database already exists." });
+    }
+
+    await adminClient.query(`CREATE DATABASE ${quoteIdentifier(databaseName)}`);
+    await cloneSchemaToDatabase(databaseName);
+    await db.registerDatabase(databaseName);
+
+    const connection = db.getConnection(databaseName);
+    await connection.sync({ alter: true });
+
+    await mainDbClient.connect();
+    await ensureDatabaseRegistryTable(mainDbClient);
+    await mainDbClient.query(
+      `INSERT INTO ${DATABASE_REGISTRY_TABLE} (database_name, company_name, created_by, "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, NOW(), NOW())
+       ON CONFLICT (database_name)
+       DO UPDATE SET company_name = EXCLUDED.company_name, "updatedAt" = NOW()`,
+      [databaseName, companyName, Number(req.user?.id || 0) || null]
+    );
+
+    res.status(201).json({
+      message: "Database created successfully.",
+      database: {
+        name: databaseName,
+        company_name: companyName,
+        label: `${companyName} (${databaseName})`,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to create database." });
+  } finally {
+    await adminClient.end().catch(() => {});
+    await mainDbClient.end().catch(() => {});
   }
 };
 

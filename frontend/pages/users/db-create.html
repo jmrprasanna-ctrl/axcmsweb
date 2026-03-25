@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DB Create - PULMO TECHNOLOGIES</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <style>
+        .db-create-wrap{max-width:760px}
+        .db-create-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+        @media (max-width: 900px){
+            .db-create-grid{grid-template-columns:1fr}
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <img src="../../assets/images/logo.png" alt="Company Logo">
+            <span>PULMO TECHNOLOGIES</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="../dashboard.html">Dashboard</a></li>
+            <li><a href="../products/product-list.html">Products</a></li>
+            <li><a href="../products/general-machine.html">Machines</a></li>
+            <li><a href="../customers/customer-list.html">Customers</a></li>
+            <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+            <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+            <li><a href="../expenses/expense-list.html">Expenses</a></li>
+            <li><a href="../reports/sales-report.html">Reports</a></li>
+            <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <header><h2>Database Create</h2></header>
+
+        <div class="form-container db-create-wrap">
+            <div class="db-create-grid">
+                <div>
+                    <label for="databaseName">Database Name</label>
+                    <input id="databaseName" type="text" placeholder="example: nishani_company_db">
+                    <div class="path-hint">Allowed: lowercase letters, numbers, underscore</div>
+                </div>
+                <div>
+                    <label for="companyName">Company Name</label>
+                    <input id="companyName" type="text" placeholder="Company name">
+                </div>
+            </div>
+
+            <div class="access-actions" style="margin-top: 16px; display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="btn btn-primary" type="button" onclick="saveDatabase()">Save</button>
+                <a class="btn btn-secondary" href="user-access.html">Back</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../assets/js/api.js"></script>
+    <script>
+        const databaseNameEl = document.getElementById("databaseName");
+        const companyNameEl = document.getElementById("companyName");
+
+        function sanitizeDbName(value){
+            return String(value || "")
+                .trim()
+                .toLowerCase()
+                .replace(/\s+/g, "_")
+                .replace(/[^a-z0-9_]/g, "")
+                .replace(/_+/g, "_")
+                .replace(/^_+|_+$/g, "");
+        }
+
+        async function saveDatabase(){
+            const databaseName = sanitizeDbName(databaseNameEl.value);
+            const companyName = String(companyNameEl.value || "").trim();
+
+            if(!databaseName){
+                alert("Please enter valid database name.");
+                return;
+            }
+            if(!companyName){
+                alert("Please enter company name.");
+                return;
+            }
+
+            try{
+                const res = await request("/users/databases/create", "POST", {
+                    database_name: databaseName,
+                    company_name: companyName
+                });
+                showMessageBox(res.message || "Database created");
+                setTimeout(() => {
+                    window.location.href = "user-access.html";
+                }, 500);
+            }catch(err){
+                alert(err.message || "Failed to create database");
+            }
+        }
+
+        databaseNameEl.addEventListener("input", () => {
+            const cleaned = sanitizeDbName(databaseNameEl.value);
+            if(databaseNameEl.value !== cleaned){
+                databaseNameEl.value = cleaned;
+            }
+        });
+
+        window.saveDatabase = saveDatabase;
+
+        (function init(){
+            const role = (localStorage.getItem("role") || "").toLowerCase();
+            if(role !== "admin"){
+                alert("Only admin can access this page.");
+                window.location.href = "../dashboard.html";
+            }
+        })();
+    </script>
+</body>
+</html>

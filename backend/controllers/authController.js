@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { Client } = require("pg");
+const db = require("../config/database");
 const User = require("../models/User");
 const { Op } = require("sequelize");
 
@@ -63,8 +64,9 @@ exports.login = async (req, res) => {
          LIMIT 1`,
         [user.id]
       );
-      const normalized = String(accessRs.rows[0]?.database_name || "").trim().toLowerCase();
-      if (normalized === "demo" || normalized === "inventory") {
+      const normalized = db.normalizeDatabaseName(accessRs.rows[0]?.database_name || "");
+      if (normalized) {
+        await db.registerDatabase(normalized).catch(() => {});
         databaseName = normalized;
       }
     }

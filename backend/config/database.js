@@ -6,17 +6,21 @@ const dotenv = require("dotenv");
 dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
 
 const MODEL_PROXY_SYMBOL = Symbol("ModelProxy");
-const DB_KEYS = ["inventory", "demo"];
+const dbKeys = ["inventory", "demo"];
 const asyncLocalStorage = new AsyncLocalStorage();
 
 const MAIN_DB_NAME = "inventory";
 const DEMO_DB_NAME = "demo";
+const modelsByDb = Object.create(null);
+const sequelizeByDb = Object.create(null);
+const modelProxyByName = Object.create(null);
+const modelDefinitionsByName = Object.create(null);
+const associationOperations = [];
 
 function normalizeDatabaseName(name) {
   const normalized = String(name || "").trim().toLowerCase();
   if (!normalized) return "";
   if (!/^[a-z0-9_]+$/.test(normalized)) return "";
-  if (normalized !== MAIN_DB_NAME && normalized !== DEMO_DB_NAME) return "";
   return normalized;
 }
 
@@ -34,26 +38,32 @@ function createSequelize(databaseName) {
   );
 }
 
-const sequelizeByDb = {
-  inventory: createSequelize(MAIN_DB_NAME),
-  demo: createSequelize(DEMO_DB_NAME),
-};
+function registerBaseDatabase(databaseName) {
+  const normalized = normalizeDatabaseName(databaseName);
+  if (!normalized || sequelizeByDb[normalized]) return;
+  sequelizeByDb[normalized] = createSequelize(normalized);
+  modelsByDb[normalized] = Object.create(null);
+}
 
-const modelsByDb = {
-  inventory: Object.create(null),
-  demo: Object.create(null),
-};
+function getRegisteredDatabaseKeys() {
+  return [...dbKeys];
+}
 
-const modelProxyByName = Object.create(null);
+function resolveKnownDatabase(databaseName) {
+  const normalized = normalizeDatabaseName(databaseName);
+  if (!normalized) return MAIN_DB_NAME;
+  if (!sequelizeByDb[normalized]) return MAIN_DB_NAME;
+  return normalized;
+}
 
 function getContextDatabase() {
   const store = asyncLocalStorage.getStore();
-  const key = normalizeDatabaseName(store?.database);
+  const key = resolveKnownDatabase(store?.database);
   return key || MAIN_DB_NAME;
 }
 
 function withDatabase(databaseName, fn) {
-  const key = normalizeDatabaseName(databaseName) || MAIN_DB_NAME;
+  const key = resolveKnownDatabase(databaseName) || MAIN_DB_NAME;
   return asyncLocalStorage.run({ database: key }, fn);
 }
 
@@ -114,7 +124,7 @@ function createModelProxy(modelName) {
 
       if (prop === "withDatabase") {
         return (databaseName) =>
-          resolveProxyModel(proxyTarget, normalizeDatabaseName(databaseName) || MAIN_DB_NAME);
+          resolveProxyModel(proxyTarget, resolveKnownDatabase(databaseName) || MAIN_DB_NAME);
       }
 
       const activeDb = getContextDatabase();
@@ -127,7 +137,16 @@ function createModelProxy(modelName) {
 
       if (prop === "belongsTo" || prop === "hasMany" || prop === "hasOne" || prop === "belongsToMany") {
         return (targetModel, ...args) => {
-          for (const dbKey of DB_KEYS) {
+          const targetModelName = targetModel && targetModel[MODEL_PROXY_SYMBOL] ? targetModel.__modelName : null;
+          if (targetModelName) {
+            associationOperations.push({
+              sourceModelName: modelName,
+              relationType: prop,
+              targetModelName,
+              args,
+            });
+          }
+          for (const dbKey of dbKeys) {
             const source = modelsByDb[dbKey][modelName];
             const target = resolveProxyModel(targetModel, dbKey);
             const mappedArgs = mapArgsForDb(args, dbKey);
@@ -148,19 +167,63 @@ function createModelProxy(modelName) {
   });
 }
 
+function applyAssociationForDatabase(operation, databaseName) {
+  const source = modelsByDb[databaseName]?.[operation.sourceModelName];
+  const target = modelsByDb[databaseName]?.[operation.targetModelName];
+  if (!source || !target) return;
+  const mappedArgs = mapArgsForDb(Array.isArray(operation.args) ? operation.args : [], databaseName);
+  source[operation.relationType](target, ...mappedArgs);
+}
+
+async function registerDatabase(databaseName) {
+  const normalized = normalizeDatabaseName(databaseName);
+  if (!normalized) {
+    throw new Error("Invalid database name.");
+  }
+
+  if (sequelizeByDb[normalized]) {
+    return normalized;
+  }
+
+  registerBaseDatabase(normalized);
+
+  for (const [modelName, def] of Object.entries(modelDefinitionsByName)) {
+    modelsByDb[normalized][modelName] = sequelizeByDb[normalized].define(
+      modelName,
+      def.attributes,
+      def.options
+    );
+  }
+
+  for (const operation of associationOperations) {
+    applyAssociationForDatabase(operation, normalized);
+  }
+
+  if (!dbKeys.includes(normalized)) {
+    dbKeys.push(normalized);
+  }
+
+  return normalized;
+}
+
+registerBaseDatabase(MAIN_DB_NAME);
+registerBaseDatabase(DEMO_DB_NAME);
+
 const db = new Proxy(
   {
     normalizeDatabaseName,
+    getDatabaseKeys: getRegisteredDatabaseKeys,
     getCurrentDatabase: getContextDatabase,
     runWithDatabase: withDatabase,
     withDatabase,
+    registerDatabase,
     // Legacy compatibility: no global mutation anymore.
     async switchDatabase(nextNameRaw) {
-      return normalizeDatabaseName(nextNameRaw) || MAIN_DB_NAME;
+      return resolveKnownDatabase(nextNameRaw) || MAIN_DB_NAME;
     },
     // Expose underlying connections when needed by infra code.
     getConnection(databaseName) {
-      const dbName = normalizeDatabaseName(databaseName) || MAIN_DB_NAME;
+      const dbName = resolveKnownDatabase(databaseName) || MAIN_DB_NAME;
       return sequelizeByDb[dbName];
     },
   },
@@ -176,7 +239,9 @@ const db = new Proxy(
             return modelProxyByName[modelName];
           }
 
-          for (const dbKey of DB_KEYS) {
+          modelDefinitionsByName[modelName] = { attributes, options };
+
+          for (const dbKey of dbKeys) {
             modelsByDb[dbKey][modelName] = sequelizeByDb[dbKey].define(modelName, attributes, options);
           }
 
@@ -188,7 +253,7 @@ const db = new Proxy(
 
       if (prop === "sync") {
         return async (options = {}) => {
-          for (const dbKey of DB_KEYS) {
+          for (const dbKey of dbKeys) {
             await sequelizeByDb[dbKey].sync(options);
           }
         };
@@ -196,7 +261,7 @@ const db = new Proxy(
 
       if (prop === "authenticate") {
         return async () => {
-          for (const dbKey of DB_KEYS) {
+          for (const dbKey of dbKeys) {
             await sequelizeByDb[dbKey].authenticate();
           }
         };
@@ -204,7 +269,7 @@ const db = new Proxy(
 
       if (prop === "close") {
         return async () => {
-          for (const dbKey of DB_KEYS) {
+          for (const dbKey of dbKeys) {
             await sequelizeByDb[dbKey].close();
           }
         };
