@@ -4,7 +4,23 @@ const User = require("../models/User");
 const UserAccess = require("../models/UserAccess");
 const UserLoginLog = require("../models/UserLoginLog");
 
+async function ensureUserSuperColumn() {
+  try {
+    await db.query(`
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS is_super_user BOOLEAN DEFAULT FALSE;
+    `);
+    await db.query(`
+      UPDATE users
+      SET is_super_user = FALSE
+      WHERE is_super_user IS NULL;
+    `);
+  } catch (_err) {
+  }
+}
+
 async function isRequesterSuperAdmin(req) {
+  await ensureUserSuperColumn();
   const role = String(req?.user?.role || "").toLowerCase();
   if (role !== "admin") return false;
   const requesterId = Number(req?.user?.id || req?.user?.userId || 0);
@@ -21,6 +37,7 @@ function isTargetProtectedSuperAdmin(targetUser, requesterId, requesterIsSuper) 
 
 exports.getUsers = async (req, res) => {
   try {
+    await ensureUserSuperColumn();
     const users = await User.findAll({
       attributes: ["id", "username", "company", "department", "telephone", "email", "role", "is_super_user", "createdAt"],
       order: [["id", "DESC"]],
@@ -41,6 +58,7 @@ exports.getUsers = async (req, res) => {
 exports.getUserById = async (req, res) => {
   const { id } = req.params;
   try {
+    await ensureUserSuperColumn();
     const user = await User.findByPk(id, {
       attributes: ["id", "username", "company", "department", "telephone", "email", "role", "is_super_user"],
     });
@@ -96,6 +114,7 @@ exports.updateUser = async (req, res) => {
   const { username, company, department, telephone, email, password, role } = req.body;
 
   try {
+    await ensureUserSuperColumn();
     const user = await User.findByPk(id);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -147,6 +166,7 @@ exports.deleteUser = async (req, res) => {
   }
 
   try {
+    await ensureUserSuperColumn();
     await db.transaction(async (t) => {
       const user = await User.findByPk(userId, { transaction: t });
       if (!user) {

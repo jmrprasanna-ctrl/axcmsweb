@@ -595,6 +595,18 @@ async function fetchCreatedDatabases(mainDbClient) {
 
 async function getUserFromDatabase(databaseName, userId) {
   return db.withDatabase(databaseName, async () => {
+    try {
+      await db.query(`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS is_super_user BOOLEAN DEFAULT FALSE;
+      `);
+      await db.query(`
+        UPDATE users
+        SET is_super_user = FALSE
+        WHERE is_super_user IS NULL;
+      `);
+    } catch (_err) {
+    }
     return User.findByPk(userId, {
       attributes: ["id", "username", "email", "role", "is_super_user", "company"],
     });
