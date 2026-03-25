@@ -895,44 +895,10 @@ exports.financeOverview = async (req,res)=>{
                 return a.machine_id.localeCompare(b.machine_id);
             });
 
-        if(!rentalCountYearSet.size){
-            rentalCountYearSet.add(new Date().getFullYear());
-        }
-
-        if(rentalCountCustomerId > 0 && rentalCountYear > 0 && rentalCountMonthNum > 0){
-            const customerMachines = rentalMachines.filter((m) => Number(m.customer_id || 0) === rentalCountCustomerId);
-            const selectedMonthKey = `${rentalCountYear}-${String(rentalCountMonthNum).padStart(2, "0")}`;
-            customerMachines.forEach((m) => {
-                const customerName = (m.Customer && m.Customer.name) || `Customer ${rentalCountCustomerId}`;
-                const machineId = String(m.machine_id || "");
-                const serialNo = String(m.serial_no || "");
-                const exists = rentalCountMonthWise.some((r) =>
-                    r.month_name === selectedMonthKey
-                    && Number(r.customer_id || 0) === rentalCountCustomerId
-                    && String(r.machine_id || "") === machineId
-                    && String(r.serial_no || "") === serialNo
-                );
-                if(exists) return;
-                rentalCountMonthWise.push({
-                    month_name: selectedMonthKey,
-                    customer_id: rentalCountCustomerId,
-                    customer_name: customerName,
-                    machine_id: machineId,
-                    serial_no: serialNo,
-                    transactions: 0,
-                    machine_count: Number(m.updated_count || m.start_count || 0),
-                    total_price: 0,
-                    latest_entry_at: null
-                });
-            });
-
-            rentalCountMonthWise.sort((a, b) => {
-                const m = a.month_name.localeCompare(b.month_name);
-                if(m !== 0) return m;
-                const c = a.customer_name.localeCompare(b.customer_name);
-                if(c !== 0) return c;
-                return a.machine_id.localeCompare(b.machine_id);
-            });
+        // Keep year options broad so users can filter/enter historical records easily.
+        const currentYear = new Date().getFullYear();
+        for(let y = currentYear; y >= currentYear - 20; y -= 1){
+            rentalCountYearSet.add(y);
         }
 
         res.json({
