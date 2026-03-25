@@ -628,6 +628,38 @@ function isProtectedSuperAdminTarget(userLike, requesterId, requesterIsSuper) {
   return isTargetAdmin && isTargetSuper && Number(userLike?.id || 0) !== Number(requesterId || 0) && !requesterIsSuper;
 }
 
+async function hasAnySuperAdminInInventory() {
+  try {
+    const rows = await db.withDatabase(INVENTORY_DB_NAME, async () => {
+      return User.findAll({
+        where: { role: "admin", is_super_user: true },
+        attributes: ["id"],
+        limit: 1,
+      });
+    });
+    return Array.isArray(rows) && rows.length > 0;
+  } catch (_err) {
+    return false;
+  }
+}
+
+async function canRequesterEditSuperFlag(req, targetUser) {
+  const requesterId = Number(req?.user?.id || req?.user?.userId || 0);
+  const requesterRole = String(req?.user?.role || "").toLowerCase();
+  if (requesterRole !== "admin") return false;
+
+  const requesterIsSuper = await isRequesterSuperAdmin(req);
+  if (requesterIsSuper) return true;
+
+  const targetId = Number(targetUser?.id || 0);
+  if (requesterId > 0 && targetId > 0 && requesterId === targetId) {
+    return true;
+  }
+
+  const anySuper = await hasAnySuperAdminInInventory();
+  return !anySuper;
+}
+
 async function hasDbCreateActionPermission(req, action) {
   const role = String(req.user?.role || "").toLowerCase();
   if (role !== "admin") return false;
@@ -1504,6 +1536,7 @@ exports.getUserAccess = async (req, res) => {
   if (isProtectedSuperAdminTarget(userPlain, requesterId, requesterIsSuper)) {
     return res.status(403).json({ message: "Forbidden: Super admin user is protected." });
   }
+  const canEditSuperUser = await canRequesterEditSuperFlag(req, userPlain);
 
   const row = await UserAccess.findOne({
     where: { user_id: ref.user_id, user_database: ref.user_database },
@@ -1520,7 +1553,7 @@ exports.getUserAccess = async (req, res) => {
     database_name: normalizeDatabaseName(row?.database_name),
     user_database: ref.user_database,
     super_user: Boolean(userPlain.is_super_user),
-    can_edit_super_user: requesterIsSuper,
+    can_edit_super_user: canEditSuperUser,
   });
 };
 
@@ -1565,7 +1598,8 @@ exports.saveUserAccess = async (req, res) => {
     await row.save();
   }
 
-  if (requesterIsSuper && req.body && Object.prototype.hasOwnProperty.call(req.body, "super_user")) {
+  const canEditSuperUser = await canRequesterEditSuperFlag(req, user);
+  if (canEditSuperUser && req.body && Object.prototype.hasOwnProperty.call(req.body, "super_user")) {
     user.is_super_user = Boolean(req.body.super_user);
     await user.save();
   }
