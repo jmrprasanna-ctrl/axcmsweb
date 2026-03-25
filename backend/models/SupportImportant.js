@@ -7,6 +7,7 @@ const SupportImportant = db.define(
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     title: { type: DataTypes.STRING, allowNull: true, defaultValue: "" },
     important_text: { type: DataTypes.STRING, allowNull: false },
+    warranty_period: { type: DataTypes.STRING, allowNull: false, defaultValue: "3 month" },
     createdAt: { type: DataTypes.DATE, allowNull: true, defaultValue: DataTypes.NOW },
     updatedAt: { type: DataTypes.DATE, allowNull: true, defaultValue: DataTypes.NOW },
   },

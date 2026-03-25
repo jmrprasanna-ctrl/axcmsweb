@@ -358,6 +358,21 @@ async function ensureInvoicePaymentSchema() {
   });
 }
 
+async function ensureSupportImportantSchema() {
+  await runOnBusinessDatabases(async () => {
+    await db.query(`
+      ALTER TABLE support_importants
+      ADD COLUMN IF NOT EXISTS warranty_period VARCHAR(20) DEFAULT '3 month';
+    `);
+
+    await db.query(`
+      UPDATE support_importants
+      SET warranty_period = '3 month'
+      WHERE warranty_period IS NULL OR TRIM(warranty_period) = '';
+    `);
+  });
+}
+
 async function ensureVendorCategorySchema() {
   await runOnBusinessDatabases(async () => {
     await db.query(`
@@ -509,6 +524,7 @@ async function startServer() {
     await ensureUserAccessSchema();
     await ensureInvoiceDateSchema();
     await ensureInvoicePaymentSchema();
+    await ensureSupportImportantSchema();
     await ensureDefaultCategories();
     await ensureDefaultCategoryModelOptions();
     await ensureDefaultUiSettings();

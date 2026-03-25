@@ -1,10 +1,17 @@
 const SupportImportant = require("../models/SupportImportant");
+const ALLOWED_WARRANTY_PERIODS = new Set(["3 month", "6 month", "1 year", "2 year"]);
 
 const normalizeTitle = (title, importantText) => {
   const cleanTitle = String(title || "").trim();
   if (cleanTitle) return cleanTitle;
   // Keep DB compatibility for older schemas while UI uses only one input.
   return String(importantText || "").trim().slice(0, 120) || "IMPORTANT";
+};
+
+const normalizeWarrantyPeriod = (value) => {
+  const raw = String(value || "").trim().toLowerCase();
+  if (ALLOWED_WARRANTY_PERIODS.has(raw)) return raw;
+  return "3 month";
 };
 
 exports.getSupportImportants = async (_req, res) => {
@@ -21,12 +28,13 @@ exports.createSupportImportant = async (req, res) => {
   try {
     const important_text = String(req.body.important_text || req.body.important || "").trim();
     const title = normalizeTitle(req.body.title, important_text);
+    const warranty_period = normalizeWarrantyPeriod(req.body.warranty_period);
 
     if (!important_text) {
       return res.status(400).json({ message: "Important text is required." });
     }
 
-    const created = await SupportImportant.create({ title, important_text });
+    const created = await SupportImportant.create({ title, important_text, warranty_period });
     res.status(201).json(created);
   } catch (err) {
     console.error(err);
@@ -42,11 +50,12 @@ exports.updateSupportImportant = async (req, res) => {
 
     const important_text = String(req.body.important_text || req.body.important || "").trim();
     const title = normalizeTitle(req.body.title, important_text);
+    const warranty_period = normalizeWarrantyPeriod(req.body.warranty_period || row.warranty_period);
     if (!important_text) {
       return res.status(400).json({ message: "Important text is required." });
     }
 
-    await row.update({ title, important_text });
+    await row.update({ title, important_text, warranty_period });
     res.json(row);
   } catch (err) {
     console.error(err);

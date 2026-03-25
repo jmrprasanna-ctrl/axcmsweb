@@ -415,10 +415,13 @@ function renderSupportImportantOptions(){
     if(!select) return;
     select.innerHTML = `<option value="">Select Support Important</option>`;
     supportImportantLibrary.forEach((row) => {
+        const period = String(row.warranty_period || "3 month").trim();
+        const note = String(row.important_text || "").trim();
         const opt = document.createElement("option");
         opt.value = row.id;
-        opt.dataset.note = row.important_text || "";
-        opt.innerText = `${row.important_text || ""}`;
+        opt.dataset.note = note;
+        opt.dataset.warranty = period;
+        opt.innerText = `${note} (${period})`;
         select.appendChild(opt);
     });
 }
@@ -437,11 +440,13 @@ function addImportantFromSupport(){
     const select = document.getElementById("supportImportantSelect");
     const option = select.options[select.selectedIndex];
     const note = option ? String(option.dataset.note || "").trim() : "";
+    const warranty = option ? String(option.dataset.warranty || "").trim() : "";
     if(!note){
         alert("Select a support important.");
         return;
     }
-    importantNotes.push(note);
+    const linkedNote = warranty ? `${note} (Warranty: ${warranty})` : note;
+    importantNotes.push(linkedNote);
     renderImportantTable();
 }
 
