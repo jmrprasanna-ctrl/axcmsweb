@@ -47,6 +47,11 @@
     <div class="form-container">
         <form id="paymentForm">
             <div class="toolbar">
+                <div class="field">
+                    <label for="paymentDate">Payment Date</label>
+                    <input type="date" id="paymentDate" required>
+                </div>
+
                 <div class="field" style="min-width:260px;">
                     <label for="invoiceId">General Customer Invoice</label>
                     <select id="invoiceId" required>
@@ -114,7 +119,7 @@
                 <tr>
                     <th>Invoice No</th>
                     <th>Customer</th>
-                    <th>Date</th>
+                    <th>Payment Date</th>
                     <th>Total Amount</th>
                     <th>Payment Mode</th>
                     <th>Cheque No</th>
@@ -149,6 +154,7 @@ if(!canAccessFinance){
 
 const paymentForm = document.getElementById("paymentForm");
 const invoiceSelect = document.getElementById("invoiceId");
+const paymentDateInput = document.getElementById("paymentDate");
 const paymentModeSelect = document.getElementById("paymentMode");
 const chequeField = document.getElementById("chequeField");
 const chequeNoInput = document.getElementById("chequeNo");
@@ -228,7 +234,7 @@ function renderTable(){
         tr.innerHTML = `
             <td>${inv.invoice_no || ""}</td>
             <td>${inv.customer_name || ""}</td>
-            <td>${inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString() : ""}</td>
+            <td>${inv.payment_date ? new Date(`${inv.payment_date}T00:00:00`).toLocaleDateString() : ""}</td>
             <td>${formatCurrency(inv.total)}</td>
             <td>${inv.payment_method || "Cash"}</td>
             <td>${inv.cheque_no || ""}</td>
@@ -316,10 +322,16 @@ paymentForm.addEventListener("submit", async (e) => {
         return;
     }
 
+    if(!paymentDateInput.value){
+        alert("Please select payment date.");
+        return;
+    }
+
     const payload = {
         payment_method: paymentModeSelect.value,
         payment_status: paymentStatusSelect.value,
-        cheque_no: chequeNoInput.value.trim()
+        cheque_no: chequeNoInput.value.trim(),
+        payment_date: paymentDateInput.value
     };
 
     if(payload.payment_method === "Cheque" && !payload.cheque_no){
@@ -338,8 +350,18 @@ paymentForm.addEventListener("submit", async (e) => {
 
 paymentModeSelect.addEventListener("change", toggleChequeField);
 statusFilterSelect.addEventListener("change", renderTable);
+invoiceSelect.addEventListener("change", () => {
+    const selectedId = Number(invoiceSelect.value || 0);
+    const selectedInvoice = allGeneralInvoices.find((inv) => Number(inv.id) === selectedId);
+    if(selectedInvoice && selectedInvoice.payment_date){
+        paymentDateInput.value = String(selectedInvoice.payment_date).slice(0, 10);
+        return;
+    }
+    paymentDateInput.value = new Date().toISOString().slice(0, 10);
+});
 
 toggleChequeField();
+paymentDateInput.value = new Date().toISOString().slice(0, 10);
 loadInvoices();
 </script>
 </body>

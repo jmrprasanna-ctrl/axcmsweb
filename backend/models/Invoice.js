@@ -17,6 +17,7 @@ const Invoice = db.define("Invoice",{
     payment_method:{ type: DataTypes.STRING, allowNull: true, defaultValue: "Cash" },
     cheque_no:{ type: DataTypes.STRING, allowNull: true },
     payment_status:{ type: DataTypes.STRING, allowNull: false, defaultValue: "Pending" },
+    payment_date:{ type: DataTypes.DATEONLY, allowNull: true },
     total_amount:{ type: DataTypes.FLOAT, defaultValue:0 },
     createdAt: { type: DataTypes.DATE, allowNull: true, defaultValue: DataTypes.NOW },
     updatedAt: { type: DataTypes.DATE, allowNull: true, defaultValue: DataTypes.NOW }

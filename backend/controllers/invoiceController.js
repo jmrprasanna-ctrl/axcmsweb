@@ -239,6 +239,7 @@ exports.listInvoices = async (req,res)=>{
             customer_mode: inv.Customer ? inv.Customer.customer_mode : "",
             total: inv.total_amount,
             invoice_date: inv.invoice_date || inv.createdAt,
+            payment_date: inv.payment_date || null,
             quotation_date: inv.quotation_date || inv.invoice_date || inv.createdAt,
             payment_method: inv.payment_method || "Cash",
             cheque_no: inv.cheque_no || "",
@@ -697,12 +698,26 @@ exports.updateInvoicePayment = async (req,res)=>{
             }
             invoice_date = parsedInvoiceDate;
         }
+        let payment_date = invoice.payment_date || null;
+        if(req.body.payment_date !== undefined){
+            const parsedPaymentDate = String(req.body.payment_date || "").trim();
+            if(parsedPaymentDate){
+                const isValidPaymentDate = /^\d{4}-\d{2}-\d{2}$/.test(parsedPaymentDate) && !Number.isNaN(new Date(`${parsedPaymentDate}T00:00:00`).getTime());
+                if(!isValidPaymentDate){
+                    return res.status(400).json({ message: "Invalid payment date." });
+                }
+                payment_date = parsedPaymentDate;
+            }else{
+                payment_date = null;
+            }
+        }
 
         await invoice.update({
             payment_method,
             cheque_no,
             payment_status,
-            invoice_date
+            invoice_date,
+            payment_date
         });
 
         if(req.body.invoice_date !== undefined){
@@ -723,6 +738,7 @@ exports.updateInvoicePayment = async (req,res)=>{
                 id: invoice.id,
                 invoice_no: invoice.invoice_no,
                 invoice_date: invoice.invoice_date,
+                payment_date: invoice.payment_date,
                 payment_method: invoice.payment_method,
                 cheque_no: invoice.cheque_no,
                 payment_status: invoice.payment_status
@@ -745,7 +761,8 @@ exports.deleteInvoicePayment = async (req,res)=>{
         await invoice.update({
             payment_method: "Cash",
             cheque_no: null,
-            payment_status: "Pending"
+            payment_status: "Pending",
+            payment_date: null
         });
 
         res.json({
@@ -753,6 +770,7 @@ exports.deleteInvoicePayment = async (req,res)=>{
             invoice: {
                 id: invoice.id,
                 invoice_no: invoice.invoice_no,
+                payment_date: invoice.payment_date,
                 payment_method: invoice.payment_method,
                 cheque_no: invoice.cheque_no,
                 payment_status: invoice.payment_status

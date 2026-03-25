@@ -344,6 +344,10 @@ async function ensureInvoicePaymentSchema() {
       ALTER TABLE invoices
       ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT 'Pending';
     `);
+    await db.query(`
+      ALTER TABLE invoices
+      ADD COLUMN IF NOT EXISTS payment_date DATE;
+    `);
 
     await db.query(`
       UPDATE invoices
@@ -354,6 +358,11 @@ async function ensureInvoicePaymentSchema() {
       UPDATE invoices
       SET payment_status = 'Pending'
       WHERE payment_status IS NULL OR TRIM(payment_status) = '';
+    `);
+    await db.query(`
+      UPDATE invoices
+      SET payment_date = COALESCE(payment_date, invoice_date, DATE("updatedAt"), DATE("createdAt"), CURRENT_DATE)
+      WHERE payment_status = 'Received' AND payment_date IS NULL;
     `);
   });
 }
