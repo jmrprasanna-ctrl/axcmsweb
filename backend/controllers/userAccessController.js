@@ -95,6 +95,7 @@ const ACCESS_MODULE_OPTIONS = [
       { path: "/users/user-access.html", label: "User Access", actions: ["view", "edit"] },
       { path: "/users/db-create.html", label: "DB Create", actions: ["view", "add", "delete"] },
       { path: "/users/company-create.html", label: "Company Create", actions: ["view", "add", "delete"] },
+      { path: "/users/mapped.html", label: "Mapped", actions: ["view", "add"] },
       { path: "/users/preference.html", label: "Preference", actions: ["view", "edit"] },
       { path: "/users/user-logged.html", label: "User Logged Times", actions: ["view"] },
       { path: "/support/email-setup.html", label: "Email Setup", actions: ["view", "edit"] },
@@ -325,6 +326,25 @@ async function ensureCompanyRegistryTable(client) {
   `);
 }
 
+async function ensureUserMappingTable(client) {
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS user_mappings (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER UNIQUE NOT NULL,
+      company_profile_id INTEGER NOT NULL REFERENCES ${COMPANY_REGISTRY_TABLE}(id) ON DELETE CASCADE,
+      database_name VARCHAR(120) NOT NULL,
+      is_verified BOOLEAN DEFAULT FALSE,
+      created_by INTEGER,
+      "createdAt" TIMESTAMP DEFAULT NOW(),
+      "updatedAt" TIMESTAMP DEFAULT NOW()
+    );
+  `);
+}
+
+function normalizeNameCompare(value) {
+  return String(value || "").trim().replace(/\s+/g, " ").toUpperCase();
+}
+
 function parseUserReference(raw) {
   const value = String(raw || "").trim();
   if (!value) return null;
@@ -363,6 +383,38 @@ async function findAccessFromMainDb(userId, userDatabase = INVENTORY_DB_NAME) {
     );
     if (!rs.rowCount) return null;
     return rs.rows[0];
+  } catch (_err) {
+    return null;
+  } finally {
+    await client.end().catch(() => {});
+  }
+}
+
+async function findMappedUserProfile(userId) {
+  const cfg = getDbConfig();
+  const client = new Client({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: cfg.database || INVENTORY_DB_NAME,
+  });
+  try {
+    await client.connect();
+    const rs = await client.query(
+      `SELECT um.database_name, cp.company_name, cp.logo_path
+       FROM user_mappings um
+       JOIN ${COMPANY_REGISTRY_TABLE} cp ON cp.id = um.company_profile_id
+       WHERE um.user_id = $1
+       LIMIT 1`,
+      [userId]
+    );
+    if (!rs.rowCount) return null;
+    return {
+      database_name: normalizeDatabaseName(rs.rows[0]?.database_name),
+      company_name: normalizeCompanyName(rs.rows[0]?.company_name),
+      logo_path: String(rs.rows[0]?.logo_path || "").trim(),
+    };
   } catch (_err) {
     return null;
   } finally {
@@ -584,6 +636,25 @@ async function hasCompanyCreateActionPermission(req, action) {
   }
 
   // If admin has no explicit access row, keep legacy behavior: allow.
+  if (!row) return true;
+  const allowedActions = parseAllowedActions(row);
+  return allowedActions.includes(actionKey);
+}
+
+async function hasMappedActionPermission(req, action) {
+  const role = String(req.user?.role || "").toLowerCase();
+  if (role !== "admin") return false;
+  const userId = Number(req.user?.id || req.user?.userId || 0);
+  if (!Number.isFinite(userId) || userId <= 0) return false;
+
+  const userDatabase = normalizeUserDatabase(req.databaseName || req.user?.database_name || INVENTORY_DB_NAME);
+  const actionKey = toActionKey("/users/mapped.html", action);
+
+  let row = await findAccessFromMainDb(userId, userDatabase);
+  if (!row && userDatabase !== INVENTORY_DB_NAME) {
+    row = await findAccessFromMainDb(userId, INVENTORY_DB_NAME);
+  }
+
   if (!row) return true;
   const allowedActions = parseAllowedActions(row);
   return allowedActions.includes(actionKey);
@@ -1075,6 +1146,263 @@ exports.deleteCompany = async (req, res) => {
   }
 };
 
+async function getMappingPieces(mainDbClient, userId, databaseName, companyId) {
+  const userRs = await mainDbClient.query(
+    `SELECT id, username, company
+     FROM users
+     WHERE id = $1
+     LIMIT 1`,
+    [userId]
+  );
+  if (!userRs.rowCount) {
+    throw new Error("User not found.");
+  }
+
+  const dbRs = await mainDbClient.query(
+    `SELECT database_name, company_name
+     FROM ${DATABASE_REGISTRY_TABLE}
+     WHERE LOWER(database_name) = LOWER($1)
+     LIMIT 1`,
+    [databaseName]
+  );
+  if (!dbRs.rowCount) {
+    throw new Error("Database mapping entry not found.");
+  }
+
+  const companyRs = await mainDbClient.query(
+    `SELECT id, company_name, logo_path
+     FROM ${COMPANY_REGISTRY_TABLE}
+     WHERE id = $1
+     LIMIT 1`,
+    [companyId]
+  );
+  if (!companyRs.rowCount) {
+    throw new Error("Company not found.");
+  }
+
+  const userRow = userRs.rows[0];
+  const dbRow = dbRs.rows[0];
+  const companyRow = companyRs.rows[0];
+  const userCompany = normalizeNameCompare(userRow.company);
+  const dbCompany = normalizeNameCompare(dbRow.company_name);
+  const selectedCompany = normalizeNameCompare(companyRow.company_name);
+  const verified = userCompany && userCompany === dbCompany && userCompany === selectedCompany;
+
+  return {
+    verified: Boolean(verified),
+    names: {
+      user_company_name: normalizeCompanyName(userRow.company),
+      database_company_name: normalizeCompanyName(dbRow.company_name),
+      selected_company_name: normalizeCompanyName(companyRow.company_name),
+    },
+    normalized: {
+      user_id: Number(userRow.id || 0),
+      database_name: normalizeDatabaseName(dbRow.database_name),
+      company_profile_id: Number(companyRow.id || 0),
+      company_name: normalizeCompanyName(companyRow.company_name),
+      logo_path: String(companyRow.logo_path || "").trim(),
+    },
+  };
+}
+
+exports.getMappedMeta = async (_req, res) => {
+  const cfg = getDbConfig();
+  const mainDbClient = new Client({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: cfg.database || INVENTORY_DB_NAME,
+  });
+  try {
+    await mainDbClient.connect();
+    await ensureDatabaseRegistryTable(mainDbClient);
+    await ensureCompanyRegistryTable(mainDbClient);
+    await ensureUserMappingTable(mainDbClient);
+
+    const usersRs = await mainDbClient.query(
+      `SELECT id, username, email, company
+       FROM users
+       ORDER BY username ASC, id ASC`
+    );
+    const dbRs = await mainDbClient.query(
+      `SELECT database_name, company_name
+       FROM ${DATABASE_REGISTRY_TABLE}
+       ORDER BY LOWER(database_name) ASC`
+    );
+    const companiesRs = await mainDbClient.query(
+      `SELECT id, company_name
+       FROM ${COMPANY_REGISTRY_TABLE}
+       ORDER BY LOWER(company_name) ASC`
+    );
+
+    res.json({
+      users: (usersRs.rows || []).map((row) => ({
+        id: Number(row.id || 0),
+        username: String(row.username || "").trim(),
+        email: String(row.email || "").trim(),
+        company_name: normalizeCompanyName(row.company),
+      })),
+      databases: (dbRs.rows || []).map((row) => ({
+        name: normalizeDatabaseName(row.database_name),
+        company_name: normalizeCompanyName(row.company_name),
+        label: `${normalizeCompanyName(row.company_name)} (${normalizeDatabaseName(row.database_name)})`,
+      })).filter((x) => x.name),
+      companies: (companiesRs.rows || []).map((row) => ({
+        id: Number(row.id || 0),
+        company_name: normalizeCompanyName(row.company_name),
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to load mapped meta data." });
+  } finally {
+    await mainDbClient.end().catch(() => {});
+  }
+};
+
+exports.getMappedByUser = async (req, res) => {
+  const userId = Number(req.params.userId || 0);
+  if (!Number.isFinite(userId) || userId <= 0) {
+    return res.status(400).json({ message: "Invalid user id." });
+  }
+  const cfg = getDbConfig();
+  const mainDbClient = new Client({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: cfg.database || INVENTORY_DB_NAME,
+  });
+  try {
+    await mainDbClient.connect();
+    await ensureUserMappingTable(mainDbClient);
+    const rs = await mainDbClient.query(
+      `SELECT um.user_id, um.database_name, um.company_profile_id, um.is_verified, cp.company_name
+       FROM user_mappings um
+       JOIN ${COMPANY_REGISTRY_TABLE} cp ON cp.id = um.company_profile_id
+       WHERE um.user_id = $1
+       LIMIT 1`,
+      [userId]
+    );
+    if (!rs.rowCount) {
+      return res.json({ mapping: null });
+    }
+    const row = rs.rows[0];
+    res.json({
+      mapping: {
+        user_id: Number(row.user_id || 0),
+        database_name: normalizeDatabaseName(row.database_name),
+        company_profile_id: Number(row.company_profile_id || 0),
+        company_name: normalizeCompanyName(row.company_name),
+        is_verified: Boolean(row.is_verified),
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to load mapping." });
+  } finally {
+    await mainDbClient.end().catch(() => {});
+  }
+};
+
+exports.verifyMapping = async (req, res) => {
+  const canAdd = await hasMappedActionPermission(req, "add");
+  if (!canAdd) {
+    return res.status(403).json({ message: "Forbidden: Missing Mapped add permission." });
+  }
+  const userId = Number(req.body?.user_id || 0);
+  const databaseName = normalizeDatabaseName(req.body?.database_name);
+  const companyId = Number(req.body?.company_profile_id || 0);
+  if (!Number.isFinite(userId) || userId <= 0 || !databaseName || !Number.isFinite(companyId) || companyId <= 0) {
+    return res.status(400).json({ message: "User, database and company are required." });
+  }
+
+  const cfg = getDbConfig();
+  const mainDbClient = new Client({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: cfg.database || INVENTORY_DB_NAME,
+  });
+  try {
+    await mainDbClient.connect();
+    await ensureDatabaseRegistryTable(mainDbClient);
+    await ensureCompanyRegistryTable(mainDbClient);
+    const result = await getMappingPieces(mainDbClient, userId, databaseName, companyId);
+    res.json({
+      verified: result.verified,
+      names: result.names,
+      message: result.verified ? "Verified successfully." : "Company names do not match.",
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to verify mapping." });
+  } finally {
+    await mainDbClient.end().catch(() => {});
+  }
+};
+
+exports.saveMapping = async (req, res) => {
+  const canAdd = await hasMappedActionPermission(req, "add");
+  if (!canAdd) {
+    return res.status(403).json({ message: "Forbidden: Missing Mapped add permission." });
+  }
+  const userId = Number(req.body?.user_id || 0);
+  const databaseName = normalizeDatabaseName(req.body?.database_name);
+  const companyId = Number(req.body?.company_profile_id || 0);
+  if (!Number.isFinite(userId) || userId <= 0 || !databaseName || !Number.isFinite(companyId) || companyId <= 0) {
+    return res.status(400).json({ message: "User, database and company are required." });
+  }
+
+  const cfg = getDbConfig();
+  const mainDbClient = new Client({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: cfg.database || INVENTORY_DB_NAME,
+  });
+  try {
+    await mainDbClient.connect();
+    await ensureDatabaseRegistryTable(mainDbClient);
+    await ensureCompanyRegistryTable(mainDbClient);
+    await ensureUserMappingTable(mainDbClient);
+    const result = await getMappingPieces(mainDbClient, userId, databaseName, companyId);
+    if (!result.verified) {
+      return res.status(400).json({
+        message: "Verify failed. User company, database company and selected company must match.",
+        names: result.names,
+      });
+    }
+
+    await mainDbClient.query(
+      `INSERT INTO user_mappings
+       (user_id, company_profile_id, database_name, is_verified, created_by, "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, TRUE, $4, NOW(), NOW())
+       ON CONFLICT (user_id)
+       DO UPDATE SET company_profile_id = EXCLUDED.company_profile_id,
+                     database_name = EXCLUDED.database_name,
+                     is_verified = TRUE,
+                     "updatedAt" = NOW()`,
+      [result.normalized.user_id, result.normalized.company_profile_id, result.normalized.database_name, Number(req.user?.id || 0) || null]
+    );
+
+    res.json({
+      message: "Mapped successfully.",
+      mapping: {
+        user_id: result.normalized.user_id,
+        database_name: result.normalized.database_name,
+        company_profile_id: result.normalized.company_profile_id,
+        company_name: result.normalized.company_name,
+        logo_path: result.normalized.logo_path,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to save mapping." });
+  } finally {
+    await mainDbClient.end().catch(() => {});
+  }
+};
+
 exports.getUserAccess = async (req, res) => {
   const ref = parseUserReference(req.params.userId);
   if (!ref) {
@@ -1178,11 +1506,12 @@ exports.getMyAccess = async (req, res) => {
   const allowedActions = parseAllowedActions(row);
   const allowedPages = derivePagesFromActions(allowedActions, parseAllowedPages(row));
   const hasAccessConfig = Boolean(row) || allowedPages.length > 0 || allowedActions.length > 0;
+  const mappedProfile = await findMappedUserProfile(userId);
 
   res.json({
     allowed_pages: allowedPages,
     allowed_actions: allowedActions,
-    database_name: normalizeDatabaseName(row?.database_name),
+    database_name: normalizeDatabaseName(mappedProfile?.database_name) || normalizeDatabaseName(row?.database_name),
     user_database: userDatabase,
     has_access_config: hasAccessConfig,
   });

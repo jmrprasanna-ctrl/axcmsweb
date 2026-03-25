@@ -10,6 +10,10 @@ const {
   getCompanies,
   createCompany,
   deleteCompany,
+  getMappedMeta,
+  getMappedByUser,
+  verifyMapping,
+  saveMapping,
   getUserAccess,
   saveUserAccess,
   getMyAccess
@@ -36,6 +40,10 @@ router.delete("/databases/:databaseName", deleteDatabase);
 router.get("/companies", getCompanies);
 router.post("/companies/create", createCompany);
 router.delete("/companies/:companyId", deleteCompany);
+router.get("/mapped/meta", getMappedMeta);
+router.get("/mapped/:userId", getMappedByUser);
+router.post("/mapped/verify", verifyMapping);
+router.post("/mapped/save", saveMapping);
 router.get("/logs", getLoginLogs);
 router.delete("/logs", clearLoginLogs);
 router.get("/access/:userId", getUserAccess);

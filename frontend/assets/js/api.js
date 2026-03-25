@@ -46,6 +46,8 @@ let USER_ALLOWED_ACTIONS_RUNTIME = [];
 const USER_ALLOWED_ACTIONS_CACHE_KEY = "userAllowedActionsRuntime";
 let USER_ACCESS_CONFIG_APPLIES_RUNTIME = false;
 const USER_ACCESS_CONFIG_ENABLED_CACHE_KEY = "userAccessConfigEnabledRuntime";
+const MAPPED_COMPANY_NAME_KEY = "mappedCompanyName";
+const MAPPED_COMPANY_LOGO_URL_KEY = "mappedCompanyLogoUrl";
 window.__userAccessPermissionsLoaded = false;
 window.__waitForUserAccessPermissions = function __waitForUserAccessPermissions(){
     if(window.__userAccessPermissionsLoaded){
@@ -126,6 +128,8 @@ function logoutForInactivity(){
     localStorage.removeItem(USER_ALLOWED_CACHE_KEY);
     localStorage.removeItem(USER_ALLOWED_ACTIONS_CACHE_KEY);
     localStorage.removeItem(USER_ACCESS_CONFIG_ENABLED_CACHE_KEY);
+    localStorage.removeItem(MAPPED_COMPANY_NAME_KEY);
+    localStorage.removeItem(MAPPED_COMPANY_LOGO_URL_KEY);
     window.location.replace(buildPagesPath("login.html"));
 }
 
@@ -502,12 +506,47 @@ function applyUiSettingsToPage(settings){
             img.src = `${absoluteLogoUrl}${logoVersion}`;
         });
     }
+    const mappedCompanyName = String(localStorage.getItem(MAPPED_COMPANY_NAME_KEY) || "").trim();
+    if(mappedCompanyName){
+        document.querySelectorAll(".sidebar .logo span").forEach((el) => {
+            el.textContent = mappedCompanyName;
+        });
+    }
+    const mappedLogoPath = String(localStorage.getItem(MAPPED_COMPANY_LOGO_URL_KEY) || "").trim();
+    if(mappedLogoPath){
+        const apiOrigin = BASE_URL.replace(/\/api$/,"");
+        const absoluteMappedLogo = /^https?:\/\//i.test(mappedLogoPath)
+            ? mappedLogoPath
+            : `${apiOrigin}${mappedLogoPath.startsWith("/") ? "" : "/"}${mappedLogoPath}`;
+        document.querySelectorAll(".sidebar .logo img").forEach((img) => {
+            img.src = absoluteMappedLogo;
+        });
+    }
     if(settings.footer_text){
         const footer = document.getElementById("app-global-footer");
         if(footer){
             // Enforce one global footer text on all pages.
             footer.textContent = GLOBAL_FOOTER_TEXT;
         }
+    }
+}
+
+function applyMappedBranding(){
+    const mappedCompanyName = String(localStorage.getItem(MAPPED_COMPANY_NAME_KEY) || "").trim();
+    if(mappedCompanyName){
+        document.querySelectorAll(".sidebar .logo span").forEach((el) => {
+            el.textContent = mappedCompanyName;
+        });
+    }
+    const mappedLogoPath = String(localStorage.getItem(MAPPED_COMPANY_LOGO_URL_KEY) || "").trim();
+    if(mappedLogoPath){
+        const apiOrigin = BASE_URL.replace(/\/api$/,"");
+        const absoluteMappedLogo = /^https?:\/\//i.test(mappedLogoPath)
+            ? mappedLogoPath
+            : `${apiOrigin}${mappedLogoPath.startsWith("/") ? "" : "/"}${mappedLogoPath}`;
+        document.querySelectorAll(".sidebar .logo img").forEach((img) => {
+            img.src = absoluteMappedLogo;
+        });
     }
 }
 
@@ -672,6 +711,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     document.dispatchEvent(new CustomEvent("app:user-access-ready"));
     applyAccessGuards();
     setSidebarReadyState(true);
+    applyMappedBranding();
     ensureMobileSidebar();
     ensureGlobalFooter();
     loadPublicUiSettings();
@@ -823,10 +863,22 @@ async function login(){
         localStorage.setItem("token",res.token);
         localStorage.setItem("role",res.user.role);
         localStorage.setItem("userId", res.user.id);
+        localStorage.setItem("userName", res.user.username || "");
+        localStorage.setItem("userEmail", res.user.email || "");
         if(res.user && res.user.database_name){
             localStorage.setItem("selectedDatabaseName", String(res.user.database_name).trim().toLowerCase());
         }else{
             localStorage.removeItem("selectedDatabaseName");
+        }
+        if(res.user && res.user.mapped_company_name){
+            localStorage.setItem(MAPPED_COMPANY_NAME_KEY, String(res.user.mapped_company_name).trim());
+        }else{
+            localStorage.removeItem(MAPPED_COMPANY_NAME_KEY);
+        }
+        if(res.user && res.user.mapped_company_logo_url){
+            localStorage.setItem(MAPPED_COMPANY_LOGO_URL_KEY, String(res.user.mapped_company_logo_url).trim());
+        }else{
+            localStorage.removeItem(MAPPED_COMPANY_LOGO_URL_KEY);
         }
         window.location.href = "dashboard.html";
     }catch(err){

@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const db = require("./config/database");
 const { getRuntimeChecks, summarizeStatus } = require("./utils/startupChecks");
 const { extractCustomerPrefix } = require("./utils/customerCodeGenerator");
@@ -557,10 +558,28 @@ async function ensureCompanyProfilesSchema() {
   });
 }
 
+async function ensureUserMappingSchema() {
+  await db.withDatabase("inventory", async () => {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS user_mappings (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER UNIQUE NOT NULL,
+        company_profile_id INTEGER NOT NULL REFERENCES company_profiles(id) ON DELETE CASCADE,
+        database_name VARCHAR(120) NOT NULL,
+        is_verified BOOLEAN DEFAULT FALSE,
+        created_by INTEGER,
+        "createdAt" TIMESTAMP DEFAULT NOW(),
+        "updatedAt" TIMESTAMP DEFAULT NOW()
+      );
+    `);
+  });
+}
+
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({extended:true}));
+app.use("/storage", express.static(path.resolve(__dirname, "storage")));
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -624,6 +643,7 @@ async function startServer() {
     await ensureVendorCategorySchema();
     await ensureUserAccessSchema();
     await ensureCompanyProfilesSchema();
+    await ensureUserMappingSchema();
     await ensureInvoiceDateSchema();
     await ensureInvoicePaymentSchema();
     await ensureSupportImportantSchema();

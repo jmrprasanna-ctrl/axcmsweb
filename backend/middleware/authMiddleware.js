@@ -18,6 +18,18 @@ async function resolveUserAssignedDatabase(userId) {
   const client = getAuthDbClient();
   try {
     await client.connect();
+    const mappingRs = await client.query(
+      `SELECT database_name
+       FROM user_mappings
+       WHERE user_id = $1
+       LIMIT 1`,
+      [userId]
+    );
+    const mapped = db.normalizeDatabaseName(mappingRs.rows[0]?.database_name || "");
+    if (mapped) {
+      return mapped;
+    }
+
     const rs = await client.query(
       `SELECT database_name
        FROM user_accesses
@@ -49,6 +61,15 @@ const authMiddleware = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "supersecretjwtkey");
     let targetDb = DEFAULT_DB;
     const role = String(decoded?.role || "").toLowerCase();
+
+    const tokenDb = db.normalizeDatabaseName(decoded?.database_name || "");
+    if (tokenDb) {
+      try {
+        await db.registerDatabase(tokenDb);
+        targetDb = tokenDb;
+      } catch (_err) {
+      }
+    }
 
     if (role === "user") {
       const assignedDb = await resolveUserAssignedDatabase(Number(decoded?.id || 0));

@@ -25,7 +25,7 @@ exports.login = async (req, res) => {
   try {
     await client.connect();
     const userRs = await client.query(
-      `SELECT id, username, email, role, password
+      `SELECT id, username, email, role, password, company
        FROM users
        WHERE email = $1 OR username = $1
        LIMIT 1`,
@@ -54,7 +54,32 @@ exports.login = async (req, res) => {
     }
 
     let databaseName = null;
-    if (String(user.role || "").toLowerCase() === "user") {
+    let mappedCompanyName = null;
+    let mappedCompanyLogoUrl = null;
+
+    const mappingRs = await client.query(
+      `SELECT um.database_name, cp.company_name, cp.logo_path
+       FROM user_mappings um
+       JOIN company_profiles cp ON cp.id = um.company_profile_id
+       WHERE um.user_id = $1
+       LIMIT 1`,
+      [user.id]
+    );
+    if (mappingRs.rowCount) {
+      const mappedDb = db.normalizeDatabaseName(mappingRs.rows[0]?.database_name || "");
+      if (mappedDb) {
+        await db.registerDatabase(mappedDb).catch(() => {});
+        databaseName = mappedDb;
+      }
+      mappedCompanyName = String(mappingRs.rows[0]?.company_name || "").trim() || null;
+      const logoPath = String(mappingRs.rows[0]?.logo_path || "").trim();
+      if (logoPath) {
+        const clean = logoPath.replace(/\\/g, "/").replace(/^\/+/, "");
+        mappedCompanyLogoUrl = `/${clean}`;
+      }
+    }
+
+    if (!databaseName && String(user.role || "").toLowerCase() === "user") {
       const accessRs = await client.query(
         `SELECT database_name
          FROM user_accesses
@@ -93,7 +118,10 @@ exports.login = async (req, res) => {
         username: user.username,
         email: user.email,
         role: user.role,
+        company: user.company || "",
         database_name: databaseName,
+        mapped_company_name: mappedCompanyName,
+        mapped_company_logo_url: mappedCompanyLogoUrl,
       },
     });
   } catch (err) {
