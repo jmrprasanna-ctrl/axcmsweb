@@ -51,6 +51,26 @@ async function resolveUserAssignedDatabase(userId) {
   }
 }
 
+async function resolveMappedDatabase(userId) {
+  const client = getAuthDbClient();
+  try {
+    await client.connect();
+    const rs = await client.query(
+      `SELECT database_name
+       FROM user_mappings
+       WHERE user_id = $1
+       LIMIT 1`,
+      [userId]
+    );
+    const selected = db.normalizeDatabaseName(rs.rows[0]?.database_name || "");
+    return selected || null;
+  } catch (_err) {
+    return null;
+  } finally {
+    await client.end().catch(() => {});
+  }
+}
+
 const authMiddleware = async (req, res, next) => {
   const token = req.headers["authorization"]?.split(" ")[1];
   if (!token) {
@@ -61,6 +81,7 @@ const authMiddleware = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "supersecretjwtkey");
     let targetDb = DEFAULT_DB;
     const role = String(decoded?.role || "").toLowerCase();
+    const userId = Number(decoded?.id || decoded?.userId || 0);
 
     const tokenDb = db.normalizeDatabaseName(decoded?.database_name || "");
     if (tokenDb) {
@@ -71,8 +92,19 @@ const authMiddleware = async (req, res, next) => {
       }
     }
 
+    if (Number.isFinite(userId) && userId > 0) {
+      const mappedDb = await resolveMappedDatabase(userId);
+      if (mappedDb) {
+        try {
+          await db.registerDatabase(mappedDb);
+          targetDb = mappedDb;
+        } catch (_err) {
+        }
+      }
+    }
+
     if (role === "user") {
-      const assignedDb = await resolveUserAssignedDatabase(Number(decoded?.id || 0));
+      const assignedDb = await resolveUserAssignedDatabase(userId);
       if (!assignedDb) {
         return res.status(503).json({ message: "Unable to resolve user database assignment." });
       }
