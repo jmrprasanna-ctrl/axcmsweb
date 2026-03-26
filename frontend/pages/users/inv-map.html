@@ -206,7 +206,7 @@
         }
 
         async function loadUsers(){
-            const res = await request("/users/access-users?include_demo=true", "GET");
+            const res = await request("/users/access-users", "GET");
             const users = Array.isArray(res.users) ? res.users : [];
             userSelectEl.innerHTML = `<option value="">Select user</option>`;
             users.forEach((u) => {

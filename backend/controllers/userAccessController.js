@@ -1780,6 +1780,39 @@ exports.deleteInvMapEntry = async (req, res) => {
   }
 };
 
+async function resolveCanonicalInvMapUserId(userRef, userModel) {
+  const fallbackId = Number(userRef?.user_id || 0);
+  if (String(userRef?.user_database || "").toLowerCase() === INVENTORY_DB_NAME) {
+    return fallbackId;
+  }
+
+  const plain = userModel && typeof userModel.toJSON === "function" ? userModel.toJSON() : (userModel || {});
+  const email = String(plain?.email || "").trim().toLowerCase();
+  const username = String(plain?.username || "").trim().toLowerCase();
+
+  const found = await db.withDatabase(INVENTORY_DB_NAME, async () => {
+    if (email) {
+      const byEmailRs = await db.query(
+        `SELECT id FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+        { bind: [email] }
+      );
+      const byEmailRows = Array.isArray(byEmailRs?.[0]) ? byEmailRs[0] : [];
+      if (Number(byEmailRows[0]?.id || 0) > 0) return Number(byEmailRows[0].id);
+    }
+    if (username) {
+      const byUserRs = await db.query(
+        `SELECT id FROM users WHERE LOWER(username) = LOWER($1) LIMIT 1`,
+        { bind: [username] }
+      );
+      const byUserRows = Array.isArray(byUserRs?.[0]) ? byUserRs[0] : [];
+      if (Number(byUserRows[0]?.id || 0) > 0) return Number(byUserRows[0].id);
+    }
+    return fallbackId;
+  });
+
+  return Number(found || fallbackId || 0);
+}
+
 exports.getInvMapByUser = async (req, res) => {
   const canView = await hasInvMapActionPermission(req, "view");
   if (!canView) {
@@ -1810,6 +1843,7 @@ exports.getInvMapByUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
+    const canonicalUserId = await resolveCanonicalInvMapUserId(userRef, user);
 
     await mainDbClient.connect();
     await ensureUserInvoiceMappingTable(mainDbClient);
@@ -1818,7 +1852,7 @@ exports.getInvMapByUser = async (req, res) => {
        FROM ${USER_INVOICE_MAPPING_TABLE}
        WHERE user_id = $1 AND LOWER(database_name) = LOWER($2)
        LIMIT 1`,
-      [userRef.user_id, databaseName]
+      [canonicalUserId, databaseName]
     );
 
     if (!rs.rowCount) {
@@ -1877,8 +1911,9 @@ exports.verifyInvMap = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
+    const canonicalUserId = await resolveCanonicalInvMapUserId(userRef, user);
 
-    const availability = await getPreferenceAvailability(databaseName, userRef.user_id);
+    const availability = await getPreferenceAvailability(databaseName, canonicalUserId);
     const missing = getInvMapMissing(featureFlags, availability);
     const verified = missing.length === 0;
 
@@ -1929,8 +1964,9 @@ exports.saveInvMap = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
+    const canonicalUserId = await resolveCanonicalInvMapUserId(userRef, user);
 
-    const availability = await getPreferenceAvailability(databaseName, userRef.user_id);
+    const availability = await getPreferenceAvailability(databaseName, canonicalUserId);
     const missing = getInvMapMissing(featureFlags, availability);
     if (missing.length) {
       return res.status(400).json({
@@ -1960,7 +1996,7 @@ exports.saveInvMap = async (req, res) => {
                      is_verified = TRUE,
                      "updatedAt" = NOW()`,
       [
-        userRef.user_id,
+        canonicalUserId,
         databaseName,
         featureFlags.logo,
         featureFlags.invoice,
@@ -1980,7 +2016,7 @@ exports.saveInvMap = async (req, res) => {
       message: "Inv Map saved successfully.",
       mapping: {
         user_ref: `${userRef.user_database}:${userRef.user_id}`,
-        user_id: userRef.user_id,
+        user_id: canonicalUserId,
         database_name: databaseName,
         feature_flags: featureFlags,
         is_verified: true,
