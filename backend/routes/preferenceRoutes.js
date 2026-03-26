@@ -11,7 +11,7 @@ router.get("/my-ui-settings", authMiddleware, roleMiddleware(["admin","manager",
 router.put("/theme", authMiddleware, roleMiddleware(["admin","manager","user"]), preferenceController.updateMyTheme);
 
 router.use(authMiddleware);
-router.use(roleMiddleware(["admin"]));
+router.use(roleMiddleware(["admin","manager","user"]));
 
 router.get("/", preferenceController.getPreferences);
 router.post("/logo", preferenceController.uploadLogo);

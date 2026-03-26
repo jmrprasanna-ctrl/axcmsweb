@@ -400,12 +400,26 @@
             await loadPreferences();
         }
 
+        function applyEditPermissionState(canEdit){
+            document.querySelectorAll(".preference-card input[type='file']").forEach((el) => {
+                el.disabled = !canEdit;
+            });
+            document.querySelectorAll(".preference-card .btn.btn-primary").forEach((el) => {
+                el.disabled = !canEdit;
+            });
+        }
+
         window.addEventListener("DOMContentLoaded", async () => {
-            const role = String(localStorage.getItem("role") || "").toLowerCase();
-            if(role !== "admin"){
+            if(typeof window.__waitForUserAccessPermissions === "function"){
+                await window.__waitForUserAccessPermissions();
+            }
+            const canView = !!window.hasUserActionPermission && window.hasUserActionPermission("/users/preference.html", "view");
+            const canEdit = !!window.hasUserActionPermission && window.hasUserActionPermission("/users/preference.html", "edit");
+            if(!canView){
                 window.location.href = "../dashboard.html";
                 return;
             }
+            applyEditPermissionState(canEdit);
             try{
                 await loadPreferences();
             }catch(err){
