@@ -62,6 +62,10 @@
                 <input type="checkbox" id="smtp_secure">
                 Use Secure SMTP (SSL/TLS)
             </label>
+            <div class="path-hint" style="margin-top:6px;">
+                Gmail: use <strong>App Password</strong> (not normal password). Recommended: <code>smtp.gmail.com</code>,
+                Port <code>587</code> with Secure <code>OFF</code> or Port <code>465</code> with Secure <code>ON</code>.
+            </div>
 
             <label for="subject_template" style="margin-top:12px;">Subject Template</label>
             <input type="text" id="subject_template" placeholder="Invoice {{invoice_no}} - PULMO TECHNOLOGIES">
