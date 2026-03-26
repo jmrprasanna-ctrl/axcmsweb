@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const db = require("../config/database");
 const UiSetting = require("../models/UiSetting");
 
 const IMAGE_ALLOWED_EXTENSIONS = new Set([".jpg", ".jpeg", ".bmp", ".gif", ".png"]);
@@ -52,7 +53,19 @@ const BRAND_IMAGE_MAP = {
   },
 };
 
+let preferenceSchemaEnsured = false;
+
+async function ensurePreferenceSchema() {
+  if (preferenceSchemaEnsured) return;
+  await db.query(`
+    ALTER TABLE ui_settings
+    ADD COLUMN IF NOT EXISTS quotation3_template_pdf_path VARCHAR(500);
+  `);
+  preferenceSchemaEnsured = true;
+}
+
 async function getOrCreateSettings() {
+  await ensurePreferenceSchema();
   let row = await UiSetting.findOne({ order: [["id", "ASC"]] });
   if (!row) {
     row = await UiSetting.create({});

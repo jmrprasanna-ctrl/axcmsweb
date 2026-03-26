@@ -16,6 +16,7 @@ const COMPANY_STORAGE_ROOT = path.resolve(__dirname, "../storage/companies");
 const COMPANY_LOGO_EXTENSIONS = new Set([".jpg", ".jpeg", ".bmp", ".gif", ".tiff", ".tif", ".png"]);
 const USER_INVOICE_MAPPING_TABLE = "user_invoice_mappings";
 const INV_MAP_PATH = "/users/inv-map.html";
+const ensuredUiSettingsDbSet = new Set();
 
 const ACCESS_MODULE_OPTIONS = [
   {
@@ -790,6 +791,15 @@ function hasAnyInvMapFlag(flags) {
 async function getPreferenceAvailability(databaseName) {
   const targetDb = normalizeDatabaseName(databaseName) || INVENTORY_DB_NAME;
   await db.registerDatabase(targetDb).catch(() => {});
+  if (!ensuredUiSettingsDbSet.has(targetDb)) {
+    await db.withDatabase(targetDb, async () => {
+      await db.query(`
+        ALTER TABLE ui_settings
+        ADD COLUMN IF NOT EXISTS quotation3_template_pdf_path VARCHAR(500);
+      `);
+    });
+    ensuredUiSettingsDbSet.add(targetDb);
+  }
   const row = await db.withDatabase(targetDb, async () => {
     let first = await UiSetting.findOne({ order: [["id", "ASC"]] });
     if (!first) {
