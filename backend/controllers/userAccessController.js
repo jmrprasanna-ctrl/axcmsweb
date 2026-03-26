@@ -765,7 +765,13 @@ async function hasInvMapActionPermission(req, action) {
 
   if (!row) return true;
   const allowedActions = parseAllowedActions(row);
-  return allowedActions.includes(actionKey);
+  if (allowedActions.includes(actionKey)) return true;
+  if (String(action || "").toLowerCase() === "delete") {
+    // Backward compatibility: older access rows may have add/view for Inv Map but no explicit delete.
+    const addActionKey = toActionKey(INV_MAP_PATH, "add");
+    if (allowedActions.includes(addActionKey)) return true;
+  }
+  return false;
 }
 
 function normalizeInvMapFlags(raw) {

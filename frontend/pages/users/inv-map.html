@@ -188,7 +188,7 @@
                 entries.forEach((entry) => {
                     const row = document.createElement("tr");
                     const userLabel = `${entry.username || "User"}${entry.email ? ` (${entry.email})` : ""}`;
-                    const actionHtml = canDeleteInvMap
+                    const actionHtml = (canDeleteInvMap || canAddInvMap)
                         ? `<button class="btn btn-secondary" type="button" onclick="deleteInvMapEntry(${Number(entry.id)})">Delete</button>`
                         : "-";
                     row.innerHTML = `
@@ -338,8 +338,9 @@
             if(typeof window.__waitForUserAccessPermissions === "function"){
                 await window.__waitForUserAccessPermissions();
             }
-            canAddInvMap = !!window.hasUserActionPermission && window.hasUserActionPermission(INV_MAP_PATH, "add");
-            canDeleteInvMap = !!window.hasUserActionPermission && window.hasUserActionPermission(INV_MAP_PATH, "delete");
+            const hasActionPermission = (action) => !!window.hasUserActionPermission && window.hasUserActionPermission(INV_MAP_PATH, action);
+            canAddInvMap = hasActionPermission("add");
+            canDeleteInvMap = hasActionPermission("delete") || canAddInvMap;
             const canViewInvMap = !!window.hasUserActionPermission && window.hasUserActionPermission(INV_MAP_PATH, "view");
             if(!canViewInvMap){
                 alert("You do not have permission to view Inv Map.");
