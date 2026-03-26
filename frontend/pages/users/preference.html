@@ -331,6 +331,9 @@
                 if(typeof window.applyUiSettingsToPage === "function"){
                     window.applyUiSettingsToPage(ui);
                 }
+                if(typeof window.cacheUserUiSettings === "function"){
+                    window.cacheUserUiSettings(ui);
+                }
             }
         }
 
@@ -431,6 +434,14 @@
 
             if(typeof window.applyUiSettingsToPage === "function"){
                 window.applyUiSettingsToPage({
+                    primary_color: dashboardColor,
+                    background_color: backgroundColor,
+                    button_color: buttonColor,
+                    mode_theme: modeTheme
+                });
+            }
+            if(typeof window.cacheUserUiSettings === "function"){
+                window.cacheUserUiSettings({
                     primary_color: dashboardColor,
                     background_color: backgroundColor,
                     button_color: buttonColor,

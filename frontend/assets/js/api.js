@@ -30,6 +30,7 @@ const BASE_URL = resolveBaseUrl();
 window.BASE_URL = BASE_URL;
 const GLOBAL_FOOTER_TEXT = "\u00A9 All Right Recieved with CRONIT SOLLUTIONS - JMRP.";
 const UI_SETTINGS_CACHE_KEY = "publicUiSettingsCache";
+const USER_UI_SETTINGS_CACHE_KEY = "userUiSettingsCache";
 const ENABLE_PUBLIC_UI_SETTINGS_RUNTIME = typeof window !== "undefined" && window.__ENABLE_PUBLIC_UI_SETTINGS__ === true;
 const LAST_ACTIVITY_KEY = "lastActivityAt";
 const ACTIVITY_EVENTS = ["mousemove", "keydown", "touchstart"];
@@ -532,6 +533,53 @@ function applyUiSettingsToPage(settings){
 }
 window.applyUiSettingsToPage = applyUiSettingsToPage;
 
+function cacheUserUiSettings(settings){
+    if(!settings || typeof settings !== "object") return;
+    try{
+        const payload = {
+            primary_color: settings.primary_color,
+            background_color: settings.background_color,
+            button_color: settings.button_color,
+            mode_theme: settings.mode_theme
+        };
+        localStorage.setItem(USER_UI_SETTINGS_CACHE_KEY, JSON.stringify(payload));
+    }catch(_err){
+    }
+}
+window.cacheUserUiSettings = cacheUserUiSettings;
+
+(function applyCachedThemeImmediately(){
+    const apply = (settings) => {
+        if(!settings || typeof settings !== "object") return;
+        if(document.body){
+            applyUiSettingsToPage(settings);
+            return;
+        }
+        document.addEventListener("DOMContentLoaded", () => applyUiSettingsToPage(settings), { once: true });
+    };
+    try{
+        const personalRaw = localStorage.getItem(USER_UI_SETTINGS_CACHE_KEY);
+        if(personalRaw){
+            const parsedPersonal = JSON.parse(personalRaw);
+            if(parsedPersonal && typeof parsedPersonal === "object"){
+                apply(parsedPersonal);
+                return;
+            }
+        }
+    }catch(_err){
+    }
+    try{
+        const publicRaw = localStorage.getItem(UI_SETTINGS_CACHE_KEY);
+        if(publicRaw){
+            const parsedPublic = JSON.parse(publicRaw);
+            if(parsedPublic && typeof parsedPublic === "object"){
+                apply(parsedPublic);
+            }
+        }
+    }catch(_err){
+    }
+})();
+
 function applyMappedBranding(){
     const mappedCompanyName = String(localStorage.getItem(MAPPED_COMPANY_NAME_KEY) || "").trim();
     if(mappedCompanyName){
@@ -597,6 +645,7 @@ async function loadPublicUiSettings(){
         const personal = await request("/preferences/my-ui-settings", "GET");
         if(personal && typeof personal === "object"){
             applyUiSettingsToPage(personal);
+            cacheUserUiSettings(personal);
         }
     }catch(_err){
     }
