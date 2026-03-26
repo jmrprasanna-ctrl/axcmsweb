@@ -174,6 +174,14 @@ function normalizePaymentStatus(value){
     return "Pending";
 }
 
+function parseBase64Payload(rawValue){
+    const raw = String(rawValue || "").trim();
+    if(!raw) return Buffer.alloc(0);
+    const parts = raw.split(",");
+    const payload = parts.length > 1 ? parts.slice(1).join(",") : raw;
+    return Buffer.from(payload, "base64");
+}
+
 async function resolveTemplatePath(req, dbColumn, envVariableName, defaultPath){
     let dbPath = "";
     const userPath = await resolveUserPreferencePath(req, dbColumn).catch(() => "");
@@ -952,8 +960,24 @@ exports.sendInvoiceEmail = async (req, res) => {
 
         const invoiceNo = safeFilePart(invoice.invoice_no, "invoice");
         const customerName = safeFilePart(customer.name, "customer");
-        const pdfFileName = `invoice_${invoiceNo}_${customerName}.pdf`;
-        const pdfBuffer = await buildInvoicePdfBuffer(invoice, customer, invoice.InvoiceItems || []);
+        const defaultPdfFileName = `invoice_${invoiceNo}_${customerName}.pdf`;
+        const customPdfNameRaw = String(req.body?.attachment_file_name || "").trim();
+        const customPdfName = customPdfNameRaw ? safeFilePart(customPdfNameRaw, defaultPdfFileName) : "";
+        const pdfFileName = String(customPdfName || defaultPdfFileName).toLowerCase().endsWith(".pdf")
+            ? String(customPdfName || defaultPdfFileName)
+            : `${String(customPdfName || defaultPdfFileName)}.pdf`;
+
+        let pdfBuffer = Buffer.alloc(0);
+        const attachmentBase64 = String(req.body?.attachment_pdf_base64 || "").trim();
+        if(attachmentBase64){
+            pdfBuffer = parseBase64Payload(attachmentBase64);
+        }
+        if(!pdfBuffer.length){
+            pdfBuffer = await buildInvoicePdfBuffer(invoice, customer, invoice.InvoiceItems || []);
+        }
+        if(!pdfBuffer.length){
+            return res.status(400).json({ message: "Invoice PDF attachment is empty." });
+        }
 
         const templateData = {
             invoice_no: String(invoice.invoice_no || ""),
