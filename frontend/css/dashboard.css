@@ -542,6 +542,13 @@ body.theme-dark .health-panel {
   background: #1f2d3a;
 }
 
+body.theme-dark .summary-controls select,
+body.theme-dark .summary-controls input[type="date"] {
+  background: #253646;
+  color: #deebf8;
+  border-color: #3a4f64;
+}
+
 body.theme-dark .user-chip {
   background: #27394b;
 }

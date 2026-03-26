@@ -166,3 +166,32 @@ body {
     max-width: 100%;
   }
 }
+
+body.theme-dark.invoice-page,
+body.theme-dark {
+  background:
+    radial-gradient(circle at 12% -6%, rgba(66, 94, 124, 0.45) 0%, transparent 34%),
+    radial-gradient(circle at 85% 102%, rgba(57, 88, 78, 0.35) 0%, transparent 26%),
+    linear-gradient(180deg, #0f1721 0%, #1c2733 100%);
+}
+
+body.theme-dark .invoice-title {
+  color: #e7f1fb;
+}
+
+body.theme-dark .invoice-address-controls,
+body.theme-dark .invoice-image-wrap,
+body.theme-dark .invoice-actions {
+  background: rgba(33, 47, 60, 0.92);
+  border-color: #3a4f64;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+body.theme-dark .invoice-address-controls label {
+  color: #d8e7f7;
+}
+
+body.theme-dark .invoice-image {
+  border-color: #3a4f64;
+  background: #253646;
+}

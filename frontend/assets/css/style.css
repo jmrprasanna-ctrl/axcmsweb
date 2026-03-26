@@ -542,3 +542,27 @@ body.theme-dark .mini-note {
 body.theme-dark .summary-box .value {
   color: #8ec8ff;
 }
+
+body.theme-dark .product-results,
+body.theme-dark .product-search-results {
+  background: #253646;
+  border-color: #3a4f64;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.34);
+}
+
+body.theme-dark .product-option,
+body.theme-dark .product-search-item {
+  color: #dce9f6;
+  border-bottom-color: #33495e;
+}
+
+body.theme-dark .product-option:hover,
+body.theme-dark .product-option.active,
+body.theme-dark .product-search-item:hover {
+  background: #30475d;
+}
+
+body.theme-dark .product-search-empty,
+body.theme-dark .selected-product {
+  color: #b7c9dc;
+}

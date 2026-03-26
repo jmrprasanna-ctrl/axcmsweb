@@ -118,3 +118,40 @@
         align-items: flex-start;
     }
 }
+
+body.theme-dark .add-product-shell {
+    border-color: #3a4f64;
+    background: linear-gradient(180deg, #1f2d3a 0%, #253747 100%);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.26);
+}
+
+body.theme-dark .add-product-title {
+    color: #e4eef8;
+}
+
+body.theme-dark .add-product-subtitle,
+body.theme-dark .field-hint {
+    color: #afc3d8;
+}
+
+body.theme-dark .add-product-badge {
+    background: #2a3e52;
+    color: #d4e6f8;
+    border-color: #42607e;
+}
+
+body.theme-dark .field label {
+    color: #cfe0f1;
+}
+
+body.theme-dark .field input,
+body.theme-dark .field select {
+    border-color: #3a4f64;
+    color: #e5eff9;
+    background: #253646;
+}
+
+body.theme-dark .readonly-input {
+    background: #2a3c4d !important;
+    color: #cfe0f1 !important;
+}
