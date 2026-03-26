@@ -1355,7 +1355,8 @@ async function emailInvoice(){
         const attachmentDataUrl = await blobToDataUrl(rendered.pdfBlob);
         const res = await request(`/invoices/${invoiceId}/send-email`, "POST", {
             attachment_pdf_base64: attachmentDataUrl,
-            attachment_file_name: rendered.fileName
+            attachment_file_name: rendered.fileName,
+            require_rendered_attachment: true
         });
         if(typeof showMessageBox === "function"){
             showMessageBox(res.message || "Invoice email sent");

@@ -968,12 +968,23 @@ exports.sendInvoiceEmail = async (req, res) => {
             : `${String(customPdfName || defaultPdfFileName)}.pdf`;
 
         let pdfBuffer = Buffer.alloc(0);
+        let attachmentSource = "fallback";
         const attachmentBase64 = String(req.body?.attachment_pdf_base64 || "").trim();
         if(attachmentBase64){
             pdfBuffer = parseBase64Payload(attachmentBase64);
+            if(pdfBuffer.length){
+                attachmentSource = "rendered";
+            }
+        }
+        const requireRenderedAttachment = !!req.body?.require_rendered_attachment;
+        if(requireRenderedAttachment && !pdfBuffer.length){
+            return res.status(400).json({
+                message: "Rendered PDF attachment is missing in request. Hard refresh the Invoice page and try again."
+            });
         }
         if(!pdfBuffer.length){
             pdfBuffer = await buildInvoicePdfBuffer(invoice, customer, invoice.InvoiceItems || []);
+            attachmentSource = "fallback";
         }
         if(!pdfBuffer.length){
             return res.status(400).json({ message: "Invoice PDF attachment is empty." });
@@ -1033,8 +1044,9 @@ exports.sendInvoiceEmail = async (req, res) => {
         }
 
         res.json({
-            message: `Invoice email sent to ${recipient}`,
-            filename: pdfFileName
+            message: `Invoice email sent to ${recipient} (attachment source: ${attachmentSource})`,
+            filename: pdfFileName,
+            attachment_source: attachmentSource
         });
     }catch(err){
         console.error(err);
