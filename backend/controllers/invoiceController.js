@@ -6,11 +6,14 @@ const Customer = require("../models/Customer");
 const Sequelize = require("sequelize");
 const fs = require("fs");
 const path = require("path");
+const db = require("../config/database");
 const EmailSetup = require("../models/EmailSetup");
 const UiSetting = require("../models/UiSetting");
 const { sendEmail } = require("../services/emailService");
 const Op = Sequelize.Op;
 const ALLOWED_WARRANTY_PERIODS = new Set(["3 month", "6 month", "1 year", "2 year"]);
+const USER_PREF_TABLE = "user_preference_settings";
+const ensuredUserPrefTableByDb = new Set();
 
 function normalizeWarrantyPeriod(value){
     const raw = String(value || "").trim().toLowerCase();
@@ -170,13 +173,18 @@ function normalizePaymentStatus(value){
     return "Pending";
 }
 
-async function resolveTemplatePath(dbColumn, envVariableName, defaultPath){
+async function resolveTemplatePath(req, dbColumn, envVariableName, defaultPath){
     let dbPath = "";
-    try{
-        const row = await UiSetting.findOne({ order: [["id", "ASC"]], attributes: [dbColumn] });
-        dbPath = String(row?.[dbColumn] || "").trim();
-    }catch(_err){
-        dbPath = "";
+    const userPath = await resolveUserPreferencePath(req, dbColumn).catch(() => "");
+    if(userPath){
+        dbPath = userPath;
+    }else{
+        try{
+            const row = await UiSetting.findOne({ order: [["id", "ASC"]], attributes: [dbColumn] });
+            dbPath = String(row?.[dbColumn] || "").trim();
+        }catch(_err){
+            dbPath = "";
+        }
     }
 
     const envPath = String(process.env[envVariableName] || "").trim();
@@ -193,13 +201,18 @@ async function resolveTemplatePath(dbColumn, envVariableName, defaultPath){
     return path.resolve(candidates[0] || fallbackPath);
 }
 
-async function resolveImagePath(dbColumn, envVariableName, defaultPath, fallbackPath = ""){
+async function resolveImagePath(req, dbColumn, envVariableName, defaultPath, fallbackPath = ""){
     let dbPath = "";
-    try{
-        const row = await UiSetting.findOne({ order: [["id", "ASC"]], attributes: [dbColumn] });
-        dbPath = String(row?.[dbColumn] || "").trim();
-    }catch(_err){
-        dbPath = "";
+    const userPath = await resolveUserPreferencePath(req, dbColumn).catch(() => "");
+    if(userPath){
+        dbPath = userPath;
+    }else{
+        try{
+            const row = await UiSetting.findOne({ order: [["id", "ASC"]], attributes: [dbColumn] });
+            dbPath = String(row?.[dbColumn] || "").trim();
+        }catch(_err){
+            dbPath = "";
+        }
     }
 
     const envPath = String(process.env[envVariableName] || "").trim();
@@ -215,6 +228,45 @@ async function resolveImagePath(dbColumn, envVariableName, defaultPath, fallback
     }
 
     return path.resolve(candidates[0] || baseDefault || baseFallback);
+}
+
+async function ensureUserPreferenceTableForCurrentDb() {
+    const activeDb = String(db.getCurrentDatabase ? db.getCurrentDatabase() : "").trim().toLowerCase() || "inventory";
+    if (ensuredUserPrefTableByDb.has(activeDb)) return;
+    await db.query(`
+        CREATE TABLE IF NOT EXISTS ${USER_PREF_TABLE} (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER UNIQUE NOT NULL,
+            logo_path VARCHAR(500),
+            invoice_template_pdf_path VARCHAR(500),
+            quotation_template_pdf_path VARCHAR(500),
+            quotation2_template_pdf_path VARCHAR(500),
+            quotation3_template_pdf_path VARCHAR(500),
+            sign_c_path VARCHAR(500),
+            sign_v_path VARCHAR(500),
+            seal_c_path VARCHAR(500),
+            seal_v_path VARCHAR(500),
+            primary_color VARCHAR(24),
+            background_color VARCHAR(24),
+            button_color VARCHAR(24),
+            mode_theme VARCHAR(16),
+            "createdAt" TIMESTAMP DEFAULT NOW(),
+            "updatedAt" TIMESTAMP DEFAULT NOW()
+        );
+    `);
+    ensuredUserPrefTableByDb.add(activeDb);
+}
+
+async function resolveUserPreferencePath(req, columnName) {
+    const userId = Number(req?.user?.id || req?.user?.userId || 0);
+    if (!Number.isFinite(userId) || userId <= 0) return "";
+    await ensureUserPreferenceTableForCurrentDb();
+    const rs = await db.query(
+        `SELECT ${columnName} AS path FROM ${USER_PREF_TABLE} WHERE user_id = $1 LIMIT 1`,
+        { bind: [userId] }
+    );
+    const rows = Array.isArray(rs?.[0]) ? rs[0] : [];
+    return String(rows[0]?.path || "").trim();
 }
 
 function getImageMimeType(filePath){
@@ -364,6 +416,7 @@ exports.generateInvoiceNo = async (req,res)=>{
 exports.getInvoiceTemplatePdf = async (req,res)=>{
     try{
         const resolved = await resolveTemplatePath(
+            req,
             "invoice_template_pdf_path",
             "INVOICE_TEMPLATE_PDF",
             "D:\\26XX001 PUL1V INVOICE V.pdf"
@@ -384,6 +437,7 @@ exports.getInvoiceTemplatePdf = async (req,res)=>{
 exports.getQuotationTemplatePdf = async (req,res)=>{
     try{
         const resolved = await resolveTemplatePath(
+            req,
             "quotation_template_pdf_path",
             "QUOTATION_TEMPLATE_PDF",
             "D:\\26XX001 PUL1V QUATATION.pdf"
@@ -404,6 +458,7 @@ exports.getQuotationTemplatePdf = async (req,res)=>{
 exports.getQuotation2TemplatePdf = async (req,res)=>{
     try{
         const resolved = await resolveTemplatePath(
+            req,
             "quotation2_template_pdf_path",
             "QUOTATION2_TEMPLATE_PDF",
             "D:\\26XX001 PUL1V QUATATION 2.pdf"
@@ -424,6 +479,7 @@ exports.getQuotation2TemplatePdf = async (req,res)=>{
 exports.getSign1Image = async (req,res)=>{
     try{
         const signPath = await resolveImagePath(
+            req,
             "sign_c_path",
             "INVOICE_SIGN1_IMAGE",
             path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-1.png")
@@ -442,6 +498,7 @@ exports.getSign1Image = async (req,res)=>{
 exports.getSignVImage = async (req,res)=>{
     try{
         const signPath = await resolveImagePath(
+            req,
             "sign_v_path",
             "INVOICE_SIGNV_IMAGE",
             path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-v.png"),
@@ -461,6 +518,7 @@ exports.getSignVImage = async (req,res)=>{
 exports.getSeal1Image = async (req,res)=>{
     try{
         const sealPath = await resolveImagePath(
+            req,
             "seal_c_path",
             "INVOICE_SEAL1_IMAGE",
             path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-1.png")
@@ -479,6 +537,7 @@ exports.getSeal1Image = async (req,res)=>{
 exports.getSealVImage = async (req,res)=>{
     try{
         const sealPath = await resolveImagePath(
+            req,
             "seal_v_path",
             "INVOICE_SEALV_IMAGE",
             path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-v.png"),
@@ -661,6 +720,7 @@ exports.listWarrantyInvoices = async (_req, res) => {
 exports.getQuotation3TemplatePdf = async (req,res)=>{
     try{
         const resolved = await resolveTemplatePath(
+            req,
             "quotation3_template_pdf_path",
             "QUOTATION3_TEMPLATE_PDF",
             "D:\\26XX001 PUL1V QUATATION 3.pdf"

@@ -788,7 +788,7 @@ function hasAnyInvMapFlag(flags) {
   return Object.values(flags || {}).some((v) => Boolean(v));
 }
 
-async function getPreferenceAvailability(databaseName) {
+async function getPreferenceAvailability(databaseName, userId) {
   const targetDb = normalizeDatabaseName(databaseName) || INVENTORY_DB_NAME;
   await db.registerDatabase(targetDb).catch(() => {});
   if (!ensuredUiSettingsDbSet.has(targetDb)) {
@@ -801,14 +801,40 @@ async function getPreferenceAvailability(databaseName) {
     ensuredUiSettingsDbSet.add(targetDb);
   }
   const row = await db.withDatabase(targetDb, async () => {
-    let first = await UiSetting.findOne({ order: [["id", "ASC"]] });
-    if (!first) {
-      first = await UiSetting.create({});
-    }
-    return first;
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS user_preference_settings (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER UNIQUE NOT NULL,
+        logo_path VARCHAR(500),
+        invoice_template_pdf_path VARCHAR(500),
+        quotation_template_pdf_path VARCHAR(500),
+        quotation2_template_pdf_path VARCHAR(500),
+        quotation3_template_pdf_path VARCHAR(500),
+        sign_c_path VARCHAR(500),
+        sign_v_path VARCHAR(500),
+        seal_c_path VARCHAR(500),
+        seal_v_path VARCHAR(500),
+        primary_color VARCHAR(24),
+        background_color VARCHAR(24),
+        button_color VARCHAR(24),
+        mode_theme VARCHAR(16),
+        "createdAt" TIMESTAMP DEFAULT NOW(),
+        "updatedAt" TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    const normalizedUserId = Number(userId || 0);
+    if (!Number.isFinite(normalizedUserId) || normalizedUserId <= 0) return null;
+    const rs = await db.query(
+      `SELECT *
+       FROM user_preference_settings
+       WHERE user_id = $1
+       LIMIT 1`,
+      { bind: [normalizedUserId] }
+    );
+    const rows = Array.isArray(rs?.[0]) ? rs[0] : [];
+    return rows[0] || null;
   });
 
-  const defaultLogoPath = path.resolve(__dirname, "../../frontend/assets/images/logo.png");
   const resolveFile = (rawPath) => {
     const value = String(rawPath || "").trim();
     if (!value) return "";
@@ -816,7 +842,7 @@ async function getPreferenceAvailability(databaseName) {
     return fs.existsSync(resolved) ? resolved : "";
   };
 
-  const logoPath = resolveFile(row?.logo_path) || (fs.existsSync(defaultLogoPath) ? defaultLogoPath : "");
+  const logoPath = resolveFile(row?.logo_path);
   const invoicePath = resolveFile(row?.invoice_template_pdf_path);
   const quotationPath = resolveFile(row?.quotation_template_pdf_path);
   const quotation2Path = resolveFile(row?.quotation2_template_pdf_path);
@@ -836,7 +862,7 @@ async function getPreferenceAvailability(databaseName) {
     sign_v: Boolean(signVPath),
     seal_c: Boolean(sealCPath),
     seal_v: Boolean(sealVPath),
-    theme: true,
+    theme: Boolean(row && String(row.mode_theme || "").trim()),
   };
 }
 
@@ -1852,7 +1878,7 @@ exports.verifyInvMap = async (req, res) => {
       return res.status(404).json({ message: "User not found." });
     }
 
-    const availability = await getPreferenceAvailability(databaseName);
+    const availability = await getPreferenceAvailability(databaseName, userRef.user_id);
     const missing = getInvMapMissing(featureFlags, availability);
     const verified = missing.length === 0;
 
@@ -1904,7 +1930,7 @@ exports.saveInvMap = async (req, res) => {
       return res.status(404).json({ message: "User not found." });
     }
 
-    const availability = await getPreferenceAvailability(databaseName);
+    const availability = await getPreferenceAvailability(databaseName, userRef.user_id);
     const missing = getInvMapMissing(featureFlags, availability);
     if (missing.length) {
       return res.status(400).json({

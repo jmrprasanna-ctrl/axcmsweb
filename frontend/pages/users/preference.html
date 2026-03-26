@@ -295,7 +295,7 @@
             }catch(_err){
                 setMappedStatuses([]);
             }
-            const ui = await fetch(`${window.BASE_URL}/ui-settings/public`).then((r) => r.ok ? r.json() : null);
+            const ui = await request("/preferences/my-ui-settings", "GET");
             if(ui){
                 applyThemeForm(ui);
             }
@@ -389,7 +389,7 @@
             const buttonColor = document.getElementById("buttonColorInput").value;
             const modeTheme = document.getElementById("modeThemeSelect").value;
 
-            await request("/ui-settings", "PUT", {
+            await request("/preferences/theme", "PUT", {
                 primary_color: dashboardColor,
                 background_color: backgroundColor,
                 button_color: buttonColor,

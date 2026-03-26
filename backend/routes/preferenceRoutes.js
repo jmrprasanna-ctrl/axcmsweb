@@ -7,6 +7,9 @@ const router = express.Router();
 
 router.get("/logo-file", preferenceController.getLogoFile);
 
+router.get("/my-ui-settings", authMiddleware, roleMiddleware(["admin","manager","user"]), preferenceController.getMyUiSettings);
+router.put("/theme", authMiddleware, roleMiddleware(["admin","manager","user"]), preferenceController.updateMyTheme);
+
 router.use(authMiddleware);
 router.use(roleMiddleware(["admin"]));
 

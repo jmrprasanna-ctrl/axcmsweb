@@ -590,6 +590,16 @@ async function loadPublicUiSettings(){
         applyUiSettingsToPage(data);
     }catch(_err){
     }
+
+    const token = localStorage.getItem("token");
+    if(!token) return;
+    try{
+        const personal = await request("/preferences/my-ui-settings", "GET");
+        if(personal && typeof personal === "object"){
+            applyUiSettingsToPage(personal);
+        }
+    }catch(_err){
+    }
 }
 
 async function loadUserAccessPermissions(){
