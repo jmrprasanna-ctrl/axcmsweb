@@ -64,6 +64,7 @@
                 <input id="logoFile" type="file" accept=".jpg,.jpeg,.bmp,.gif">
                 <button class="btn btn-primary" type="button" onclick="uploadLogo()">Save Logo</button>
                 <div class="pref-status" id="logoStatus">Current: -</div>
+                <div class="pref-status" id="logoMappedStatus">Mapped Users: -</div>
             </div>
 
             <div class="preference-card">
@@ -72,6 +73,7 @@
                 <input id="invoiceTemplateFile" type="file" accept=".pdf">
                 <button class="btn btn-primary" type="button" onclick="uploadTemplate('invoice')">Save Invoice</button>
                 <div class="pref-status" id="invoiceStatus">Current: -</div>
+                <div class="pref-status" id="invoiceMappedStatus">Mapped Users: -</div>
             </div>
 
             <div class="preference-card">
@@ -80,6 +82,7 @@
                 <input id="quotationTemplateFile" type="file" accept=".pdf">
                 <button class="btn btn-primary" type="button" onclick="uploadTemplate('quotation')">Save Quotation</button>
                 <div class="pref-status" id="quotationStatus">Current: -</div>
+                <div class="pref-status" id="quotationMappedStatus">Mapped Users: -</div>
             </div>
 
             <div class="preference-card">
@@ -88,6 +91,7 @@
                 <input id="quotation2TemplateFile" type="file" accept=".pdf">
                 <button class="btn btn-primary" type="button" onclick="uploadTemplate('quotation2')">Save Quotation 2</button>
                 <div class="pref-status" id="quotation2Status">Current: -</div>
+                <div class="pref-status" id="quotation2MappedStatus">Mapped Users: -</div>
             </div>
 
             <div class="preference-card">
@@ -96,6 +100,7 @@
                 <input id="quotation3TemplateFile" type="file" accept=".pdf">
                 <button class="btn btn-primary" type="button" onclick="uploadTemplate('quotation3')">Save Quotation 3</button>
                 <div class="pref-status" id="quotation3Status">Current: -</div>
+                <div class="pref-status" id="quotation3MappedStatus">Mapped Users: -</div>
             </div>
 
             <div class="preference-card">
@@ -104,6 +109,7 @@
                 <input id="signCFile" type="file" accept=".jpg,.jpeg,.bmp,.gif,.png">
                 <button class="btn btn-primary" type="button" onclick="uploadBrandImage('sign_c')">Save SIGN C</button>
                 <div class="pref-status" id="signCStatus">Current: -</div>
+                <div class="pref-status" id="signCMappedStatus">Mapped Users: -</div>
             </div>
 
             <div class="preference-card">
@@ -112,6 +118,7 @@
                 <input id="signVFile" type="file" accept=".jpg,.jpeg,.bmp,.gif,.png">
                 <button class="btn btn-primary" type="button" onclick="uploadBrandImage('sign_v')">Save SIGN V</button>
                 <div class="pref-status" id="signVStatus">Current: -</div>
+                <div class="pref-status" id="signVMappedStatus">Mapped Users: -</div>
             </div>
 
             <div class="preference-card">
@@ -120,6 +127,7 @@
                 <input id="sealCFile" type="file" accept=".jpg,.jpeg,.bmp,.gif,.png">
                 <button class="btn btn-primary" type="button" onclick="uploadBrandImage('seal_c')">Save SEAL C</button>
                 <div class="pref-status" id="sealCStatus">Current: -</div>
+                <div class="pref-status" id="sealCMappedStatus">Mapped Users: -</div>
             </div>
 
             <div class="preference-card">
@@ -128,6 +136,7 @@
                 <input id="sealVFile" type="file" accept=".jpg,.jpeg,.bmp,.gif,.png">
                 <button class="btn btn-primary" type="button" onclick="uploadBrandImage('seal_v')">Save SEAL V</button>
                 <div class="pref-status" id="sealVStatus">Current: -</div>
+                <div class="pref-status" id="sealVMappedStatus">Mapped Users: -</div>
             </div>
 
             <div class="preference-card">
@@ -191,6 +200,65 @@
             document.getElementById("sealVStatus").textContent = `Current: ${pref.seal_v_file_name || "-"} | Path: ${pref.seal_v_path || "-"}`;
         }
 
+        function setMappedStatusText(elementId, labels){
+            const el = document.getElementById(elementId);
+            if(!el) return;
+            const list = Array.isArray(labels) ? labels.filter(Boolean) : [];
+            el.textContent = `Mapped Users: ${list.length ? list.join(", ") : "-"}`;
+        }
+
+        function buildUserDbLabel(entry){
+            const username = String(entry?.username || "").trim();
+            const email = String(entry?.email || "").trim();
+            const databaseName = String(entry?.database_name || "").trim().toLowerCase();
+            const userLabel = username || email || `User ${Number(entry?.user_id || 0) || ""}`.trim();
+            if(databaseName){
+                return `${userLabel} (${databaseName})`;
+            }
+            return userLabel;
+        }
+
+        function setMappedStatuses(entries){
+            const rows = Array.isArray(entries) ? entries : [];
+            const labelsByFeature = {
+                logo: [],
+                invoice: [],
+                quotation: [],
+                quotation2: [],
+                quotation3: [],
+                sign_c: [],
+                sign_v: [],
+                seal_c: [],
+                seal_v: []
+            };
+
+            rows.forEach((entry) => {
+                const flags = entry && entry.feature_flags && typeof entry.feature_flags === "object"
+                    ? entry.feature_flags
+                    : {};
+                const label = buildUserDbLabel(entry);
+                Object.keys(labelsByFeature).forEach((featureKey) => {
+                    if(flags[featureKey]){
+                        labelsByFeature[featureKey].push(label);
+                    }
+                });
+            });
+
+            Object.keys(labelsByFeature).forEach((featureKey) => {
+                labelsByFeature[featureKey] = Array.from(new Set(labelsByFeature[featureKey]));
+            });
+
+            setMappedStatusText("logoMappedStatus", labelsByFeature.logo);
+            setMappedStatusText("invoiceMappedStatus", labelsByFeature.invoice);
+            setMappedStatusText("quotationMappedStatus", labelsByFeature.quotation);
+            setMappedStatusText("quotation2MappedStatus", labelsByFeature.quotation2);
+            setMappedStatusText("quotation3MappedStatus", labelsByFeature.quotation3);
+            setMappedStatusText("signCMappedStatus", labelsByFeature.sign_c);
+            setMappedStatusText("signVMappedStatus", labelsByFeature.sign_v);
+            setMappedStatusText("sealCMappedStatus", labelsByFeature.seal_c);
+            setMappedStatusText("sealVMappedStatus", labelsByFeature.seal_v);
+        }
+
         function normalizeHex(value, fallback){
             const raw = String(value || "").trim();
             if(/^#[0-9a-fA-F]{6}$/.test(raw)) return raw.toLowerCase();
@@ -213,6 +281,12 @@
         async function loadPreferences(){
             const pref = await request("/preferences", "GET");
             setStatuses(pref);
+            try{
+                const invMapRes = await request("/users/inv-map/entries", "GET");
+                setMappedStatuses(invMapRes.entries);
+            }catch(_err){
+                setMappedStatuses([]);
+            }
             const ui = await fetch(`${window.BASE_URL}/ui-settings/public`).then((r) => r.ok ? r.json() : null);
             if(ui){
                 applyThemeForm(ui);
