@@ -1928,15 +1928,15 @@ exports.verifyInvMap = async (req, res) => {
 
     const availability = await getPreferenceAvailability(databaseName, canonicalUserId);
     const missing = getInvMapMissing(featureFlags, availability);
-    const verified = missing.length === 0;
+    const verified = true;
 
     res.json({
       verified,
       missing,
       availability,
-      message: verified
-        ? "Verified successfully."
-        : `Selected function(s) missing in Preference uploads: ${missing.join(", ")}`,
+      message: missing.length
+        ? `Verified with warning. Missing Preference uploads: ${missing.join(", ")}`
+        : "Verified successfully.",
     });
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to verify Inv Map." });
@@ -1981,12 +1981,6 @@ exports.saveInvMap = async (req, res) => {
 
     const availability = await getPreferenceAvailability(databaseName, canonicalUserId);
     const missing = getInvMapMissing(featureFlags, availability);
-    if (missing.length) {
-      return res.status(400).json({
-        message: `Verify failed. Missing Preference upload(s): ${missing.join(", ")}`,
-        missing,
-      });
-    }
 
     await mainDbClient.connect();
     await ensureUserInvoiceMappingTable(mainDbClient);
@@ -2026,7 +2020,9 @@ exports.saveInvMap = async (req, res) => {
     );
 
     res.json({
-      message: "Inv Map saved successfully.",
+      message: missing.length
+        ? `Inv Map saved. Missing uploads: ${missing.join(", ")}`
+        : "Inv Map saved successfully.",
       mapping: {
         user_ref: `${userRef.user_database}:${userRef.user_id}`,
         user_id: canonicalUserId,
@@ -2034,6 +2030,7 @@ exports.saveInvMap = async (req, res) => {
         feature_flags: featureFlags,
         is_verified: true,
       },
+      missing,
     });
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to save Inv Map." });
