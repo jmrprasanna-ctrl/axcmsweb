@@ -961,27 +961,51 @@ exports.sendInvoiceEmail = async (req, res) => {
         const invoiceNo = safeFilePart(invoice.invoice_no, "invoice");
         const customerName = safeFilePart(customer.name, "customer");
         const defaultPdfFileName = `invoice_${invoiceNo}_${customerName}.pdf`;
-        const customPdfNameRaw = String(req.body?.attachment_file_name || "").trim();
-        const customPdfName = customPdfNameRaw ? safeFilePart(customPdfNameRaw, defaultPdfFileName) : "";
-        const pdfFileName = String(customPdfName || defaultPdfFileName).toLowerCase().endsWith(".pdf")
-            ? String(customPdfName || defaultPdfFileName)
-            : `${String(customPdfName || defaultPdfFileName)}.pdf`;
-
-        let pdfBuffer = Buffer.alloc(0);
+        const emailAttachments = [];
         let attachmentSource = "rendered";
-        const attachmentBase64 = String(req.body?.attachment_pdf_base64 || "").trim();
-        if(attachmentBase64){
-            pdfBuffer = parseBase64Payload(attachmentBase64);
-        }
-        if(!pdfBuffer.length){
-            return res.status(400).json({
-                message: "Rendered PDF attachment is missing in request. Hard refresh the Invoice page and try again."
+
+        const list = Array.isArray(req.body?.attachment_list) ? req.body.attachment_list : [];
+        list.forEach((item, idx) => {
+            const rawBase64 = String(item?.attachment_pdf_base64 || "").trim();
+            if(!rawBase64) return;
+            const buffer = parseBase64Payload(rawBase64);
+            if(!buffer.length) return;
+            const sig = buffer.slice(0, 4).toString("utf8");
+            if(sig !== "%PDF") return;
+            const fallbackName = `attachment_${idx + 1}.pdf`;
+            const rawName = String(item?.attachment_file_name || "").trim();
+            const normalizedBase = safeFilePart(rawName || fallbackName, fallbackName);
+            const fileName = normalizedBase.toLowerCase().endsWith(".pdf") ? normalizedBase : `${normalizedBase}.pdf`;
+            emailAttachments.push({
+                filename: fileName,
+                content: buffer,
+                contentType: "application/pdf"
             });
-        }
-        const pdfSignature = pdfBuffer.slice(0, 4).toString("utf8");
-        if(pdfSignature !== "%PDF"){
-            return res.status(400).json({
-                message: "Invalid rendered PDF attachment in request. Please refresh Invoice page and retry."
+        });
+
+        if(!emailAttachments.length){
+            const customPdfNameRaw = String(req.body?.attachment_file_name || "").trim();
+            const customPdfName = customPdfNameRaw ? safeFilePart(customPdfNameRaw, defaultPdfFileName) : "";
+            const pdfFileName = String(customPdfName || defaultPdfFileName).toLowerCase().endsWith(".pdf")
+                ? String(customPdfName || defaultPdfFileName)
+                : `${String(customPdfName || defaultPdfFileName)}.pdf`;
+            const attachmentBase64 = String(req.body?.attachment_pdf_base64 || "").trim();
+            const pdfBuffer = parseBase64Payload(attachmentBase64);
+            if(!pdfBuffer.length){
+                return res.status(400).json({
+                    message: "Rendered PDF attachment is missing in request. Hard refresh the Invoice page and try again."
+                });
+            }
+            const pdfSignature = pdfBuffer.slice(0, 4).toString("utf8");
+            if(pdfSignature !== "%PDF"){
+                return res.status(400).json({
+                    message: "Invalid rendered PDF attachment in request. Please refresh Invoice page and retry."
+                });
+            }
+            emailAttachments.push({
+                filename: pdfFileName,
+                content: pdfBuffer,
+                contentType: "application/pdf"
             });
         }
 
@@ -1014,13 +1038,7 @@ exports.sendInvoiceEmail = async (req, res) => {
                     subject,
                     text: textBody,
                     html: htmlBody,
-                    attachments: [
-                        {
-                            filename: pdfFileName,
-                            content: pdfBuffer,
-                            contentType: "application/pdf"
-                        }
-                    ],
+                    attachments: emailAttachments,
                     smtpConfig: candidate.smtpConfig,
                     from: candidate.from
                 });
@@ -1040,7 +1058,7 @@ exports.sendInvoiceEmail = async (req, res) => {
 
         res.json({
             message: `Invoice email sent to ${recipient} (attachment source: ${attachmentSource})`,
-            filename: pdfFileName,
+            filenames: emailAttachments.map((x) => x.filename),
             attachment_source: attachmentSource
         });
     }catch(err){

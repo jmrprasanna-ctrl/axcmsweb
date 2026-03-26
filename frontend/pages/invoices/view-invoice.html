@@ -139,6 +139,7 @@
     <div class="invoice-actions">
         <button class="btn btn-primary" onclick="printPDF()">Print PDF</button>
         <button class="btn btn-primary" onclick="emailInvoice()">email</button>
+        <button class="btn btn-primary" onclick="emailQuotations()">Quatation Email</button>
         <button class="btn btn-secondary" type="button" onclick="window.location.href='invoice-list.html'">Back</button>
     </div>
 </div>
@@ -150,6 +151,7 @@
 let latestInvoiceData = null;
 let templateDataUrl = "";
 let templatePlacement = { dx: 0, dy: 0, w: 1240, h: 1754 };
+const templateRenderCache = {};
 const BASE_W = 1240;
 const BASE_H = 1754;
 const currentRole = String(localStorage.getItem("role") || "").trim().toLowerCase();
@@ -552,30 +554,55 @@ async function fetchInvoiceData(){
 }
 
 async function fetchTemplatePdfBuffer(){
-    if(!hasMappedFeature("invoice")){
-        throw new Error("Invoice function is not mapped for this user and database.");
+    return fetchTemplatePdfBufferByType("invoice");
+}
+
+function getTemplateTypeMeta(templateType){
+    const key = String(templateType || "invoice").trim().toLowerCase();
+    if(key === "quotation"){
+        return { endpoint: "/invoices/quotation-template-pdf", feature: "quotation", label: "Quotation" };
+    }
+    if(key === "quotation2"){
+        return { endpoint: "/invoices/quotation-2-template-pdf", feature: "quotation2", label: "Quotation 2" };
+    }
+    if(key === "quotation3"){
+        return { endpoint: "/invoices/quotation-3-template-pdf", feature: "quotation3", label: "Quotation 3" };
+    }
+    return { endpoint: "/invoices/template-pdf", feature: "invoice", label: "Invoice" };
+}
+
+async function fetchTemplatePdfBufferByType(templateType){
+    const meta = getTemplateTypeMeta(templateType);
+    if(!hasMappedFeature(meta.feature)){
+        throw new Error(`${meta.label} function is not mapped for this user and database.`);
     }
     const token = localStorage.getItem("token");
-    const res = await fetch(`${BASE_URL}/invoices/template-pdf`, {
+    const res = await fetch(`${BASE_URL}${meta.endpoint}`, {
         headers: {
             "Authorization": `Bearer ${token}`
         }
     });
     if(!res.ok){
-        throw new Error("Failed to load invoice template PDF from backend.");
+        throw new Error(`Failed to load ${meta.label} template PDF from backend.`);
     }
     return res.arrayBuffer();
 }
 
-async function ensureTemplateDataUrl(width, height){
-    if(templateDataUrl) return templateDataUrl;
+async function ensureTemplateDataUrl(width, height, templateType="invoice"){
+    const typeKey = String(templateType || "invoice").trim().toLowerCase();
+    const cacheKey = `${typeKey}:${width}x${height}`;
+    if(templateRenderCache[cacheKey]){
+        templateDataUrl = templateRenderCache[cacheKey].dataUrl;
+        templatePlacement = templateRenderCache[cacheKey].placement;
+        return templateDataUrl;
+    }
 
     if(!window.pdfjsLib){
         throw new Error("pdf.js is not loaded.");
     }
 
     window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-    const buffer = await fetchTemplatePdfBuffer();
+    const buffer = await fetchTemplatePdfBufferByType(typeKey);
     const doc = await window.pdfjsLib.getDocument({ data: buffer }).promise;
     const page = await doc.getPage(1);
 
@@ -604,10 +631,14 @@ async function ensureTemplateDataUrl(width, height){
     octx.drawImage(pageCanvas, dx, dy);
     templatePlacement = { dx, dy, w: pageCanvas.width, h: pageCanvas.height };
     templateDataUrl = out.toDataURL("image/png");
+    templateRenderCache[cacheKey] = {
+        dataUrl: templateDataUrl,
+        placement: { ...templatePlacement }
+    };
     return templateDataUrl;
 }
 
-async function drawInvoice(data, mimeType="image/png", renderSize=null){
+async function drawInvoice(data, mimeType="image/png", renderSize=null, templateType="invoice"){
     const W = renderSize && renderSize.width ? renderSize.width : 1240;
     const H = renderSize && renderSize.height ? renderSize.height : 1754;
     const canvas = document.createElement("canvas");
@@ -619,7 +650,7 @@ async function drawInvoice(data, mimeType="image/png", renderSize=null){
     ctx.fillRect(0, 0, W, H);
 
     try{
-        const bgUrl = await ensureTemplateDataUrl(W, H);
+        const bgUrl = await ensureTemplateDataUrl(W, H, templateType);
         const bg = await loadImage(bgUrl);
         ctx.drawImage(bg, 0, 0, W, H);
     }catch(_err){
@@ -1305,11 +1336,11 @@ function blobToDataUrl(blob){
     });
 }
 
-async function buildRenderedInvoicePdf(){
+async function buildRenderedInvoicePdf(templateType="invoice", filePrefix="Invoice"){
     if(!latestInvoiceData){
         throw new Error("Invoice preview is not ready yet.");
     }
-    const image = await drawInvoice(latestInvoiceData, "image/jpeg", { width: BASE_W, height: BASE_H });
+    const image = await drawInvoice(latestInvoiceData, "image/jpeg", { width: BASE_W, height: BASE_H }, templateType);
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: "p", unit: "pt", format: "a4", compress: true });
     const pageW = doc.internal.pageSize.getWidth();
@@ -1333,7 +1364,8 @@ async function buildRenderedInvoicePdf(){
     const customerName = String((latestInvoiceData.customer && latestInvoiceData.customer.name) || "Customer").trim();
     const safeCustomer = customerName.replace(/[\\/:*?"<>|]/g, "_");
     const safeInvoiceNo = invoiceNo.replace(/[\\/:*?"<>|]/g, "_");
-    const fileName = `Invoice_${safeInvoiceNo}_${safeCustomer}.pdf`;
+    const safePrefix = String(filePrefix || "Invoice").replace(/[\\/:*?"<>|]/g, "_");
+    const fileName = `${safePrefix}_${safeInvoiceNo}_${safeCustomer}.pdf`;
     const pdfBlob = doc.output("blob");
     return { doc, pdfBlob, fileName };
 }
@@ -1351,7 +1383,7 @@ async function emailInvoice(){
     }
 
     try{
-        const rendered = await buildRenderedInvoicePdf();
+        const rendered = await buildRenderedInvoicePdf("invoice", "Invoice");
         const attachmentDataUrl = await blobToDataUrl(rendered.pdfBlob);
         const res = await request(`/invoices/${invoiceId}/send-email`, "POST", {
             attachment_pdf_base64: attachmentDataUrl,
@@ -1365,6 +1397,50 @@ async function emailInvoice(){
         }
     }catch(err){
         alert(err.message || "Failed to send invoice email");
+    }
+}
+
+async function emailQuotations(){
+    if(!latestInvoiceData){
+        alert("Invoice details are not ready yet.");
+        return;
+    }
+    const invoiceId = new URLSearchParams(window.location.search).get("id");
+    if(!invoiceId){
+        alert("Invoice id is missing.");
+        return;
+    }
+    try{
+        const attachments = [];
+        const defs = [
+            { type: "quotation", feature: "quotation", prefix: "Quotation" },
+            { type: "quotation2", feature: "quotation2", prefix: "Quotation_2" },
+            { type: "quotation3", feature: "quotation3", prefix: "Quotation_3" }
+        ];
+        for(const def of defs){
+            if(!hasMappedFeature(def.feature)) continue;
+            const rendered = await buildRenderedInvoicePdf(def.type, def.prefix);
+            const dataUrl = await blobToDataUrl(rendered.pdfBlob);
+            attachments.push({
+                attachment_pdf_base64: dataUrl,
+                attachment_file_name: rendered.fileName
+            });
+        }
+        if(!attachments.length){
+            alert("No Quotation functions are mapped for this user/database.");
+            return;
+        }
+        const res = await request(`/invoices/${invoiceId}/send-email`, "POST", {
+            attachment_list: attachments,
+            require_rendered_attachment: true
+        });
+        if(typeof showMessageBox === "function"){
+            showMessageBox(res.message || "Quotation email sent");
+        }else{
+            alert(res.message || "Quotation email sent");
+        }
+    }catch(err){
+        alert(err.message || "Failed to send quotation email");
     }
 }
 
