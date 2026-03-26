@@ -452,3 +452,74 @@ body.theme-dark {
     radial-gradient(circle at 95% 110%, rgba(57, 88, 78, 0.35) 0%, transparent 28%),
     linear-gradient(180deg, var(--page-bg) 0%, var(--page-bg-soft) 100%);
 }
+
+body.theme-dark .card,
+body.theme-dark .form-container,
+body.theme-dark .chart-container,
+body.theme-dark .login-container,
+body.theme-dark .todo-section,
+body.theme-dark .preference-card,
+body.theme-dark .inv-map-card,
+body.theme-dark .mapped-info {
+  background: linear-gradient(180deg, #1f2b38 0%, #263645 100%);
+}
+
+body.theme-dark label {
+  color: #ccdbeb;
+}
+
+body.theme-dark input,
+body.theme-dark select,
+body.theme-dark textarea {
+  background: #253544;
+  color: var(--text);
+  border-color: #3a4f64;
+}
+
+body.theme-dark input:focus,
+body.theme-dark select:focus,
+body.theme-dark textarea:focus {
+  background: #2a3a4a;
+}
+
+body.theme-dark input::placeholder,
+body.theme-dark textarea::placeholder {
+  color: #8fa5bb;
+}
+
+body.theme-dark .btn-secondary {
+  background: #2a3c4f;
+  color: #dce9f7;
+  border-color: #3d546b;
+}
+
+body.theme-dark .table,
+body.theme-dark table {
+  background: #22313f;
+}
+
+body.theme-dark thead {
+  background: linear-gradient(180deg, #2b3f52 0%, #30475d 100%);
+}
+
+body.theme-dark th {
+  color: #deebf8;
+}
+
+body.theme-dark td {
+  color: #d1dfed;
+}
+
+body.theme-dark tbody tr:nth-child(even) {
+  background: #263746;
+}
+
+body.theme-dark tbody tr:hover {
+  background: #2c4052;
+}
+
+body.theme-dark .app-global-footer {
+  background: rgba(20, 30, 40, 0.9);
+  color: #c5d6e8;
+  border-top-color: #33495e;
+}

@@ -535,3 +535,52 @@ body {
     justify-content: flex-start;
   }
 }
+
+body.theme-dark .dashboard-topbar,
+body.theme-dark .summary-filters,
+body.theme-dark .health-panel {
+  background: #1f2d3a;
+}
+
+body.theme-dark .user-chip {
+  background: #27394b;
+}
+
+body.theme-dark .user-name {
+  color: #e3eef9;
+}
+
+body.theme-dark .icon-btn {
+  background: #253646;
+  color: #d8e6f5;
+  border-color: #3a4f64;
+}
+
+body.theme-dark .icon-btn:hover {
+  border-color: #53708f;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.28);
+}
+
+body.theme-dark .health-item {
+  background: #253646;
+  border-color: #3a4f64;
+}
+
+body.theme-dark .health-label,
+body.theme-dark .card h3,
+body.theme-dark .todo-meta {
+  color: #b9cade;
+}
+
+body.theme-dark .health-badge.unknown {
+  color: #d4e4f4;
+  background: #385067;
+}
+
+body.theme-dark .todo-item {
+  background: linear-gradient(180deg, #253544 0%, #2a3c4d 100%);
+}
+
+body.theme-dark .todo-title.done {
+  color: #93a8bd;
+}
