@@ -99,7 +99,7 @@ const ACCESS_MODULE_OPTIONS = [
       { path: "/users/db-create.html", label: "DB Create", actions: ["view", "add", "delete"] },
       { path: "/users/company-create.html", label: "Company Create", actions: ["view", "add", "delete"] },
       { path: "/users/mapped.html", label: "Mapped", actions: ["view", "add"] },
-      { path: "/users/inv-map.html", label: "Inv Map", actions: ["view", "add"] },
+      { path: "/users/inv-map.html", label: "Inv Map", actions: ["view", "add", "delete"] },
       { path: "/users/preference.html", label: "Preference", actions: ["view", "edit"] },
       { path: "/users/user-logged.html", label: "User Logged Times", actions: ["view"] },
       { path: "/support/email-setup.html", label: "Email Setup", actions: ["view", "edit"] },
@@ -1632,6 +1632,100 @@ exports.saveMapping = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to save mapping." });
+  } finally {
+    await mainDbClient.end().catch(() => {});
+  }
+};
+
+exports.listInvMapEntries = async (req, res) => {
+  const canView = await hasInvMapActionPermission(req, "view");
+  if (!canView) {
+    return res.status(403).json({ message: "Forbidden: Missing Inv Map view permission." });
+  }
+
+  const cfg = getDbConfig();
+  const mainDbClient = new Client({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: cfg.database || INVENTORY_DB_NAME,
+  });
+
+  try {
+    await mainDbClient.connect();
+    await ensureUserInvoiceMappingTable(mainDbClient);
+    const rs = await mainDbClient.query(
+      `SELECT uim.*, u.username, u.email
+       FROM ${USER_INVOICE_MAPPING_TABLE} uim
+       LEFT JOIN users u ON u.id = uim.user_id
+       ORDER BY LOWER(uim.database_name) ASC, uim.user_id ASC, uim.id ASC`
+    );
+
+    const rows = (rs.rows || []).map((row) => ({
+      id: Number(row.id || 0),
+      user_id: Number(row.user_id || 0),
+      username: String(row.username || "").trim(),
+      email: String(row.email || "").trim(),
+      database_name: normalizeDatabaseName(row.database_name),
+      feature_flags: {
+        logo: Boolean(row.logo_enabled),
+        invoice: Boolean(row.invoice_enabled),
+        quotation: Boolean(row.quotation_enabled),
+        quotation2: Boolean(row.quotation2_enabled),
+        quotation3: Boolean(row.quotation3_enabled),
+        sign_c: Boolean(row.sign_c_enabled),
+        sign_v: Boolean(row.sign_v_enabled),
+        seal_c: Boolean(row.seal_c_enabled),
+        seal_v: Boolean(row.seal_v_enabled),
+        theme: Boolean(row.theme_enabled),
+      },
+      is_verified: Boolean(row.is_verified),
+      updated_at: row.updatedAt || null,
+    }));
+
+    res.json({ entries: rows });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to load Inv Map entries." });
+  } finally {
+    await mainDbClient.end().catch(() => {});
+  }
+};
+
+exports.deleteInvMapEntry = async (req, res) => {
+  const canDelete = await hasInvMapActionPermission(req, "delete");
+  if (!canDelete) {
+    return res.status(403).json({ message: "Forbidden: Missing Inv Map delete permission." });
+  }
+
+  const entryId = Number(req.params.entryId || 0);
+  if (!Number.isFinite(entryId) || entryId <= 0) {
+    return res.status(400).json({ message: "Invalid entry id." });
+  }
+
+  const cfg = getDbConfig();
+  const mainDbClient = new Client({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: cfg.database || INVENTORY_DB_NAME,
+  });
+  try {
+    await mainDbClient.connect();
+    await ensureUserInvoiceMappingTable(mainDbClient);
+    const rs = await mainDbClient.query(
+      `DELETE FROM ${USER_INVOICE_MAPPING_TABLE}
+       WHERE id = $1
+       RETURNING id`,
+      [entryId]
+    );
+    if (!rs.rowCount) {
+      return res.status(404).json({ message: "Inv Map entry not found." });
+    }
+    res.json({ message: "Inv Map entry deleted successfully." });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to delete Inv Map entry." });
   } finally {
     await mainDbClient.end().catch(() => {});
   }

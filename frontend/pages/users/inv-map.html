@@ -15,6 +15,7 @@
         .inv-map-table th:last-child,.inv-map-table td:last-child{text-align:center;width:120px}
         .inv-map-table tr:last-child td{border-bottom:0}
         .inv-map-row{display:grid;grid-template-columns:220px 1fr;gap:10px;padding:4px 0}
+        .entries-table .btn{margin-top:0}
         @media (max-width: 900px){
             .inv-map-grid{grid-template-columns:1fr}
             .inv-map-row{grid-template-columns:1fr}
@@ -74,6 +75,24 @@
                 <div class="inv-map-row"><strong>Missing Preferences</strong><span id="missingStatus">-</span></div>
             </div>
 
+            <div class="inv-map-card">
+                <label style="margin-bottom:8px;display:block;">Mapped Entries</label>
+                <table class="inv-map-table entries-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Uploads</th>
+                            <th>Database</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="entriesBody">
+                        <tr><td colspan="5" style="text-align:center;color:#5d6f85;">No mapped entries</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
             <div class="access-actions" style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
                 <button id="verifyBtn" class="btn btn-secondary" type="button" onclick="verifyInvMap()">Verify</button>
                 <button id="mappedBtn" class="btn btn-primary" type="button" onclick="saveInvMap()">Mapped</button>
@@ -91,9 +110,11 @@
         const missingStatusEl = document.getElementById("missingStatus");
         const verifyBtnEl = document.getElementById("verifyBtn");
         const mappedBtnEl = document.getElementById("mappedBtn");
+        const entriesBodyEl = document.getElementById("entriesBody");
 
         const INV_MAP_PATH = "/users/inv-map.html";
         let canAddInvMap = false;
+        let canDeleteInvMap = false;
         let isVerified = false;
 
         const FEATURE_OPTIONS = [
@@ -145,6 +166,43 @@
             isVerified = false;
             verifyStatusEl.textContent = "Not verified";
             missingStatusEl.textContent = "-";
+        }
+
+        function mappedFeatureNames(flags){
+            const normalized = flags && typeof flags === "object" ? flags : {};
+            const names = FEATURE_OPTIONS
+                .filter((feature) => !!normalized[feature.key])
+                .map((feature) => feature.label);
+            return names.length ? names.join(", ") : "-";
+        }
+
+        async function loadInvMapEntries(){
+            try{
+                const res = await request("/users/inv-map/entries", "GET");
+                const entries = Array.isArray(res.entries) ? res.entries : [];
+                if(!entries.length){
+                    entriesBodyEl.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#5d6f85;">No mapped entries</td></tr>`;
+                    return;
+                }
+                entriesBodyEl.innerHTML = "";
+                entries.forEach((entry) => {
+                    const row = document.createElement("tr");
+                    const userLabel = `${entry.username || "User"}${entry.email ? ` (${entry.email})` : ""}`;
+                    const actionHtml = canDeleteInvMap
+                        ? `<button class="btn btn-secondary" type="button" onclick="deleteInvMapEntry(${Number(entry.id)})">Delete</button>`
+                        : "-";
+                    row.innerHTML = `
+                        <td>${userLabel}</td>
+                        <td>${mappedFeatureNames(entry.feature_flags)}</td>
+                        <td>${entry.database_name || "-"}</td>
+                        <td>${entry.is_verified ? "Verified" : "Not verified"}</td>
+                        <td>${actionHtml}</td>
+                    `;
+                    entriesBodyEl.appendChild(row);
+                });
+            }catch(err){
+                entriesBodyEl.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#a33a3a;">${err.message || "Failed to load mapped entries"}</td></tr>`;
+            }
         }
 
         async function loadUsers(){
@@ -250,8 +308,28 @@
                     feature_flags: getFeatureFlags()
                 });
                 showMessageBox(res.message || "Inv Map saved successfully");
+                await loadInvMapEntries();
             }catch(err){
                 alert(err.message || "Failed to save Inv Map");
+            }
+        }
+
+        async function deleteInvMapEntry(entryId){
+            if(!canDeleteInvMap){
+                alert("You do not have delete permission for Inv Map page.");
+                return;
+            }
+            const id = Number(entryId || 0);
+            if(!id) return;
+            if(!confirm("Delete this mapped entry?")){
+                return;
+            }
+            try{
+                const res = await request(`/users/inv-map/entries/${id}`, "DELETE");
+                showMessageBox(res.message || "Inv Map entry deleted");
+                await loadInvMapEntries();
+            }catch(err){
+                alert(err.message || "Failed to delete Inv Map entry");
             }
         }
 
@@ -260,6 +338,7 @@
                 await window.__waitForUserAccessPermissions();
             }
             canAddInvMap = !!window.hasUserActionPermission && window.hasUserActionPermission(INV_MAP_PATH, "add");
+            canDeleteInvMap = !!window.hasUserActionPermission && window.hasUserActionPermission(INV_MAP_PATH, "delete");
             const canViewInvMap = !!window.hasUserActionPermission && window.hasUserActionPermission(INV_MAP_PATH, "view");
             if(!canViewInvMap){
                 alert("You do not have permission to view Inv Map.");
@@ -285,6 +364,7 @@
 
         window.verifyInvMap = verifyInvMap;
         window.saveInvMap = saveInvMap;
+        window.deleteInvMapEntry = deleteInvMapEntry;
 
         (async function init(){
             const role = (localStorage.getItem("role") || "").toLowerCase();
@@ -298,6 +378,7 @@
             if(!allowed) return;
             await Promise.all([loadUsers(), loadDatabases()]);
             await loadExistingMapping();
+            await loadInvMapEntries();
         })();
     </script>
 </body>

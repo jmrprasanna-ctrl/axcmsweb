@@ -15,6 +15,8 @@ const {
   verifyMapping,
   saveMapping,
   getInvMapByUser,
+  listInvMapEntries,
+  deleteInvMapEntry,
   verifyInvMap,
   saveInvMap,
   getMyInvMap,
@@ -49,6 +51,8 @@ router.get("/mapped/meta", getMappedMeta);
 router.get("/mapped/:userId", getMappedByUser);
 router.post("/mapped/verify", verifyMapping);
 router.post("/mapped/save", saveMapping);
+router.get("/inv-map/entries", listInvMapEntries);
+router.delete("/inv-map/entries/:entryId", deleteInvMapEntry);
 router.get("/inv-map/:userId", getInvMapByUser);
 router.post("/inv-map/verify", verifyInvMap);
 router.post("/inv-map/save", saveInvMap);
