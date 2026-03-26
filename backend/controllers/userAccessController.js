@@ -2051,7 +2051,8 @@ exports.getMyInvMap = async (req, res) => {
     return res.status(401).json({ message: "Invalid token user." });
   }
 
-  const databaseName = normalizeDatabaseName(req.databaseName || req.user?.database_name || req.headers["x-database-name"]) || INVENTORY_DB_NAME;
+  const requesterDatabase = normalizeDatabaseName(req.databaseName || req.user?.database_name || req.headers["x-database-name"]) || INVENTORY_DB_NAME;
+  const databaseName = requesterDatabase;
   const cfg = getDbConfig();
   const mainDbClient = new Client({
     host: cfg.host,
@@ -2061,6 +2062,12 @@ exports.getMyInvMap = async (req, res) => {
     database: cfg.database || INVENTORY_DB_NAME,
   });
   try {
+    const requesterUser = await getUserFromDatabase(requesterDatabase, userId);
+    const canonicalUserId = await resolveCanonicalInvMapUserId(
+      { user_database: requesterDatabase, user_id: userId },
+      requesterUser
+    );
+
     await mainDbClient.connect();
     await ensureUserInvoiceMappingTable(mainDbClient);
     const rs = await mainDbClient.query(
@@ -2068,7 +2075,7 @@ exports.getMyInvMap = async (req, res) => {
        FROM ${USER_INVOICE_MAPPING_TABLE}
        WHERE user_id = $1 AND LOWER(database_name) = LOWER($2)
        LIMIT 1`,
-      [userId, databaseName]
+      [canonicalUserId, databaseName]
     );
     if (!rs.rowCount) {
       return res.json({
@@ -2079,7 +2086,7 @@ exports.getMyInvMap = async (req, res) => {
     const row = rs.rows[0];
     res.json({
       mapping: {
-        user_id: Number(row.user_id || 0),
+        user_id: Number(canonicalUserId || row.user_id || 0),
         database_name: normalizeDatabaseName(row.database_name),
         is_verified: Boolean(row.is_verified),
       },

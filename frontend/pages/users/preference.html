@@ -301,14 +301,29 @@
             const pref = await request("/preferences", "GET");
             setStatuses(pref);
             try{
-                const dbName = getActiveDatabaseName();
-                const endpoint = dbName
-                    ? `/users/inv-map/entries?database_name=${encodeURIComponent(dbName)}`
-                    : "/users/inv-map/entries";
-                const invMapRes = await request(endpoint, "GET");
+                const invMapRes = await request("/users/inv-map/entries", "GET");
                 setMappedStatuses(invMapRes.entries);
-            }catch(_err){
-                setMappedStatuses([]);
+            }catch(_listErr){
+                try{
+                    const meRes = await request("/users/inv-map/me", "GET");
+                    const meFlags = meRes && meRes.feature_flags && typeof meRes.feature_flags === "object"
+                        ? meRes.feature_flags
+                        : null;
+                    const meDb = String(meRes?.mapping?.database_name || getActiveDatabaseName() || "").trim().toLowerCase();
+                    if(meFlags){
+                        setMappedStatuses([{
+                            user_id: Number(localStorage.getItem("userId") || 0) || null,
+                            username: String(localStorage.getItem("userName") || "").trim(),
+                            email: String(localStorage.getItem("userEmail") || "").trim(),
+                            database_name: meDb,
+                            feature_flags: meFlags
+                        }]);
+                    }else{
+                        setMappedStatuses([]);
+                    }
+                }catch(_meErr){
+                    setMappedStatuses([]);
+                }
             }
             const ui = await request("/preferences/my-ui-settings", "GET");
             if(ui){
