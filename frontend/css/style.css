@@ -566,3 +566,46 @@ body.theme-dark .product-search-empty,
 body.theme-dark .selected-product {
   color: #b7c9dc;
 }
+
+body.theme-dark .module-card {
+  background: #1f2d3a;
+  border-color: #3a4f64;
+}
+
+body.theme-dark .module-head {
+  background: #2a3d50;
+  border-bottom-color: #3a4f64;
+  color: #dce9f7;
+}
+
+body.theme-dark .matrix-table th {
+  background: #293d50;
+  color: #d8e7f6;
+}
+
+body.theme-dark .matrix-table td {
+  color: #cfdeed;
+  border-bottom-color: #33495e;
+}
+
+body.theme-dark .path-hint {
+  color: #9fb5ca;
+}
+
+body.theme-dark .db-table,
+body.theme-dark .company-table {
+  background: #22313f;
+}
+
+body.theme-dark .db-table th,
+body.theme-dark .company-table th {
+  background: #2a3e52;
+  color: #d9e8f7;
+  border-bottom-color: #3a4f64;
+}
+
+body.theme-dark .db-table td,
+body.theme-dark .company-table td {
+  color: #cfdeed;
+  border-bottom-color: #33495e;
+}
