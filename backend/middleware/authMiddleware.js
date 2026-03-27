@@ -3,6 +3,7 @@ const db = require("../config/database");
 const { Client } = require("pg");
 
 const DEFAULT_DB = db.normalizeDatabaseName(process.env.DB_NAME || "inventory") || "inventory";
+const ensuredMachineEntryDateDbs = new Set();
 
 function getAuthDbClient() {
   return new Client({
@@ -71,6 +72,56 @@ async function resolveMappedDatabase(userId) {
   }
 }
 
+async function ensureMachineEntryDateColumns(databaseName) {
+  const targetDb = db.normalizeDatabaseName(databaseName || "");
+  if (!targetDb || ensuredMachineEntryDateDbs.has(targetDb)) {
+    return;
+  }
+
+  await db.withDatabase(targetDb, async () => {
+    const tableExistsRs = await db.query(
+      `SELECT to_regclass('public.rental_machines') AS rental_table, to_regclass('public.general_machines') AS general_table`
+    );
+    const row = Array.isArray(tableExistsRs?.[0]) ? tableExistsRs[0][0] : tableExistsRs?.[0];
+    const hasRental = Boolean(row?.rental_table);
+    const hasGeneral = Boolean(row?.general_table);
+
+    if (hasRental) {
+      await db.query(`
+        ALTER TABLE rental_machines
+        ADD COLUMN IF NOT EXISTS entry_date DATE;
+      `);
+      await db.query(`
+        UPDATE rental_machines
+        SET entry_date = COALESCE(entry_date, DATE("createdAt"), CURRENT_DATE)
+        WHERE entry_date IS NULL;
+      `);
+      await db.query(`
+        CREATE INDEX IF NOT EXISTS rental_machines_entry_date_idx
+        ON rental_machines(entry_date);
+      `);
+    }
+
+    if (hasGeneral) {
+      await db.query(`
+        ALTER TABLE general_machines
+        ADD COLUMN IF NOT EXISTS entry_date DATE;
+      `);
+      await db.query(`
+        UPDATE general_machines
+        SET entry_date = COALESCE(entry_date, DATE("createdAt"), CURRENT_DATE)
+        WHERE entry_date IS NULL;
+      `);
+      await db.query(`
+        CREATE INDEX IF NOT EXISTS general_machines_entry_date_idx
+        ON general_machines(entry_date);
+      `);
+    }
+  });
+
+  ensuredMachineEntryDateDbs.add(targetDb);
+}
+
 const authMiddleware = async (req, res, next) => {
   const token = req.headers["authorization"]?.split(" ")[1];
   if (!token) {
@@ -114,6 +165,11 @@ const authMiddleware = async (req, res, next) => {
         return res.status(403).json({ message: "Invalid assigned database access." });
       }
       targetDb = assignedDb;
+    }
+
+    try {
+      await ensureMachineEntryDateColumns(targetDb);
+    } catch (_err) {
     }
 
     req.user = decoded;

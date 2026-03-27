@@ -6,6 +6,8 @@ const db = require("../config/database");
 const User = require("../models/User");
 const UserAccess = require("../models/UserAccess");
 const UiSetting = require("../models/UiSetting");
+const Category = require("../models/Category");
+const CategoryModelOption = require("../models/CategoryModelOption");
 const DEMO_DB_NAME = "demo";
 const INVENTORY_DB_NAME = "inventory";
 const RESERVED_DATABASES = new Set(["postgres", "template0", "template1"]);
@@ -17,6 +19,34 @@ const COMPANY_LOGO_EXTENSIONS = new Set([".jpg", ".jpeg", ".bmp", ".gif", ".tiff
 const USER_INVOICE_MAPPING_TABLE = "user_invoice_mappings";
 const INV_MAP_PATH = "/users/inv-map.html";
 const ensuredUiSettingsDbSet = new Set();
+const DEFAULT_CATEGORIES = [
+  "Photocopier",
+  "Printer",
+  "Plotter",
+  "Computer",
+  "Laptop",
+  "Accessory",
+  "Consumable",
+  "Machine",
+  "CCTV",
+  "Duplo",
+  "Other",
+  "Service",
+];
+const DEFAULT_CATEGORY_MODELS = {
+  Accessory: ["CANON", "TOSHIBA", "RECOH", "SHARP", "KYOCERA", "SEROX", "SAMSUNG", "HP", "DELL"],
+  Consumable: ["CANON", "TOSHIBA", "RECOH", "SHARP", "KYOCERA", "SEROX", "SAMSUNG", "HP", "DELL"],
+  Machine: ["CANON", "TOSHIBA", "RECOH", "SHARP", "KYOCERA", "SEROX", "SAMSUNG", "HP", "DELL"],
+  Photocopier: ["CANON", "TOSHIBA", "RECOH", "SHARP", "KYOCERA", "SEROX", "SAMSUNG", "HP", "DELL"],
+  Printer: ["CANON", "HP", "EPSON", "BROTHER", "LEXMARK", "OTHER", "SEROX", "SAMSUNG"],
+  Computer: ["HP", "DELL", "ASUS", "SONY", "SINGER", "SAMSUNG", "SPARE PARTS", "OTHER"],
+  Laptop: ["HP", "DELL", "ASUS", "SONY", "SINGER", "SAMSUNG", "SPARE PARTS", "OTHER"],
+  Plotter: ["CANON", "HP", "EPSON", "OTHER"],
+  CCTV: ["HICKVISION", "DAHUA", "OTHER"],
+  Duplo: ["RONGDA", "RISO", "RECOH", "DUPLO"],
+  Other: ["OTHER"],
+  Service: ["OTHER"],
+};
 
 const ACCESS_MODULE_OPTIONS = [
   {
@@ -460,6 +490,31 @@ function getDbConfig() {
     password: process.env.DB_PASSWORD || "",
     database: process.env.DB_NAME || INVENTORY_DB_NAME,
   };
+}
+
+async function seedDefaultCategoryData(databaseName) {
+  await db.withDatabase(databaseName, async () => {
+    for (const name of DEFAULT_CATEGORIES) {
+      const exists = await Category.findOne({ where: { name } });
+      if (!exists) {
+        await Category.create({ name });
+      }
+    }
+
+    for (const [categoryName, models] of Object.entries(DEFAULT_CATEGORY_MODELS)) {
+      for (const modelName of models) {
+        const exists = await CategoryModelOption.findOne({
+          where: { category_name: categoryName, model_name: modelName },
+        });
+        if (!exists) {
+          await CategoryModelOption.create({
+            category_name: categoryName,
+            model_name: modelName,
+          });
+        }
+      }
+    }
+  });
 }
 
 function runBash(command, env = {}) {
@@ -1130,6 +1185,7 @@ exports.createDatabase = async (req, res) => {
 
     const connection = db.getConnection(databaseName);
     await connection.sync({ alter: true });
+    await seedDefaultCategoryData(databaseName);
 
     await mainDbClient.connect();
     await ensureDatabaseRegistryTable(mainDbClient);

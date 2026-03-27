@@ -62,6 +62,19 @@ async function listTargetDatabases() {
           if (name) requested.add(name);
         }
       }
+
+      const createdDbTableRs = await inventoryClient.query("SELECT to_regclass('public.company_databases') AS name");
+      if (createdDbTableRs.rows?.[0]?.name) {
+        const createdDbRs = await inventoryClient.query(
+          `SELECT DISTINCT LOWER(TRIM(database_name)) AS database_name
+           FROM company_databases
+           WHERE database_name IS NOT NULL AND TRIM(database_name) <> ''`
+        );
+        for (const row of createdDbRs.rows || []) {
+          const name = normalizeDatabaseName(row.database_name);
+          if (name) requested.add(name);
+        }
+      }
     } catch (_err) {
       // Inventory registry tables may not exist during initial setup.
     } finally {
