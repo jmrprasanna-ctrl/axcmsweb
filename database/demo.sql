@@ -134,6 +134,7 @@ CREATE TABLE rental_machines (
     model VARCHAR(100) NOT NULL,
     machine_title VARCHAR(150) NOT NULL,
     serial_no VARCHAR(100),
+    entry_date DATE DEFAULT CURRENT_DATE,
     start_count INT DEFAULT 0,
     createdAt TIMESTAMP DEFAULT NOW(),
     updatedAt TIMESTAMP DEFAULT NOW()

@@ -9,6 +9,14 @@ function toUpperSafe(value) {
   return String(value || "").trim().toUpperCase();
 }
 
+function parseDateOnly(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+  const dt = new Date(`${raw}T00:00:00Z`);
+  return Number.isNaN(dt.getTime()) ? null : raw;
+}
+
 exports.getRentalMachines = async (req, res) => {
   try {
     const rows = await RentalMachine.findAll({
@@ -43,6 +51,7 @@ exports.createRentalMachine = async (req, res) => {
       model,
       machine_title,
       serial_no,
+      entry_date,
       start_count,
       updated_count,
       page_per_price,
@@ -62,9 +71,14 @@ exports.createRentalMachine = async (req, res) => {
     const parsedPagePerPrice = Number.isNaN(Number.parseFloat(page_per_price))
       ? 0
       : Number.parseFloat(page_per_price);
+    const hasEntryDateInput = typeof entry_date !== "undefined" && String(entry_date || "").trim() !== "";
+    const parsedEntryDate = hasEntryDateInput ? parseDateOnly(entry_date) : new Date().toISOString().slice(0, 10);
 
     if (!machine_id || !Number.isFinite(parsedCustomerId) || !model || !machine_title || Number.isNaN(parsedStartCount)) {
       return res.status(400).json({ message: "Missing required fields." });
+    }
+    if (!parsedEntryDate) {
+      return res.status(400).json({ message: "Invalid entry date. Use YYYY-MM-DD." });
     }
     if (parsedUpdatedCount < 0 || parsedPagePerPrice < 0) {
       return res.status(400).json({ message: "Updated Count and Page per price cannot be negative." });
@@ -91,6 +105,7 @@ exports.createRentalMachine = async (req, res) => {
       model,
       machine_title,
       serial_no: serial_no || null,
+      entry_date: parsedEntryDate,
       start_count: parsedStartCount,
       updated_count: parsedUpdatedCount,
       page_per_price: parsedPagePerPrice,
@@ -128,6 +143,7 @@ exports.updateRentalMachine = async (req, res) => {
       model,
       machine_title,
       serial_no,
+      entry_date,
       start_count,
       updated_count,
       page_per_price,
@@ -147,9 +163,14 @@ exports.updateRentalMachine = async (req, res) => {
     const parsedPagePerPrice = Number.isNaN(Number.parseFloat(page_per_price))
       ? 0
       : Number.parseFloat(page_per_price);
+    const hasEntryDateInput = typeof entry_date !== "undefined";
+    const parsedEntryDate = hasEntryDateInput ? parseDateOnly(entry_date) : undefined;
 
     if (!machine_id || !Number.isFinite(parsedCustomerId) || !model || !machine_title || Number.isNaN(parsedStartCount)) {
       return res.status(400).json({ message: "Missing required fields." });
+    }
+    if (hasEntryDateInput && !parsedEntryDate) {
+      return res.status(400).json({ message: "Invalid entry date. Use YYYY-MM-DD." });
     }
     if (parsedUpdatedCount < 0 || parsedPagePerPrice < 0) {
       return res.status(400).json({ message: "Updated Count and Page per price cannot be negative." });
@@ -178,7 +199,7 @@ exports.updateRentalMachine = async (req, res) => {
       return res.status(400).json({ message: "Machine ID already exists." });
     }
 
-    await row.update({
+    const updatePayload = {
       machine_id,
       customer_id: parsedCustomerId,
       customer_name: customer_name || customer.name,
@@ -189,7 +210,13 @@ exports.updateRentalMachine = async (req, res) => {
       start_count: parsedStartCount,
       updated_count: parsedUpdatedCount,
       page_per_price: parsedPagePerPrice,
-    });
+    };
+
+    if (hasEntryDateInput) {
+      updatePayload.entry_date = parsedEntryDate;
+    }
+
+    await row.update(updatePayload);
 
     res.json(row);
   } catch (err) {

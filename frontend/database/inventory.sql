@@ -161,6 +161,7 @@ CREATE TABLE IF NOT EXISTS rental_machines (
     model VARCHAR(100) NOT NULL,
     machine_title VARCHAR(150) NOT NULL,
     serial_no VARCHAR(100),
+    entry_date DATE DEFAULT CURRENT_DATE,
     start_count INT DEFAULT 0,
     updated_count INT DEFAULT 0,
     page_per_price DECIMAL(12,4) DEFAULT 0,
@@ -172,11 +173,16 @@ ALTER TABLE rental_machines ADD COLUMN IF NOT EXISTS customer_name VARCHAR(100);
 ALTER TABLE rental_machines ADD COLUMN IF NOT EXISTS address TEXT;
 ALTER TABLE rental_machines ADD COLUMN IF NOT EXISTS machine_title VARCHAR(150);
 ALTER TABLE rental_machines ADD COLUMN IF NOT EXISTS serial_no VARCHAR(100);
+ALTER TABLE rental_machines ADD COLUMN IF NOT EXISTS entry_date DATE DEFAULT CURRENT_DATE;
 ALTER TABLE rental_machines ADD COLUMN IF NOT EXISTS start_count INT DEFAULT 0;
 ALTER TABLE rental_machines ADD COLUMN IF NOT EXISTS updated_count INT DEFAULT 0;
 ALTER TABLE rental_machines ADD COLUMN IF NOT EXISTS page_per_price DECIMAL(12,4) DEFAULT 0;
 ALTER TABLE rental_machines ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP DEFAULT NOW();
 ALTER TABLE rental_machines ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP DEFAULT NOW();
+
+UPDATE rental_machines
+SET entry_date = COALESCE(entry_date, DATE("createdAt"), CURRENT_DATE)
+WHERE entry_date IS NULL;
 
 DO $$
 BEGIN

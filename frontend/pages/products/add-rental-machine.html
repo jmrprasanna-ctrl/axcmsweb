@@ -75,6 +75,11 @@
                 </div>
 
                 <div class="field">
+                    <label for="entryDate">Entry Date</label>
+                    <input type="date" id="entryDate" required>
+                </div>
+
+                <div class="field">
                     <label for="startCount">Start Count</label>
                     <input type="number" id="startCount" placeholder="0" min="0" step="1" required>
                 </div>
@@ -135,6 +140,12 @@ function fillAddressFromCustomer(){
     const customerId = Number(document.getElementById("customerId").value);
     const selected = rentalCustomers.find(c => Number(c.id) === customerId);
     document.getElementById("address").value = selected ? (selected.address || "") : "";
+}
+
+function setDefaultEntryDate(){
+    const entryDateEl = document.getElementById("entryDate");
+    if(!entryDateEl) return;
+    entryDateEl.value = new Date().toISOString().slice(0, 10);
 }
 
 async function loadRentalCustomers(){
@@ -231,12 +242,18 @@ document.getElementById("rentalMachineForm").addEventListener("submit", async (e
         model: document.getElementById("model").value,
         machine_title: document.getElementById("machineTitle").value,
         serial_no: document.getElementById("serialNo").value,
+        entry_date: document.getElementById("entryDate").value,
         start_count: Number.parseInt(document.getElementById("startCount").value, 10),
         page_per_price: Number.parseFloat(document.getElementById("pagePerPrice").value)
     };
 
+    if(!payload.entry_date){
+        alert("Please select entry date.");
+        return;
+    }
+
     if(Number.isNaN(payload.start_count) || Number.isNaN(payload.page_per_price)){
-        alert("Start Count and Page per price must be valid numbers.");
+        alert("Entry date, Start Count and Page per price must be valid.");
         return;
     }
 
@@ -244,6 +261,7 @@ document.getElementById("rentalMachineForm").addEventListener("submit", async (e
         await request("/rental-machines", "POST", payload);
         showMessageBox("Rental machine saved successfully");
         document.getElementById("rentalMachineForm").reset();
+        setDefaultEntryDate();
         await generateMachineId();
         await loadRentalCustomers();
         await loadPhotocopierModels();
@@ -261,6 +279,7 @@ function logout(){
 generateMachineId();
 loadRentalCustomers();
 loadPhotocopierModels();
+setDefaultEntryDate();
 </script>
 </body>
 </html>

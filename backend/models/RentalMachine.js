@@ -17,6 +17,7 @@ const RentalMachine = db.define(
     model: { type: DataTypes.STRING, allowNull: true },
     machine_title: { type: DataTypes.STRING, allowNull: true },
     serial_no: { type: DataTypes.STRING },
+    entry_date: { type: DataTypes.DATEONLY, allowNull: true },
     start_count: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
     updated_count: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
     page_per_price: { type: DataTypes.FLOAT, allowNull: true, defaultValue: 0 },
