@@ -302,7 +302,11 @@ function renderCategories(list){
 async function fetchCategories(){
     try{
         const categories = await request("/categories","GET");
-        renderCategories(categories);
+        if(Array.isArray(categories) && categories.length){
+            renderCategories(categories);
+            return;
+        }
+        renderCategories(defaultCategories);
     }catch(_err){
         renderCategories(defaultCategories);
     }

@@ -4,6 +4,35 @@ const { Client } = require("pg");
 
 const DEFAULT_DB = db.normalizeDatabaseName(process.env.DB_NAME || "inventory") || "inventory";
 const ensuredMachineEntryDateDbs = new Set();
+const ensuredCatalogSeedDbs = new Set();
+const DEFAULT_CATEGORIES = [
+  "Photocopier",
+  "Printer",
+  "Plotter",
+  "Computer",
+  "Laptop",
+  "Accessory",
+  "Consumable",
+  "Machine",
+  "CCTV",
+  "Duplo",
+  "Other",
+  "Service",
+];
+const DEFAULT_CATEGORY_MODELS = {
+  Accessory: ["CANON", "TOSHIBA", "RECOH", "SHARP", "KYOCERA", "SEROX", "SAMSUNG", "HP", "DELL"],
+  Consumable: ["CANON", "TOSHIBA", "RECOH", "SHARP", "KYOCERA", "SEROX", "SAMSUNG", "HP", "DELL"],
+  Machine: ["CANON", "TOSHIBA", "RECOH", "SHARP", "KYOCERA", "SEROX", "SAMSUNG", "HP", "DELL"],
+  Photocopier: ["CANON", "TOSHIBA", "RECOH", "SHARP", "KYOCERA", "SEROX", "SAMSUNG", "HP", "DELL"],
+  Printer: ["CANON", "HP", "EPSON", "BROTHER", "LEXMARK", "OTHER", "SEROX", "SAMSUNG"],
+  Computer: ["HP", "DELL", "ASUS", "SONY", "SINGER", "SAMSUNG", "SPARE PARTS", "OTHER"],
+  Laptop: ["HP", "DELL", "ASUS", "SONY", "SINGER", "SAMSUNG", "SPARE PARTS", "OTHER"],
+  Plotter: ["CANON", "HP", "EPSON", "OTHER"],
+  CCTV: ["HICKVISION", "DAHUA", "OTHER"],
+  Duplo: ["RONGDA", "RISO", "RECOH", "DUPLO"],
+  Other: ["OTHER"],
+  Service: ["OTHER"],
+};
 
 function getAuthDbClient() {
   return new Client({
@@ -122,6 +151,53 @@ async function ensureMachineEntryDateColumns(databaseName) {
   ensuredMachineEntryDateDbs.add(targetDb);
 }
 
+async function ensureCatalogSeedData(databaseName) {
+  const targetDb = db.normalizeDatabaseName(databaseName || "");
+  if (!targetDb || ensuredCatalogSeedDbs.has(targetDb)) {
+    return;
+  }
+
+  await db.withDatabase(targetDb, async () => {
+    const tableExistsRs = await db.query(
+      `SELECT to_regclass('public.categories') AS categories_table, to_regclass('public.category_model_options') AS cmo_table`
+    );
+    const row = Array.isArray(tableExistsRs?.[0]) ? tableExistsRs[0][0] : tableExistsRs?.[0];
+    const hasCategories = Boolean(row?.categories_table);
+    const hasCmo = Boolean(row?.cmo_table);
+
+    if (hasCategories) {
+      for (const name of DEFAULT_CATEGORIES) {
+        await db.query(
+          `INSERT INTO categories(name)
+           SELECT $1
+           WHERE NOT EXISTS (
+             SELECT 1 FROM categories WHERE LOWER(name) = LOWER($1)
+           )`,
+          { bind: [name] }
+        );
+      }
+    }
+
+    if (hasCmo) {
+      for (const [categoryName, models] of Object.entries(DEFAULT_CATEGORY_MODELS)) {
+        for (const modelName of models) {
+          await db.query(
+            `INSERT INTO category_model_options(category_name, model_name, "createdAt", "updatedAt")
+             SELECT $1, $2, NOW(), NOW()
+             WHERE NOT EXISTS (
+               SELECT 1 FROM category_model_options
+               WHERE LOWER(category_name) = LOWER($1) AND LOWER(model_name) = LOWER($2)
+             )`,
+            { bind: [categoryName, modelName] }
+          );
+        }
+      }
+    }
+  });
+
+  ensuredCatalogSeedDbs.add(targetDb);
+}
+
 const authMiddleware = async (req, res, next) => {
   const token = req.headers["authorization"]?.split(" ")[1];
   if (!token) {
@@ -165,6 +241,11 @@ const authMiddleware = async (req, res, next) => {
         return res.status(403).json({ message: "Invalid assigned database access." });
       }
       targetDb = assignedDb;
+    }
+
+    try {
+      await ensureCatalogSeedData(targetDb);
+    } catch (_err) {
     }
 
     try {
