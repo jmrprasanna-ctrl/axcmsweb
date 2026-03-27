@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const { Client } = require("pg");
 const db = require("./config/database");
 const { getRuntimeChecks, summarizeStatus } = require("./utils/startupChecks");
 const { extractCustomerPrefix } = require("./utils/customerCodeGenerator");
@@ -69,14 +70,81 @@ let appHealth = {
   checks: null,
   startedAt: null,
 };
+let businessDatabaseNames = ["inventory", "demo"];
+
+function toDbName(value) {
+  return db.normalizeDatabaseName(value);
+}
+
+function getPgConfig(database) {
+  return {
+    host: process.env.DB_HOST || "localhost",
+    port: Number(process.env.DB_PORT || 5432),
+    user: process.env.DB_USER || "postgres",
+    password: String(process.env.DB_PASSWORD || ""),
+    database,
+  };
+}
+
+async function discoverBusinessDatabases() {
+  const defaults = new Set(["inventory", "demo", toDbName(process.env.DB_NAME || "inventory")].filter(Boolean));
+  const admin = new Client(getPgConfig("postgres"));
+  await admin.connect();
+  try {
+    const existingRs = await admin.query("SELECT datname FROM pg_database WHERE datistemplate = false");
+    const existing = new Set((existingRs.rows || []).map((r) => toDbName(r.datname)).filter(Boolean));
+    const discovered = new Set(defaults);
+
+    const inventoryClient = new Client(getPgConfig("inventory"));
+    try {
+      await inventoryClient.connect();
+
+      const profileTableRs = await inventoryClient.query("SELECT to_regclass('public.company_profiles') AS name");
+      if (profileTableRs.rows?.[0]?.name) {
+        const profileDbRs = await inventoryClient.query(
+          `SELECT DISTINCT LOWER(TRIM(database_name)) AS database_name
+           FROM company_profiles
+           WHERE database_name IS NOT NULL AND TRIM(database_name) <> ''`
+        );
+        for (const row of profileDbRs.rows || []) {
+          const name = toDbName(row.database_name);
+          if (name) discovered.add(name);
+        }
+      }
+
+      const userMappingsTableRs = await inventoryClient.query("SELECT to_regclass('public.user_mappings') AS name");
+      if (userMappingsTableRs.rows?.[0]?.name) {
+        const mapDbRs = await inventoryClient.query(
+          `SELECT DISTINCT LOWER(TRIM(database_name)) AS database_name
+           FROM user_mappings
+           WHERE database_name IS NOT NULL AND TRIM(database_name) <> ''`
+        );
+        for (const row of mapDbRs.rows || []) {
+          const name = toDbName(row.database_name);
+          if (name) discovered.add(name);
+        }
+      }
+    } catch (_err) {
+      // Inventory registry tables may not exist during first boot.
+    } finally {
+      await inventoryClient.end().catch(() => {});
+    }
+
+    return [...discovered].filter((name) => existing.has(name)).sort((a, b) => a.localeCompare(b));
+  } finally {
+    await admin.end().catch(() => {});
+  }
+}
 
 async function runOnBusinessDatabases(task) {
-  await db.withDatabase("inventory", async () => {
-    await task("inventory");
-  });
-  await db.withDatabase("demo", async () => {
-    await task("demo");
-  });
+  const targets = Array.isArray(businessDatabaseNames) && businessDatabaseNames.length
+    ? businessDatabaseNames
+    : ["inventory", "demo"];
+  for (const databaseName of targets) {
+    await db.withDatabase(databaseName, async () => {
+      await task(databaseName);
+    });
+  }
 }
 
 async function ensureDefaultCategories() {
@@ -293,6 +361,24 @@ async function ensureRentalMachineSchema() {
     await db.query(`
       CREATE INDEX IF NOT EXISTS rental_machines_entry_date_idx
       ON rental_machines(entry_date);
+    `);
+  });
+}
+
+async function ensureGeneralMachineSchema() {
+  await runOnBusinessDatabases(async () => {
+    await db.query(`
+      ALTER TABLE general_machines
+      ADD COLUMN IF NOT EXISTS entry_date DATE;
+    `);
+    await db.query(`
+      UPDATE general_machines
+      SET entry_date = COALESCE(entry_date, DATE("createdAt"), CURRENT_DATE)
+      WHERE entry_date IS NULL;
+    `);
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS general_machines_entry_date_idx
+      ON general_machines(entry_date);
     `);
   });
 }
@@ -722,6 +808,15 @@ const DB_SYNC_FORCE = String(process.env.DB_SYNC_FORCE || "false").toLowerCase()
 
 async function startServer() {
   try {
+    try {
+      businessDatabaseNames = await discoverBusinessDatabases();
+    } catch (_err) {
+      businessDatabaseNames = ["inventory", "demo"];
+    }
+    for (const databaseName of businessDatabaseNames) {
+      await db.registerDatabase(databaseName).catch(() => {});
+    }
+
     if (AUTO_DB_SYNC) {
       const syncOptions = DB_SYNC_FORCE ? { force: true } : { alter: DB_SYNC_ALTER };
       await db.sync(syncOptions);
@@ -732,6 +827,7 @@ async function startServer() {
     }
 
     await ensureRentalMachineSchema();
+    await ensureGeneralMachineSchema();
     await ensureRentalConsumableSchema();
     await ensureRentalMachineCountSchema();
     await ensureCustomerCodeSchema();
@@ -758,6 +854,7 @@ async function startServer() {
         auto: AUTO_DB_SYNC,
         alter: DB_SYNC_ALTER,
         force: DB_SYNC_FORCE,
+        databases: businessDatabaseNames,
       },
     };
 
@@ -776,6 +873,7 @@ async function startServer() {
         auto: AUTO_DB_SYNC,
         alter: DB_SYNC_ALTER,
         force: DB_SYNC_FORCE,
+        databases: businessDatabaseNames,
       },
     };
     console.error("Startup failed:", err);

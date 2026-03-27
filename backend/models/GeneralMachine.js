@@ -17,6 +17,7 @@ const GeneralMachine = db.define(
     model: { type: DataTypes.STRING, allowNull: true },
     machine_title: { type: DataTypes.STRING, allowNull: true },
     serial_no: { type: DataTypes.STRING },
+    entry_date: { type: DataTypes.DATEONLY, allowNull: true },
     start_count: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
     createdAt: { type: DataTypes.DATE, allowNull: true, defaultValue: DataTypes.NOW },
     updatedAt: { type: DataTypes.DATE, allowNull: true, defaultValue: DataTypes.NOW },
@@ -27,4 +28,3 @@ const GeneralMachine = db.define(
 GeneralMachine.belongsTo(Customer, { foreignKey: "customer_id" });
 
 module.exports = GeneralMachine;
-

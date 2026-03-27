@@ -6,6 +6,14 @@ function toUpperSafe(value) {
   return String(value || "").trim().toUpperCase();
 }
 
+function parseDateOnly(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+  const dt = new Date(`${raw}T00:00:00Z`);
+  return Number.isNaN(dt.getTime()) ? null : raw;
+}
+
 exports.getGeneralMachines = async (_req, res) => {
   try {
     const rows = await GeneralMachine.findAll({
@@ -40,6 +48,7 @@ exports.createGeneralMachine = async (req, res) => {
       model,
       machine_title,
       serial_no,
+      entry_date,
       start_count,
     } = req.body;
 
@@ -51,9 +60,14 @@ exports.createGeneralMachine = async (req, res) => {
     serial_no = toUpperSafe(serial_no);
     const parsedCustomerId = Number(customer_id);
     const parsedStartCount = Number.parseInt(start_count, 10);
+    const hasEntryDateInput = typeof entry_date !== "undefined" && String(entry_date || "").trim() !== "";
+    const parsedEntryDate = hasEntryDateInput ? parseDateOnly(entry_date) : new Date().toISOString().slice(0, 10);
 
     if (!machine_id || !Number.isFinite(parsedCustomerId) || !model || !machine_title || Number.isNaN(parsedStartCount)) {
       return res.status(400).json({ message: "Missing required fields." });
+    }
+    if (!parsedEntryDate) {
+      return res.status(400).json({ message: "Invalid entry date. Use YYYY-MM-DD." });
     }
 
     const customer = await Customer.findByPk(parsedCustomerId);
@@ -77,6 +91,7 @@ exports.createGeneralMachine = async (req, res) => {
       model,
       machine_title,
       serial_no: serial_no || null,
+      entry_date: parsedEntryDate,
       start_count: parsedStartCount,
     });
 
@@ -112,6 +127,7 @@ exports.updateGeneralMachine = async (req, res) => {
       model,
       machine_title,
       serial_no,
+      entry_date,
       start_count,
     } = req.body;
 
@@ -123,9 +139,14 @@ exports.updateGeneralMachine = async (req, res) => {
     serial_no = toUpperSafe(serial_no);
     const parsedCustomerId = Number(customer_id);
     const parsedStartCount = Number.parseInt(start_count, 10);
+    const hasEntryDateInput = typeof entry_date !== "undefined";
+    const parsedEntryDate = hasEntryDateInput ? parseDateOnly(entry_date) : undefined;
 
     if (!machine_id || !Number.isFinite(parsedCustomerId) || !model || !machine_title || Number.isNaN(parsedStartCount)) {
       return res.status(400).json({ message: "Missing required fields." });
+    }
+    if (hasEntryDateInput && !parsedEntryDate) {
+      return res.status(400).json({ message: "Invalid entry date. Use YYYY-MM-DD." });
     }
 
     const row = await GeneralMachine.findByPk(id);
@@ -151,7 +172,7 @@ exports.updateGeneralMachine = async (req, res) => {
       return res.status(400).json({ message: "Machine ID already exists." });
     }
 
-    await row.update({
+    const updatePayload = {
       machine_id,
       customer_id: parsedCustomerId,
       customer_name: customer_name || customer.name,
@@ -160,7 +181,13 @@ exports.updateGeneralMachine = async (req, res) => {
       machine_title,
       serial_no: serial_no || null,
       start_count: parsedStartCount,
-    });
+    };
+
+    if (hasEntryDateInput) {
+      updatePayload.entry_date = parsedEntryDate;
+    }
+
+    await row.update(updatePayload);
 
     res.json(row);
   } catch (err) {

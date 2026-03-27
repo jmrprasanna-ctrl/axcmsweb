@@ -6,6 +6,7 @@
 DROP TABLE IF EXISTS invoice_items CASCADE;
 DROP TABLE IF EXISTS invoices CASCADE;
 DROP TABLE IF EXISTS rental_machine_consumables CASCADE;
+DROP TABLE IF EXISTS general_machines CASCADE;
 DROP TABLE IF EXISTS rental_machines CASCADE;
 DROP TABLE IF EXISTS conditions CASCADE;
 DROP TABLE IF EXISTS stocks CASCADE;
@@ -126,6 +127,24 @@ CREATE TABLE customers (
 -- Rental Machines Table
 -- ==========================
 CREATE TABLE rental_machines (
+    id SERIAL PRIMARY KEY,
+    machine_id VARCHAR(20) UNIQUE NOT NULL,
+    customer_id INT NOT NULL REFERENCES customers(id),
+    customer_name VARCHAR(100) NOT NULL,
+    address TEXT,
+    model VARCHAR(100) NOT NULL,
+    machine_title VARCHAR(150) NOT NULL,
+    serial_no VARCHAR(100),
+    entry_date DATE DEFAULT CURRENT_DATE,
+    start_count INT DEFAULT 0,
+    createdAt TIMESTAMP DEFAULT NOW(),
+    updatedAt TIMESTAMP DEFAULT NOW()
+);
+
+-- ==========================
+-- General Machines Table
+-- ==========================
+CREATE TABLE general_machines (
     id SERIAL PRIMARY KEY,
     machine_id VARCHAR(20) UNIQUE NOT NULL,
     customer_id INT NOT NULL REFERENCES customers(id),

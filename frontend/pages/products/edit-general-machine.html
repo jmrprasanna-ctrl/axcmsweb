@@ -53,6 +53,9 @@
             <label>Serial No</label>
             <input type="text" id="serialNo" placeholder="SERIAL NO">
 
+            <label>Entry Date</label>
+            <input type="date" id="entryDate" required>
+
             <label>Start Count</label>
             <input type="number" id="startCount" placeholder="0" min="0" step="1" required>
 
@@ -129,6 +132,7 @@ async function loadMachine(){
         document.getElementById("model").value = machine.model || "";
         document.getElementById("machineTitle").value = machine.machine_title || "";
         document.getElementById("serialNo").value = machine.serial_no || "";
+        document.getElementById("entryDate").value = machine.entry_date || new Date().toISOString().slice(0, 10);
         document.getElementById("startCount").value = machine.start_count ?? 0;
         document.getElementById("customerId").value = machine.customer_id || "";
     }catch(err){
@@ -157,11 +161,17 @@ document.getElementById("generalMachineForm").addEventListener("submit", async (
         model: document.getElementById("model").value,
         machine_title: document.getElementById("machineTitle").value,
         serial_no: document.getElementById("serialNo").value,
+        entry_date: document.getElementById("entryDate").value,
         start_count: Number.parseInt(document.getElementById("startCount").value, 10)
     };
 
+    if(!payload.entry_date){
+        alert("Please select entry date.");
+        return;
+    }
+
     if(Number.isNaN(payload.start_count)){
-        alert("Start Count must be a number.");
+        alert("Entry date and Start Count must be valid.");
         return;
     }
 

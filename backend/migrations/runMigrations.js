@@ -16,15 +16,59 @@ function getDbConfig(database) {
   };
 }
 
+function normalizeDatabaseName(name) {
+  const normalized = String(name || "").trim().toLowerCase();
+  if (!normalized) return "";
+  if (!/^[a-z0-9_]+$/.test(normalized)) return "";
+  return normalized;
+}
+
 async function listTargetDatabases() {
   const admin = new Client(getDbConfig("postgres"));
   await admin.connect();
   try {
-    const configured = String(process.env.DB_NAME || "inventory").trim().toLowerCase() || "inventory";
-    const requested = Array.from(new Set([configured, "inventory", "demo"]));
     const rs = await admin.query("SELECT datname FROM pg_database WHERE datistemplate = false");
-    const existing = new Set((rs.rows || []).map((r) => String(r.datname || "").trim().toLowerCase()));
-    return requested.filter((db) => existing.has(db));
+    const existing = new Set((rs.rows || []).map((r) => normalizeDatabaseName(r.datname)).filter(Boolean));
+    const requested = new Set(
+      ["inventory", "demo", normalizeDatabaseName(process.env.DB_NAME || "inventory")].filter(Boolean)
+    );
+
+    const inventoryClient = new Client(getDbConfig("inventory"));
+    try {
+      await inventoryClient.connect();
+
+      const profileTableRs = await inventoryClient.query("SELECT to_regclass('public.company_profiles') AS name");
+      if (profileTableRs.rows?.[0]?.name) {
+        const profileDbRs = await inventoryClient.query(
+          `SELECT DISTINCT LOWER(TRIM(database_name)) AS database_name
+           FROM company_profiles
+           WHERE database_name IS NOT NULL AND TRIM(database_name) <> ''`
+        );
+        for (const row of profileDbRs.rows || []) {
+          const name = normalizeDatabaseName(row.database_name);
+          if (name) requested.add(name);
+        }
+      }
+
+      const userMappingsTableRs = await inventoryClient.query("SELECT to_regclass('public.user_mappings') AS name");
+      if (userMappingsTableRs.rows?.[0]?.name) {
+        const mapDbRs = await inventoryClient.query(
+          `SELECT DISTINCT LOWER(TRIM(database_name)) AS database_name
+           FROM user_mappings
+           WHERE database_name IS NOT NULL AND TRIM(database_name) <> ''`
+        );
+        for (const row of mapDbRs.rows || []) {
+          const name = normalizeDatabaseName(row.database_name);
+          if (name) requested.add(name);
+        }
+      }
+    } catch (_err) {
+      // Inventory registry tables may not exist during initial setup.
+    } finally {
+      await inventoryClient.end().catch(() => {});
+    }
+
+    return [...requested].filter((db) => existing.has(db)).sort((a, b) => a.localeCompare(b));
   } finally {
     await admin.end().catch(() => {});
   }
@@ -97,4 +141,3 @@ main().catch((err) => {
   console.error("[migrate] failed:", err.message || err);
   process.exit(1);
 });
-

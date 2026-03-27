@@ -207,6 +207,59 @@ BEGIN
 END $$;
 
 -- --------------------------
+-- GENERAL MACHINES
+-- --------------------------
+CREATE TABLE IF NOT EXISTS general_machines (
+    id SERIAL PRIMARY KEY,
+    machine_id VARCHAR(20) NOT NULL,
+    customer_id INT NOT NULL,
+    customer_name VARCHAR(100) NOT NULL,
+    address TEXT,
+    model VARCHAR(100) NOT NULL,
+    machine_title VARCHAR(150) NOT NULL,
+    serial_no VARCHAR(100),
+    entry_date DATE DEFAULT CURRENT_DATE,
+    start_count INT DEFAULT 0,
+    "createdAt" TIMESTAMP DEFAULT NOW(),
+    "updatedAt" TIMESTAMP DEFAULT NOW()
+);
+
+ALTER TABLE general_machines ADD COLUMN IF NOT EXISTS customer_name VARCHAR(100);
+ALTER TABLE general_machines ADD COLUMN IF NOT EXISTS address TEXT;
+ALTER TABLE general_machines ADD COLUMN IF NOT EXISTS machine_title VARCHAR(150);
+ALTER TABLE general_machines ADD COLUMN IF NOT EXISTS serial_no VARCHAR(100);
+ALTER TABLE general_machines ADD COLUMN IF NOT EXISTS entry_date DATE DEFAULT CURRENT_DATE;
+ALTER TABLE general_machines ADD COLUMN IF NOT EXISTS start_count INT DEFAULT 0;
+ALTER TABLE general_machines ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP DEFAULT NOW();
+ALTER TABLE general_machines ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP DEFAULT NOW();
+
+UPDATE general_machines
+SET entry_date = COALESCE(entry_date, DATE("createdAt"), CURRENT_DATE)
+WHERE entry_date IS NULL;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'general_machines_machine_id_unique'
+    ) THEN
+        ALTER TABLE general_machines ADD CONSTRAINT general_machines_machine_id_unique UNIQUE (machine_id);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'general_machines_customer_fk'
+    ) THEN
+        ALTER TABLE general_machines
+        ADD CONSTRAINT general_machines_customer_fk
+        FOREIGN KEY (customer_id) REFERENCES customers(id);
+    END IF;
+END $$;
+
+-- --------------------------
 -- RENTAL MACHINE CONSUMABLES
 -- --------------------------
 CREATE TABLE IF NOT EXISTS rental_machine_consumables (
