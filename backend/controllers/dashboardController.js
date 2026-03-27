@@ -9,7 +9,7 @@ const InvoiceItem = require("../models/InvoiceItem");
 const Expense = require("../models/Expense");
 const RentalMachineCount = require("../models/RentalMachineCount");
 const RentalMachineConsumable = require("../models/RentalMachineConsumable");
-const { Op } = require("sequelize");
+const { Op, fn, col, where: sqWhere } = require("sequelize");
 
 function sumTechnicianPaid(rows){
     return (Array.isArray(rows) ? rows : []).reduce((sum, inv) => {
@@ -69,11 +69,39 @@ function sumRentalConsumablesPrice(rows){
     }, 0);
 }
 
+function toDateOnlyText(value){
+    const raw = String(value || "").trim();
+    if(!raw) return "";
+    if(/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    const dt = new Date(raw);
+    if(Number.isNaN(dt.getTime())) return "";
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth() + 1).padStart(2, "0");
+    const d = String(dt.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+}
+
+function parseBaseDateInput(value){
+    const normalized = toDateOnlyText(value);
+    if(normalized){
+        return new Date(`${normalized}T00:00:00`);
+    }
+    const dt = value ? new Date(value) : new Date();
+    return Number.isNaN(dt.getTime()) ? new Date() : dt;
+}
+
+function buildDateOnlyRangeWhere(columnName, startDate, endDate){
+    return sqWhere(
+        fn("DATE", col(columnName)),
+        { [Op.between]: [startDate, endDate] }
+    );
+}
+
 exports.getSummary = async (req,res)=>{
     try{
         const period = String(req.query.period || "day").toLowerCase();
         const dateStr = req.query.date;
-        const baseDate = dateStr ? new Date(dateStr) : new Date();
+        const baseDate = parseBaseDateInput(dateStr);
         if(isNaN(baseDate.getTime())){
             return res.status(400).json({ message: "Invalid date" });
         }
@@ -99,6 +127,8 @@ exports.getSummary = async (req,res)=>{
             periodStart.setHours(0,0,0,0);
             periodEnd.setHours(23,59,59,999);
         }
+        const periodStartDate = toDateOnlyText(periodStart) || new Date(periodStart).toISOString().slice(0, 10);
+        const periodEndDate = toDateOnlyText(periodEnd) || new Date(periodEnd).toISOString().slice(0, 10);
 
         const totalUsers = await User.count();
         const totalGeneralMachines = await GeneralMachine.count({
@@ -109,24 +139,28 @@ exports.getSummary = async (req,res)=>{
         const totalCustomers = await Customer.count();
         const totalVendors = await Vendor.count();
         const totalSalesPeriod = await Invoice.sum("total_amount",{
-            where:{ invoice_date:{ [Op.between]:[periodStart, periodEnd] } }
+            where: buildDateOnlyRangeWhere("invoice_date", periodStartDate, periodEndDate)
         }) || 0;
         const totalExpensesPeriod = await Expense.sum("amount",{
-            where:{ date:{ [Op.between]:[periodStart, periodEnd] } }
+            where: buildDateOnlyRangeWhere("date", periodStartDate, periodEndDate)
         }) || 0;
         // Match Finance > Payments source: only General customer invoices.
         const receivedPaymentPeriod = await Invoice.sum("total_amount",{
             include: [getGeneralCustomerInclude()],
             where:{
-                invoice_date:{ [Op.between]:[periodStart, periodEnd] },
-                payment_status: getReceivedPaymentStatusFilter()
+                [Op.and]: [
+                    buildDateOnlyRangeWhere("invoice_date", periodStartDate, periodEndDate),
+                    { payment_status: getReceivedPaymentStatusFilter() }
+                ]
             }
         }) || 0;
         const invoicesPeriod = await Invoice.findAll({
             include: [getGeneralCustomerInclude()],
             where:{
-                invoice_date:{ [Op.between]:[periodStart, periodEnd] },
-                payment_status: getReceivedPaymentStatusFilter()
+                [Op.and]: [
+                    buildDateOnlyRangeWhere("invoice_date", periodStartDate, periodEndDate),
+                    { payment_status: getReceivedPaymentStatusFilter() }
+                ]
             },
             attributes:["total_amount","support_technician_percentage"]
         });
@@ -138,8 +172,10 @@ exports.getSummary = async (req,res)=>{
                     required: true,
                     attributes: ["id", "invoice_date", "payment_status"],
                     where: {
-                        invoice_date: { [Op.between]: [periodStart, periodEnd] },
-                        payment_status: getReceivedPaymentStatusFilter()
+                        [Op.and]: [
+                            buildDateOnlyRangeWhere("invoice_date", periodStartDate, periodEndDate),
+                            { payment_status: getReceivedPaymentStatusFilter() }
+                        ]
                     },
                     include: [getGeneralCustomerInclude()]
                 },
@@ -150,12 +186,28 @@ exports.getSummary = async (req,res)=>{
         const vendorPaidPeriod = sumVendorPaidFromInvoiceItems(invoiceItemsPeriod);
         const netProfitPeriod = receivedPaymentPeriod - totalExpensesPeriod - technicianPaidPeriod - vendorPaidPeriod;
         const rentalCountsPeriodRows = await RentalMachineCount.findAll({
-            where: { createdAt: { [Op.between]: [periodStart, periodEnd] } },
+            where: {
+                [Op.or]: [
+                    { entry_date: { [Op.between]: [periodStartDate, periodEndDate] } },
+                    {
+                        entry_date: { [Op.is]: null },
+                        createdAt: { [Op.between]: [periodStart, periodEnd] }
+                    }
+                ]
+            },
             attributes: ["input_count", "updated_count"]
         });
         const rentalMachinesCountsPricePeriod = sumRentalCountPrice(rentalCountsPeriodRows);
         const rentalConsumablesPeriodRows = await RentalMachineConsumable.findAll({
-            where: { createdAt: { [Op.between]: [periodStart, periodEnd] } },
+            where: {
+                [Op.or]: [
+                    { entry_date: { [Op.between]: [periodStartDate, periodEndDate] } },
+                    {
+                        entry_date: { [Op.is]: null },
+                        createdAt: { [Op.between]: [periodStart, periodEnd] }
+                    }
+                ]
+            },
             include: [{ model: Product, required: false, attributes: ["id", "dealer_price"] }],
             attributes: ["quantity"]
         });
@@ -214,14 +266,16 @@ exports.getSummary = async (req,res)=>{
         const months = [];
         const monthlySales = [];
         const monthlyProfit = [];
-        const currentYear = new Date().getFullYear();
+        const currentYear = baseDate.getFullYear();
 
         for(let m=0;m<12;m++){
             const start = new Date(currentYear,m,1);
             const end = new Date(currentYear,m+1,0);
+            const startText = toDateOnlyText(start);
+            const endText = toDateOnlyText(end);
 
             const salesInvoices = await Invoice.findAll({
-                where:{ invoice_date:{ [Op.between]:[start,end] } },
+                where: buildDateOnlyRangeWhere("invoice_date", startText, endText),
                 include:[InvoiceItem]
             });
 
@@ -246,8 +300,8 @@ exports.getSummary = async (req,res)=>{
             totalVendors,
             totalSales: totalSalesPeriod,
             receivedPayment: receivedPaymentPeriod,
-            rentalMachinesCountsPrice: rentalMachinesCountsPriceAllTime,
-            rentalConsumablesPrice: rentalConsumablesPriceAllTime,
+            rentalMachinesCountsPrice: rentalMachinesCountsPricePeriod,
+            rentalConsumablesPrice: rentalConsumablesPricePeriod,
             totalExpenses: totalExpensesPeriod,
             netProfit: netProfitPeriod,
             technicianPaid: technicianPaidPeriod,

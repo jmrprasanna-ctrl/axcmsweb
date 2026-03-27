@@ -8,6 +8,20 @@ function upper(value) {
   return String(value || "").trim().toUpperCase();
 }
 
+function parseDateOnly(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return "";
+  const dt = new Date(`${raw}T00:00:00`);
+  return Number.isNaN(dt.getTime()) ? "" : raw;
+}
+
+function getTodayLocalIso() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60000;
+  return new Date(now.getTime() - offset).toISOString().slice(0, 10);
+}
+
 exports.getConsumables = async (req, res) => {
   try {
     const where = {};
@@ -41,8 +55,7 @@ exports.createConsumable = async (req, res) => {
     const count = Number.parseInt(req.body.count, 10);
     const notes = String(req.body.notes || "").trim();
     const save_batch_id = String(req.body.save_batch_id || "").trim();
-    const rawEntryDate = String(req.body.entry_date || "").trim();
-    const entry_date = rawEntryDate || new Date().toISOString().slice(0, 10);
+    const entry_date = parseDateOnly(req.body.entry_date) || getTodayLocalIso();
 
     if (!Number.isFinite(customer_id) || customer_id <= 0 || !consumable_name || Number.isNaN(quantity)) {
       return res.status(400).json({ message: "Missing required fields." });
@@ -105,8 +118,7 @@ exports.createConsumablesBatch = async (req, res) => {
     const customer_id = Number(req.body.customer_id);
     const rental_machine_id = Number(req.body.rental_machine_id);
     const items = Array.isArray(req.body.items) ? req.body.items : [];
-    const rawEntryDate = String(req.body.entry_date || "").trim();
-    const entry_date = rawEntryDate || new Date().toISOString().slice(0, 10);
+    const entry_date = parseDateOnly(req.body.entry_date) || getTodayLocalIso();
 
     if (!Number.isFinite(customer_id) || customer_id <= 0 || !items.length) {
       await transaction.rollback();

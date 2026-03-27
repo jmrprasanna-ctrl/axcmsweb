@@ -196,13 +196,15 @@ async function fetchSummary(){
         // Total Sales: invoice totals only.
         const salesVal = summary.totalSalesPeriod ?? summary.totalSales ?? 0;
         const receivedPaymentVal = summary.receivedPaymentPeriod ?? summary.receivedPayment ?? 0;
-        const rentalMachinesCountsVal = summary.rentalMachinesCountsPriceAllInputs
-            ?? summary.rentalMachinesCountsPriceAllTime
+        const rentalMachinesCountsVal = summary.rentalMachinesCountsPricePeriod
             ?? summary.rentalMachinesCountsPrice
+            ?? summary.rentalMachinesCountsPriceAllInputs
+            ?? summary.rentalMachinesCountsPriceAllTime
             ?? 0;
-        const rentalConsumablesVal = summary.rentalConsumablesPriceAllInputs
-            ?? summary.rentalConsumablesPriceAllTime
+        const rentalConsumablesVal = summary.rentalConsumablesPricePeriod
             ?? summary.rentalConsumablesPrice
+            ?? summary.rentalConsumablesPriceAllInputs
+            ?? summary.rentalConsumablesPriceAllTime
             ?? 0;
         const expenseVal = summary.totalExpensesPeriod ?? summary.totalExpenses ?? 0;
         const technicianPaidVal = summary.technicianPaidPeriod ?? summary.technicianPaid ?? 0;

@@ -299,6 +299,10 @@ async function ensureRentalConsumableSchema() {
       ADD COLUMN IF NOT EXISTS entry_date DATE;
     `);
     await db.query(`
+      ALTER TABLE rental_machine_consumables
+      ALTER COLUMN entry_date SET DEFAULT CURRENT_DATE;
+    `);
+    await db.query(`
       UPDATE rental_machine_consumables
       SET entry_date = COALESCE(entry_date, DATE("createdAt"), CURRENT_DATE)
       WHERE entry_date IS NULL;
@@ -338,6 +342,10 @@ async function ensureRentalMachineCountSchema() {
     await db.query(`
       ALTER TABLE rental_machine_counts
       ADD COLUMN IF NOT EXISTS entry_date DATE;
+    `);
+    await db.query(`
+      ALTER TABLE rental_machine_counts
+      ALTER COLUMN entry_date SET DEFAULT CURRENT_DATE;
     `);
     await db.query(`
       UPDATE rental_machine_counts

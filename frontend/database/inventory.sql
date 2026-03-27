@@ -271,6 +271,7 @@ CREATE TABLE IF NOT EXISTS rental_machine_consumables (
     consumable_name VARCHAR(150) NOT NULL,
     quantity INT DEFAULT 1,
     count INT DEFAULT 0,
+    entry_date DATE DEFAULT CURRENT_DATE,
     unit VARCHAR(50),
     notes TEXT,
     "createdAt" TIMESTAMP DEFAULT NOW(),
@@ -284,8 +285,15 @@ ALTER TABLE rental_machine_consumables ADD COLUMN IF NOT EXISTS customer_id INT;
 ALTER TABLE rental_machine_consumables ADD COLUMN IF NOT EXISTS save_batch_id VARCHAR(50);
 ALTER TABLE rental_machine_consumables ADD COLUMN IF NOT EXISTS unit VARCHAR(50);
 ALTER TABLE rental_machine_consumables ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE rental_machine_consumables ADD COLUMN IF NOT EXISTS entry_date DATE DEFAULT CURRENT_DATE;
+ALTER TABLE rental_machine_consumables ALTER COLUMN entry_date SET DEFAULT CURRENT_DATE;
 ALTER TABLE rental_machine_consumables ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP DEFAULT NOW();
 ALTER TABLE rental_machine_consumables ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP DEFAULT NOW();
+UPDATE rental_machine_consumables
+SET entry_date = COALESCE(entry_date, DATE("createdAt"), CURRENT_DATE)
+WHERE entry_date IS NULL;
+CREATE INDEX IF NOT EXISTS rental_machine_consumables_entry_date_idx
+ON rental_machine_consumables(entry_date);
 
 DO $$
 BEGIN
@@ -333,6 +341,7 @@ CREATE TABLE IF NOT EXISTS rental_machine_counts (
     customer_id INT NOT NULL,
     input_count INT DEFAULT 0,
     updated_count INT DEFAULT 0,
+    entry_date DATE DEFAULT CURRENT_DATE,
     "createdAt" TIMESTAMP DEFAULT NOW(),
     "updatedAt" TIMESTAMP DEFAULT NOW()
 );
@@ -342,8 +351,15 @@ ALTER TABLE rental_machine_counts ADD COLUMN IF NOT EXISTS rental_machine_id INT
 ALTER TABLE rental_machine_counts ADD COLUMN IF NOT EXISTS customer_id INT;
 ALTER TABLE rental_machine_counts ADD COLUMN IF NOT EXISTS input_count INT DEFAULT 0;
 ALTER TABLE rental_machine_counts ADD COLUMN IF NOT EXISTS updated_count INT DEFAULT 0;
+ALTER TABLE rental_machine_counts ADD COLUMN IF NOT EXISTS entry_date DATE DEFAULT CURRENT_DATE;
+ALTER TABLE rental_machine_counts ALTER COLUMN entry_date SET DEFAULT CURRENT_DATE;
 ALTER TABLE rental_machine_counts ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP DEFAULT NOW();
 ALTER TABLE rental_machine_counts ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP DEFAULT NOW();
+UPDATE rental_machine_counts
+SET entry_date = COALESCE(entry_date, DATE("createdAt"), CURRENT_DATE)
+WHERE entry_date IS NULL;
+CREATE INDEX IF NOT EXISTS rental_machine_counts_entry_date_idx
+ON rental_machine_counts(entry_date);
 
 DO $$
 BEGIN

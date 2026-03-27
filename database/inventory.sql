@@ -170,6 +170,7 @@ CREATE TABLE rental_machine_consumables (
     save_batch_id VARCHAR(50),
     consumable_name VARCHAR(150) NOT NULL,
     quantity INT DEFAULT 1,
+    entry_date DATE DEFAULT CURRENT_DATE,
     unit VARCHAR(50),
     notes TEXT,
     createdAt TIMESTAMP DEFAULT NOW(),

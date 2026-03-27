@@ -237,6 +237,12 @@ let consumableProducts = [];
 let pendingItems = [];
 let rentalMachines = [];
 
+function getTodayLocalIso(){
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000;
+    return new Date(now.getTime() - offset).toISOString().slice(0, 10);
+}
+
 async function loadRentalMachines(){
     try{
         const rows = await request("/rental-machines", "GET");
@@ -534,7 +540,7 @@ function logout(){
 }
 
 (async function init(){
-    document.getElementById("entryDate").value = new Date().toISOString().slice(0, 10);
+    document.getElementById("entryDate").value = getTodayLocalIso();
     await loadRentalMachines();
     await loadConsumableProducts();
     await loadAddedConsumables();
