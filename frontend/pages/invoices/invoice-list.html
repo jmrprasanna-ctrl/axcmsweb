@@ -15,6 +15,15 @@
             display: inline-block;
             vertical-align: middle;
         }
+        .year-inline{
+            width: 140px;
+            max-width: 100%;
+            margin-top: 0;
+            margin-left: 8px;
+            display: inline-block;
+            vertical-align: middle;
+            height: 40px;
+        }
         .invoice-action-row{
             display:flex;
             gap:8px;
@@ -66,6 +75,7 @@
         <header><h2>Invoice List</h2></header>
         <button class="btn btn-primary" onclick="window.location.href='create-invoice.html'">Add Invoice</button>
         <input type="text" id="invoiceSearch" class="search-inline" placeholder="Search Invoice No, Customer, Date, Total">
+        <select id="invoiceYearFilter" class="year-inline"></select>
         <div class="card">
             <table class="table">
                 <thead>
@@ -85,10 +95,39 @@
     <script src="../../assets/js/api.js"></script>
     <script>
         const invoiceSearchEl = document.getElementById("invoiceSearch");
+        const invoiceYearEl = document.getElementById("invoiceYearFilter");
         let allInvoices = [];
+        let selectedYear = String(new Date().getFullYear());
 
         function isAdmin(){
             return (localStorage.getItem("role") || "").toLowerCase() === "admin";
+        }
+
+        function getInvoiceYear(inv){
+            const raw = String(inv?.invoice_date || "").trim();
+            if(!raw) return "";
+            const dt = new Date(raw);
+            if(Number.isNaN(dt.getTime())) return "";
+            return String(dt.getFullYear());
+        }
+
+        function initYearFilter(){
+            if(!invoiceYearEl) return;
+            const years = new Set([selectedYear]);
+            allInvoices.forEach(inv => {
+                const y = getInvoiceYear(inv);
+                if(y) years.add(y);
+            });
+            const sortedYears = Array.from(years).sort((a, b) => Number(b) - Number(a));
+            invoiceYearEl.innerHTML = "";
+            sortedYears.forEach(y => {
+                const opt = document.createElement("option");
+                opt.value = y;
+                opt.textContent = y;
+                invoiceYearEl.appendChild(opt);
+            });
+            invoiceYearEl.value = sortedYears.includes(selectedYear) ? selectedYear : sortedYears[0];
+            selectedYear = String(invoiceYearEl.value || selectedYear);
         }
 
         function renderInvoices(invoices){
@@ -125,12 +164,11 @@
 
         function applyInvoiceFilter(){
             const query = (invoiceSearchEl?.value || "").trim().toLowerCase();
-            if(!query){
-                renderInvoices(allInvoices);
-                return;
-            }
+            const year = String(selectedYear || "").trim();
             const filtered = allInvoices.filter(inv => {
+                if(year && getInvoiceYear(inv) !== year) return false;
                 const dateText = inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString() : "";
+                if(!query) return true;
                 return [
                     inv.invoice_no,
                     inv.customer_name,
@@ -144,6 +182,7 @@
         async function loadInvoices(){
             try{
                 allInvoices = await request("/invoices","GET");
+                initYearFilter();
                 applyInvoiceFilter();
             }catch(err){
                 const tbody = document.getElementById('invoice-table-body');
@@ -183,6 +222,12 @@
 
         if(invoiceSearchEl){
             invoiceSearchEl.addEventListener("input", applyInvoiceFilter);
+        }
+        if(invoiceYearEl){
+            invoiceYearEl.addEventListener("change", () => {
+                selectedYear = String(invoiceYearEl.value || "");
+                applyInvoiceFilter();
+            });
         }
 
         window.addEventListener('DOMContentLoaded', loadInvoices);

@@ -110,6 +110,10 @@
                     <option value="pending">Pending</option>
                 </select>
             </div>
+            <div class="field">
+                <label for="yearFilter">Year</label>
+                <select id="yearFilter"></select>
+            </div>
             <button type="button" onclick="loadInvoices()">Refresh List</button>
             <button type="button" onclick="exportPaymentsPDF()">Save PDF</button>
         </div>
@@ -162,6 +166,7 @@ const paymentStatusSelect = document.getElementById("paymentStatus");
 const statusFilterSelect = document.getElementById("statusFilter");
 
 let allGeneralInvoices = [];
+let selectedYear = String(new Date().getFullYear());
 
 function asNumber(v){
     const n = Number(v);
@@ -178,6 +183,40 @@ function normalizeStatus(v){
         return "Received";
     }
     return "Pending";
+}
+
+function getRowYear(inv){
+    const raw = String(inv?.payment_date || inv?.invoice_date || inv?.createdAt || "").trim();
+    if(!raw) return "";
+    const dt = new Date(raw);
+    if(Number.isNaN(dt.getTime())) return "";
+    return String(dt.getFullYear());
+}
+
+function getYearFilteredRows(){
+    const year = String(selectedYear || "").trim();
+    if(!year) return allGeneralInvoices.slice();
+    return allGeneralInvoices.filter((inv) => getRowYear(inv) === year);
+}
+
+function initYearFilter(){
+    const yearFilterSelect = document.getElementById("yearFilter");
+    if(!yearFilterSelect) return;
+    const years = new Set([selectedYear]);
+    allGeneralInvoices.forEach((inv) => {
+        const y = getRowYear(inv);
+        if(y) years.add(y);
+    });
+    const sortedYears = Array.from(years).sort((a, b) => Number(b) - Number(a));
+    yearFilterSelect.innerHTML = "";
+    sortedYears.forEach((y) => {
+        const option = document.createElement("option");
+        option.value = y;
+        option.textContent = y;
+        yearFilterSelect.appendChild(option);
+    });
+    yearFilterSelect.value = sortedYears.includes(selectedYear) ? selectedYear : sortedYears[0];
+    selectedYear = String(yearFilterSelect.value || selectedYear);
 }
 
 function toggleChequeField(){
@@ -215,7 +254,7 @@ function renderTable(){
     const tbody = document.querySelector("#paymentsTable tbody");
     tbody.innerHTML = "";
     const statusFilter = String(statusFilterSelect.value || "all").toLowerCase();
-    const rows = allGeneralInvoices.filter((inv) => {
+    const rows = getYearFilteredRows().filter((inv) => {
         if(statusFilter === "all") return true;
         return normalizeStatus(inv.payment_status).toLowerCase() === statusFilter;
     });
@@ -276,8 +315,9 @@ function exportPaymentsPDF(){
     doc.text("Payments List", 14, 20);
     doc.setFontSize(9);
     doc.text(`Status Filter: ${statusFilterSelect.value || "all"}`, 14, 26);
+    doc.text(`Year Filter: ${selectedYear || "all"}`, 14, 31);
 
-    let y = 34;
+    let y = 39;
     const pageHeight = doc.internal.pageSize.getHeight();
     const maxWidth = doc.internal.pageSize.getWidth() - 28;
 
@@ -303,11 +343,13 @@ async function loadInvoices(){
         allGeneralInvoices = (Array.isArray(invoices) ? invoices : []).filter((inv) =>
             String(inv.customer_mode || "").toLowerCase() === "general"
         );
-        const payableInvoices = allGeneralInvoices.filter(
+        initYearFilter();
+        const yearRows = getYearFilteredRows();
+        const payableInvoices = yearRows.filter(
             (inv) => normalizeStatus(inv.payment_status) !== "Received"
         );
         populateInvoiceSelect(payableInvoices);
-        renderSummary(allGeneralInvoices);
+        renderSummary(yearRows);
         renderTable();
     }catch(err){
         alert(err.message || "Failed to load invoices.");
@@ -350,9 +392,20 @@ paymentForm.addEventListener("submit", async (e) => {
 
 paymentModeSelect.addEventListener("change", toggleChequeField);
 statusFilterSelect.addEventListener("change", renderTable);
+const yearFilterSelect = document.getElementById("yearFilter");
+if(yearFilterSelect){
+    yearFilterSelect.addEventListener("change", () => {
+        selectedYear = String(yearFilterSelect.value || "");
+        const yearRows = getYearFilteredRows();
+        const payableInvoices = yearRows.filter((inv) => normalizeStatus(inv.payment_status) !== "Received");
+        populateInvoiceSelect(payableInvoices);
+        renderSummary(yearRows);
+        renderTable();
+    });
+}
 invoiceSelect.addEventListener("change", () => {
     const selectedId = Number(invoiceSelect.value || 0);
-    const selectedInvoice = allGeneralInvoices.find((inv) => Number(inv.id) === selectedId);
+    const selectedInvoice = getYearFilteredRows().find((inv) => Number(inv.id) === selectedId);
     if(selectedInvoice && selectedInvoice.payment_date){
         paymentDateInput.value = String(selectedInvoice.payment_date).slice(0, 10);
         return;
