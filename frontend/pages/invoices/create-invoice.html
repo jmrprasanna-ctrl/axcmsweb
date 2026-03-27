@@ -603,7 +603,11 @@ async function initInvoice(){
             request("/general-machines","GET")
         ]);
 
-        customersCache = Array.isArray(customersData) ? customersData : [];
+        customersCache = (Array.isArray(customersData) ? customersData : []).slice().sort((a, b) => {
+            const nameA = String(a?.name || "").trim();
+            const nameB = String(b?.name || "").trim();
+            return nameA.localeCompare(nameB, undefined, { sensitivity: "base" });
+        });
         const customerSelect = document.getElementById("customer");
         customerSelect.innerHTML = `<option value="">Select Customer</option>`;
 
