@@ -329,6 +329,57 @@ function smtpSignature(payload){
     ].join("|");
 }
 
+function normalizeIsoDate(value) {
+    const raw = String(value || "").trim();
+    if(!raw) return "";
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return "";
+    const dt = new Date(`${raw}T00:00:00`);
+    if(Number.isNaN(dt.getTime())) return "";
+    return raw;
+}
+
+function getYearTokenFromIsoDate(isoDate) {
+    const normalized = normalizeIsoDate(isoDate) || new Date().toISOString().slice(0, 10);
+    return normalized.slice(2, 4);
+}
+
+async function generateNextInvoiceNoByYear(yearToken) {
+    const safeYear = /^\d{2}$/.test(String(yearToken || "")) ? String(yearToken) : new Date().toISOString().slice(2, 4);
+    const prefix = `${safeYear}INV`;
+
+    const lastInvoice = await Invoice.findOne({
+        where: {
+            invoice_no: {
+                [Op.like]: `${prefix}%`
+            }
+        },
+        order: [["invoice_no","DESC"],["createdAt","DESC"],["id","DESC"]]
+    });
+
+    let num = 1;
+    if(lastInvoice && lastInvoice.invoice_no){
+        const match = String(lastInvoice.invoice_no || "").match(/^(\d{2})INV(\d{4,})$/);
+        if(match && match[1] === safeYear){
+            const parsed = Number.parseInt(match[2], 10);
+            if(Number.isFinite(parsed) && parsed > 0){
+                num = parsed + 1;
+            }
+        }
+    }
+
+    let invoiceNo = `${prefix}${String(num).padStart(4, "0")}`;
+    for(let i = 0; i < 500; i += 1){
+        const exists = await Invoice.findOne({ where: { invoice_no: invoiceNo } });
+        if(!exists){
+            return invoiceNo;
+        }
+        num += 1;
+        invoiceNo = `${prefix}${String(num).padStart(4, "0")}`;
+    }
+
+    return `${prefix}${String(Date.now()).slice(-4)}`;
+}
+
 exports.listInvoices = async (req,res)=>{
     try{
         const invoices = await Invoice.findAll({
@@ -445,24 +496,15 @@ exports.deleteInvoice = async (req,res)=>{
 };
 
 exports.generateInvoiceNo = async (req,res)=>{
-    const year = new Date().getFullYear().toString().slice(-2);
-    const lastInvoice = await Invoice.findOne({order:[["invoice_date","DESC"],["createdAt","DESC"]]});
-    let num = 1;
-    if(lastInvoice && lastInvoice.invoice_no){
-        const lastNum = parseInt(lastInvoice.invoice_no.slice(4));
-        if(!isNaN(lastNum)) {
-            num = lastNum + 1;
-        }
+    try{
+        const requestedDate = normalizeIsoDate(req.query?.date || req.query?.invoice_date || "");
+        const effectiveDate = requestedDate || new Date().toISOString().slice(0, 10);
+        const yearToken = getYearTokenFromIsoDate(effectiveDate);
+        const invoice_no = await generateNextInvoiceNoByYear(yearToken);
+        res.json({ invoice_no, date: effectiveDate, year: yearToken });
+    }catch(err){
+        res.status(500).json({ message: err.message || "Failed to generate invoice no." });
     }
-    let invoice_no = `${year}INV${num.toString().padStart(4,"0")}`;
-    // Ensure uniqueness
-    for(let i=0;i<50;i++){
-        const exists = await Invoice.findOne({ where: { invoice_no } });
-        if(!exists) break;
-        num += 1;
-        invoice_no = `${year}INV${num.toString().padStart(4,"0")}`;
-    }
-    res.json({invoice_no});
 }
 
 exports.getInvoiceTemplatePdf = async (req,res)=>{
@@ -638,8 +680,20 @@ exports.createInvoice = async (req,res)=>{
         if(!isValidQuotationDate){
             return res.status(400).json({ message: "Invalid quotation date." });
         }
+        const invoiceYearToken = getYearTokenFromIsoDate(invoiceDateValue);
+        let nextInvoiceNo = String(invoice_no || "").trim().toUpperCase();
+        const invoiceNoMatch = nextInvoiceNo.match(/^(\d{2})INV(\d{4,})$/);
+        if(!invoiceNoMatch || invoiceNoMatch[1] !== invoiceYearToken){
+            nextInvoiceNo = await generateNextInvoiceNoByYear(invoiceYearToken);
+        }else{
+            const duplicate = await Invoice.findOne({ where: { invoice_no: nextInvoiceNo } });
+            if(duplicate){
+                nextInvoiceNo = await generateNextInvoiceNoByYear(invoiceYearToken);
+            }
+        }
+
         const invoice = await Invoice.create({
-            invoice_no,
+            invoice_no: nextInvoiceNo,
             invoice_date: invoiceDateValue,
             quotation_date: quotationDateValue,
             customer_id,

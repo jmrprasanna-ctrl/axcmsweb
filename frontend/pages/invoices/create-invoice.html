@@ -582,14 +582,25 @@ function applyGlobalVatToAllRows(vatValue){
     });
 }
 
+async function refreshInvoiceNoBySelectedDate(){
+    const invoiceDate = String(document.getElementById("invoiceDate")?.value || "").trim();
+    const quotationDate = String(document.getElementById("quotationDate")?.value || "").trim();
+    const seedDate = invoiceDate || quotationDate || new Date().toISOString().slice(0, 10);
+    try{
+        const lastInvoice = await request(`/invoices/generate-no?date=${encodeURIComponent(seedDate)}`,"GET");
+        document.getElementById("invoiceNo").value = lastInvoice.invoice_no || "";
+    }catch(_err){
+        document.getElementById("invoiceNo").value = "";
+    }
+}
+
 // Fetch customers and invoice number
 async function initInvoice(){
     try{
-        const [customersData, rentalMachines, generalMachines, lastInvoice] = await Promise.all([
+        const [customersData, rentalMachines, generalMachines] = await Promise.all([
             request("/customers","GET"),
             request("/rental-machines","GET"),
-            request("/general-machines","GET"),
-            request("/invoices/generate-no","GET")
+            request("/general-machines","GET")
         ]);
 
         customersCache = Array.isArray(customersData) ? customersData : [];
@@ -605,10 +616,10 @@ async function initInvoice(){
 
         buildMachineLookup(rentalMachines, generalMachines);
         resetMachineSelect();
-        document.getElementById("invoiceNo").value = lastInvoice.invoice_no || "";
         const today = new Date().toISOString().slice(0,10);
         document.getElementById("invoiceDate").value = today;
         document.getElementById("quotationDate").value = today;
+        await refreshInvoiceNoBySelectedDate();
         await initSupportTechnicians();
         await loadSupportImportantLibrary();
         resetDefaultImportantNotes();
@@ -1006,7 +1017,8 @@ document.getElementById("invoiceForm").addEventListener("submit", async function
         const msg = err.message || "Failed to save invoice";
         if(msg.toLowerCase().includes("invoice_no") && msg.toLowerCase().includes("unique")){
             try{
-                const lastInvoice = await request("/invoices/generate-no","GET");
+                const seedDate = String(invoiceDate || quotationDate || "").trim();
+                const lastInvoice = await request(`/invoices/generate-no?date=${encodeURIComponent(seedDate)}`,"GET");
                 document.getElementById("invoiceNo").value = lastInvoice.invoice_no || "";
                 const retryNo = document.getElementById("invoiceNo").value;
                 if(retryNo){
@@ -1163,6 +1175,14 @@ if(vatValueInput){
     vatValueInput.addEventListener("input", () => {
         applyGlobalVatToAllRows(vatValueInput.value);
     });
+}
+const invoiceDateInput = document.getElementById("invoiceDate");
+const quotationDateInput = document.getElementById("quotationDate");
+if(invoiceDateInput){
+    invoiceDateInput.addEventListener("change", refreshInvoiceNoBySelectedDate);
+}
+if(quotationDateInput){
+    quotationDateInput.addEventListener("change", refreshInvoiceNoBySelectedDate);
 }
 
 initInvoice();

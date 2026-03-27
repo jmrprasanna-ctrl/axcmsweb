@@ -197,6 +197,7 @@ CREATE TABLE invoices (
     createdAt TIMESTAMP DEFAULT NOW(),
     updatedAt TIMESTAMP DEFAULT NOW()
 );
+CREATE INDEX IF NOT EXISTS invoices_invoice_date_no_idx ON invoices(invoice_date, invoice_no);
 
 -- ==========================
 -- Invoice Items Table

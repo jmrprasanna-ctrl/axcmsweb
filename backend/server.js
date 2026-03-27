@@ -469,6 +469,15 @@ async function ensureInvoiceDateSchema() {
   });
 }
 
+async function ensureInvoiceNumberingSchema() {
+  await runOnBusinessDatabases(async () => {
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS invoices_invoice_date_no_idx
+      ON invoices(invoice_date, invoice_no);
+    `);
+  });
+}
+
 async function ensureInvoicePaymentSchema() {
   await runOnBusinessDatabases(async () => {
     await db.query(`
@@ -852,6 +861,7 @@ async function startServer() {
     await ensureUserPreferenceSettingsSchema();
     await ensureUserSuperSchema();
     await ensureInvoiceDateSchema();
+    await ensureInvoiceNumberingSchema();
     await ensureInvoicePaymentSchema();
     await ensureSupportImportantSchema();
     await ensureInvoiceImportantWarrantySchema();
