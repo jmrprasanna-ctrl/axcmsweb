@@ -144,7 +144,9 @@ function setDefaultEntryDate(){
 async function loadGeneralCustomers(){
     try{
         const customers = await request("/customers", "GET");
-        generalCustomers = customers.filter(c => String(c.customer_mode || "").toLowerCase() === "general");
+        generalCustomers = customers
+            .filter(c => String(c.customer_mode || "").toLowerCase() === "general")
+            .sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), undefined, { sensitivity: "base" }));
 
         const customerSelect = document.getElementById("customerId");
         customerSelect.innerHTML = "<option value=''>Select General Customer</option>";
