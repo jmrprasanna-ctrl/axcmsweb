@@ -13,6 +13,23 @@ function buildDefaults(mappedProfile = {}){
   };
 }
 
+function applyMappedCompanyBranding(setupLike = {}, mappedProfile = {}) {
+  const companyName = String(mappedProfile.company_name || "").trim();
+  const companyEmail = String(mappedProfile.email || "").trim().toLowerCase();
+  const src = setupLike && typeof setupLike.toJSON === "function" ? setupLike.toJSON() : { ...(setupLike || {}) };
+  if(!companyName){
+    return src;
+  }
+  const branded = { ...src };
+  branded.from_name = companyName;
+  branded.subject_template = `Invoice {{invoice_no}} - ${companyName}`;
+  if(companyEmail){
+    branded.from_email = companyEmail;
+    branded.smtp_user = companyEmail;
+  }
+  return branded;
+}
+
 async function resolveMappedProfile(req){
   const userId = Number(req?.user?.id || req?.user?.userId || 0);
   if(!Number.isFinite(userId) || userId <= 0){
@@ -80,7 +97,27 @@ exports.getEmailSetup = async (req, res) => {
         body_template: defaults.body_template
       });
     }
+    const brandedDbPayload = applyMappedCompanyBranding(row, mappedProfile);
+    if(
+      row &&
+      (
+        String(row.from_name || "") !== String(brandedDbPayload.from_name || "") ||
+        String(row.subject_template || "") !== String(brandedDbPayload.subject_template || "") ||
+        String(row.from_email || "") !== String(brandedDbPayload.from_email || "") ||
+        String(row.smtp_user || "") !== String(brandedDbPayload.smtp_user || "")
+      )
+    ){
+      await row.update({
+        from_name: brandedDbPayload.from_name || row.from_name,
+        subject_template: brandedDbPayload.subject_template || row.subject_template,
+        from_email: brandedDbPayload.from_email || row.from_email,
+        smtp_user: brandedDbPayload.smtp_user || row.smtp_user
+      });
+      row = await EmailSetup.findByPk(row.id);
+    }
     const json = row.toJSON();
+    const brandedJson = applyMappedCompanyBranding(json, mappedProfile);
+    Object.assign(json, brandedJson);
     if(!String(json.smtp_user || "").trim() && defaults.smtp_user){
       json.smtp_user = defaults.smtp_user;
     }
@@ -111,7 +148,7 @@ exports.saveEmailSetup = async (req, res) => {
   try{
     const mappedProfile = await resolveMappedProfile(req);
     const defaults = buildDefaults(mappedProfile);
-    const payload = normalizeBody(req.body || {}, defaults);
+    const payload = applyMappedCompanyBranding(normalizeBody(req.body || {}, defaults), mappedProfile);
     let row = await EmailSetup.findOne({ order: [["id", "ASC"]] });
 
     const normalizedHost = String(payload.smtp_host || "").toLowerCase();
@@ -143,6 +180,8 @@ exports.saveEmailSetup = async (req, res) => {
       row = await EmailSetup.findByPk(row.id);
     }
     const json = row.toJSON();
+    const brandedJson = applyMappedCompanyBranding(json, mappedProfile);
+    Object.assign(json, brandedJson);
     if(!String(json.smtp_user || "").trim() && defaults.smtp_user){
       json.smtp_user = defaults.smtp_user;
     }

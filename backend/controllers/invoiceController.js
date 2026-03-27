@@ -1012,12 +1012,21 @@ exports.sendInvoiceEmail = async (req, res) => {
         const mappedCompanyEmail = String(mappedProfile?.email || "").trim().toLowerCase();
         const withMappedDefaults = (setupLike) => {
             const src = setupLike && typeof setupLike.toJSON === "function" ? setupLike.toJSON() : (setupLike || {});
+            const forceMappedBranding = !!mappedCompanyName;
             return {
                 ...src,
-                smtp_user: String(src.smtp_user || "").trim() || mappedCompanyEmail || null,
-                from_name: String(src.from_name || "").trim() || mappedCompanyName || "PULMO TECHNOLOGIES",
-                from_email: String(src.from_email || "").trim() || mappedCompanyEmail || null,
-                subject_template: String(src.subject_template || "").trim() || `Invoice {{invoice_no}} - ${mappedCompanyName || "PULMO TECHNOLOGIES"}`,
+                smtp_user: forceMappedBranding
+                    ? (mappedCompanyEmail || String(src.smtp_user || "").trim() || null)
+                    : (String(src.smtp_user || "").trim() || mappedCompanyEmail || null),
+                from_name: forceMappedBranding
+                    ? mappedCompanyName
+                    : (String(src.from_name || "").trim() || mappedCompanyName || "PULMO TECHNOLOGIES"),
+                from_email: forceMappedBranding
+                    ? (mappedCompanyEmail || String(src.from_email || "").trim() || null)
+                    : (String(src.from_email || "").trim() || mappedCompanyEmail || null),
+                subject_template: forceMappedBranding
+                    ? `Invoice {{invoice_no}} - ${mappedCompanyName}`
+                    : (String(src.subject_template || "").trim() || `Invoice {{invoice_no}} - ${mappedCompanyName || "PULMO TECHNOLOGIES"}`),
                 body_template: String(src.body_template || "").trim() || `Dear {{customer_name}},\n\nPlease find attached your invoice {{invoice_no}}.\n\nThank you.\n${mappedCompanyName || "PULMO TECHNOLOGIES"}`
             };
         };

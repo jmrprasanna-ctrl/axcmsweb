@@ -6,6 +6,7 @@ const db = require("../config/database");
 const User = require("../models/User");
 const UserAccess = require("../models/UserAccess");
 const UiSetting = require("../models/UiSetting");
+const EmailSetup = require("../models/EmailSetup");
 const Category = require("../models/Category");
 const CategoryModelOption = require("../models/CategoryModelOption");
 const DEMO_DB_NAME = "demo";
@@ -1614,6 +1615,40 @@ async function getMappingPieces(mainDbClient, userId, databaseName, companyId, m
   };
 }
 
+async function syncMappedEmailSetupForDatabase(normalizedMapping) {
+  const databaseName = normalizeDatabaseName(normalizedMapping?.database_name);
+  const companyName = normalizeCompanyName(normalizedMapping?.company_name);
+  const mappedEmail = normalizeEmail(normalizedMapping?.mapped_email || normalizedMapping?.email);
+  if (!databaseName || !companyName) return;
+
+  const subjectTemplate = `Invoice {{invoice_no}} - ${companyName}`;
+  const bodyTemplate = `Dear {{customer_name}},\n\nPlease find attached your invoice {{invoice_no}}.\n\nThank you.\n${companyName}`;
+
+  await db.withDatabase(databaseName, async () => {
+    let row = await EmailSetup.findOne({ order: [["id", "ASC"]] });
+    if (!row) {
+      await EmailSetup.create({
+        smtp_user: mappedEmail || null,
+        from_name: companyName,
+        from_email: mappedEmail || null,
+        subject_template: subjectTemplate,
+        body_template: bodyTemplate,
+      });
+      return;
+    }
+
+    const payload = {
+      from_name: companyName,
+      subject_template: subjectTemplate,
+    };
+    if (mappedEmail) {
+      payload.smtp_user = mappedEmail;
+      payload.from_email = mappedEmail;
+    }
+    await row.update(payload);
+  });
+}
+
 exports.getMappedMeta = async (_req, res) => {
   const cfg = getDbConfig();
   const mainDbClient = new Client({
@@ -1802,6 +1837,7 @@ exports.saveMapping = async (req, res) => {
                      "updatedAt" = NOW()`,
       [result.normalized.user_id, result.normalized.company_profile_id, result.normalized.database_name, result.normalized.mapped_email, Number(req.user?.id || 0) || null]
     );
+    await syncMappedEmailSetupForDatabase(result.normalized).catch(() => {});
 
     res.json({
       message: "Mapped successfully.",
