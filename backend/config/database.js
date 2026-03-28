@@ -17,6 +17,18 @@ const modelProxyByName = Object.create(null);
 const modelDefinitionsByName = Object.create(null);
 const associationOperations = [];
 
+function toPositiveInt(value, fallback) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return Math.floor(parsed);
+}
+
+function toNonNegativeInt(value, fallback) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) return fallback;
+  return Math.floor(parsed);
+}
+
 function normalizeDatabaseName(name) {
   const normalized = String(name || "").trim().toLowerCase();
   if (!normalized) return "";
@@ -25,6 +37,14 @@ function normalizeDatabaseName(name) {
 }
 
 function createSequelize(databaseName) {
+  const poolMax = toPositiveInt(process.env.DB_POOL_MAX, 6);
+  const poolMin = Math.min(toNonNegativeInt(process.env.DB_POOL_MIN, 0), poolMax);
+  const poolAcquire = toPositiveInt(process.env.DB_POOL_ACQUIRE_MS, 45000);
+  const poolIdle = toPositiveInt(process.env.DB_POOL_IDLE_MS, 10000);
+  const poolEvict = toPositiveInt(process.env.DB_POOL_EVICT_MS, 1000);
+  const statementTimeout = toPositiveInt(process.env.DB_STATEMENT_TIMEOUT_MS, 45000);
+  const idleTxTimeout = toPositiveInt(process.env.DB_IDLE_TX_TIMEOUT_MS, 30000);
+
   return new Sequelize(
     databaseName,
     process.env.DB_USER || "postgres",
@@ -34,6 +54,17 @@ function createSequelize(databaseName) {
       port: Number(process.env.DB_PORT || 5432),
       dialect: "postgres",
       logging: false,
+      pool: {
+        max: poolMax,
+        min: poolMin,
+        acquire: poolAcquire,
+        idle: poolIdle,
+        evict: poolEvict,
+      },
+      dialectOptions: {
+        statement_timeout: statementTimeout,
+        idle_in_transaction_session_timeout: idleTxTimeout,
+      },
     }
   );
 }
