@@ -885,11 +885,16 @@ async function request(endpoint, method="GET", data=null){
 
     if(!res.ok){
         const isHtml = typeof result.message === "string" && /<\s*html|<!doctype/i.test(result.message);
+        const apiOrigin = BASE_URL.replace(/\/api$/,"");
         if(res.status === 404){
             throw new Error(`Endpoint not found: ${method} ${endpoint}`);
         }
+        if(res.status === 502 || res.status === 503 || res.status === 504){
+            const serviceName = isAuthEndpoint ? "Login service" : "API service";
+            throw new Error(`${serviceName} is temporarily unavailable (${res.status}). Please check backend process and proxy at ${apiOrigin}.`);
+        }
         if(isHtml){
-            throw new Error(`Server returned HTML error (${res.status}) for ${method} ${endpoint}`);
+            throw new Error(`Server returned an unexpected HTML response (${res.status}) for ${method} ${endpoint}. Please check backend process and proxy at ${apiOrigin}.`);
         }
         throw new Error(result.message || `Request failed (${res.status})`);
     }
