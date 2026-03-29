@@ -102,16 +102,28 @@ html, body { overflow-x: hidden; }
     padding: 4px;
 }
 .product-option {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     width: 100%;
     padding: 8px 10px;
     border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
     line-height: 1.35;
+}
+.product-option-main {
+    min-width: 0;
+    flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+.product-option-price {
+    flex-shrink: 0;
+    font-weight: 600;
+    color: #0f172a;
 }
 .product-option:hover, .product-option.active { background: #e8f2fe; }
 .selected-product {
@@ -320,7 +332,7 @@ html, body { overflow-x: hidden; }
                 <div class="card product-card field-span-full">
                     <div class="product-toolbar">
                         <button class="btn btn-inline-add" type="button" onclick="addProductRow()">Add Product</button>
-                        <span class="product-hint">Search by Product ID, Description, or Model</span>
+                        <span class="product-hint">Search by Product ID or Description</span>
                     </div>
                         <div class="table-scroll">
                             <table class="table product-table">
@@ -692,7 +704,7 @@ async function addProductRow(){
         row.innerHTML = `
             <td>
                 <div class="product-picker-wrap">
-                    <input type="text" class="product-search compact-input" placeholder="Type product id / description / model">
+                    <input type="text" class="product-search compact-input" placeholder="Type product id / description">
                     <div class="product-results" role="listbox"></div>
                     <input type="hidden" class="productId">
                     <input type="hidden" class="productCode">
@@ -805,16 +817,18 @@ function renderProductSearchOptions(listEl, rows){
     }
 
     listEl.innerHTML = rows.map((p) => {
-        const vendorName = p.vendor_name || "";
-        const label = `${p.product_id || ""} - ${p.description || ""} (${p.model || ""})`;
+        const price = Number(p.selling_price || 0).toFixed(2);
+        const label = `${p.product_id || ""} - ${p.description || ""}`;
         return `<div
             class="product-option"
             data-id="${p.id}"
             data-code="${escapeHtml(p.product_id || "")}"
             data-description="${escapeHtml(p.description || "")}"
             data-price="${Number(p.selling_price || 0)}"
-            data-vendor="${escapeHtml(vendorName)}"
-        >${escapeHtml(label)}</div>`;
+        >
+            <span class="product-option-main">${escapeHtml(label)}</span>
+            <span class="product-option-price">Rs ${price}</span>
+        </div>`;
     }).join("");
     listEl.style.display = "block";
 }
@@ -891,8 +905,7 @@ function initProductRowHandlers(row){
             id: Number(selected.dataset.id || 0),
             product_id: selected.dataset.code || "",
             description: selected.dataset.description || "",
-            selling_price: Number(selected.dataset.price || 0),
-            vendor_name: selected.dataset.vendor || ""
+            selling_price: Number(selected.dataset.price || 0)
         };
         applySelectedProduct(row, product);
         listEl.style.display = "none";
@@ -916,8 +929,7 @@ function initProductRowHandlers(row){
                     id: Number(selected.dataset.id || 0),
                     product_id: selected.dataset.code || "",
                     description: selected.dataset.description || "",
-                    selling_price: Number(selected.dataset.price || 0),
-                    vendor_name: selected.dataset.vendor || ""
+                    selling_price: Number(selected.dataset.price || 0)
                 };
                 applySelectedProduct(row, product);
                 listEl.style.display = "none";
