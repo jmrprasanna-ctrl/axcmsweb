@@ -13,8 +13,11 @@ const { Op, fn, col, where: sqWhere } = require("sequelize");
 
 function sumTechnicianPaid(rows){
     return (Array.isArray(rows) ? rows : []).reduce((sum, inv) => {
+        const technician = String(inv.support_technician || "").trim();
         const total = Number(inv.total_amount || 0);
-        const pct = Number(inv.support_technician_percentage || 0);
+        const rawPct = Number(inv.support_technician_percentage || 0);
+        const pct = Number.isFinite(rawPct) ? Math.min(Math.max(rawPct, 0), 100) : 0;
+        if(!technician) return sum;
         if(!Number.isFinite(total) || !Number.isFinite(pct) || pct <= 0) return sum;
         return sum + (total * pct / 100);
     }, 0);
@@ -162,7 +165,7 @@ exports.getSummary = async (req,res)=>{
                     { payment_status: getReceivedPaymentStatusFilter() }
                 ]
             },
-            attributes:["total_amount","support_technician_percentage"]
+            attributes:["total_amount","support_technician","support_technician_percentage"]
         });
         const technicianPaidPeriod = sumTechnicianPaid(invoicesPeriod);
         const invoiceItemsPeriod = await InvoiceItem.findAll({
@@ -226,7 +229,7 @@ exports.getSummary = async (req,res)=>{
             where: {
                 payment_status: getReceivedPaymentStatusFilter()
             },
-            attributes:["total_amount","support_technician_percentage"]
+            attributes:["total_amount","support_technician","support_technician_percentage"]
         });
         const technicianPaidAllTime = sumTechnicianPaid(invoicesAllTime);
         const invoiceItemsAllTime = await InvoiceItem.findAll({
@@ -283,7 +286,10 @@ exports.getSummary = async (req,res)=>{
             let monthProfit = 0;
             salesInvoices.forEach(inv=>{
                 monthSales += inv.total_amount;
-                const technicianPaid = (Number(inv.total_amount || 0) * Number(inv.support_technician_percentage || 0)) / 100;
+                const technician = String(inv.support_technician || "").trim();
+                const rawPct = Number(inv.support_technician_percentage || 0);
+                const pct = Number.isFinite(rawPct) ? Math.min(Math.max(rawPct, 0), 100) : 0;
+                const technicianPaid = technician ? (Number(inv.total_amount || 0) * pct) / 100 : 0;
                 monthProfit += inv.total_amount - inv.InvoiceItems.reduce((a,b)=>a+b.gross,0) - technicianPaid;
             });
             months.push(start.toLocaleString('default',{month:'short'}));
