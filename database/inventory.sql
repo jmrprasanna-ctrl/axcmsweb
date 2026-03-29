@@ -227,6 +227,7 @@ CREATE TABLE expenses (
     createdAt TIMESTAMP DEFAULT NOW(),
     updatedAt TIMESTAMP DEFAULT NOW()
 );
+CREATE INDEX IF NOT EXISTS expenses_date_idx ON expenses(date);
 
 
 -- ==========================

@@ -576,6 +576,7 @@ CREATE TABLE IF NOT EXISTS expenses (
 ALTER TABLE expenses ADD COLUMN IF NOT EXISTS customer VARCHAR(150);
 ALTER TABLE expenses ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP DEFAULT NOW();
 ALTER TABLE expenses ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP DEFAULT NOW();
+CREATE INDEX IF NOT EXISTS expenses_date_idx ON expenses(date);
 
 -- --------------------------
 -- STOCKS
