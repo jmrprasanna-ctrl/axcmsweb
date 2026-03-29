@@ -168,6 +168,13 @@ function formatDateWithWeekday(dateText){
     return `${safe} ${weekday}`;
 }
 
+function formatAmountWithSeparators(value){
+    return Number(value || 0).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
 // Fetch summary data
 async function fetchSummary(){
     try{
@@ -216,29 +223,29 @@ async function fetchSummary(){
             - Number(expenseVal || 0)
             - Number(technicianPaidVal || 0)
             - Number(vendorPaidVal || 0);
-        document.getElementById("totalSales").querySelector("p").innerText = Number(salesVal || 0).toFixed(2);
+        document.getElementById("totalSales").querySelector("p").innerText = formatAmountWithSeparators(salesVal);
         const receivedPaymentEl = document.getElementById("receivedPayment");
         if(receivedPaymentEl){
-            receivedPaymentEl.querySelector("p").innerText = Number(receivedPaymentVal || 0).toFixed(2);
+            receivedPaymentEl.querySelector("p").innerText = formatAmountWithSeparators(receivedPaymentVal);
         }
         const rentalMachinesCountsEl = document.getElementById("rentalMachinesCountsPrice");
         if(rentalMachinesCountsEl){
-            rentalMachinesCountsEl.querySelector("p").innerText = Number(rentalMachinesCountsVal || 0).toFixed(2);
+            rentalMachinesCountsEl.querySelector("p").innerText = formatAmountWithSeparators(rentalMachinesCountsVal);
         }
         const rentalConsumablesEl = document.getElementById("rentalConsumablesPrice");
         if(rentalConsumablesEl){
-            rentalConsumablesEl.querySelector("p").innerText = Number(rentalConsumablesVal || 0).toFixed(2);
+            rentalConsumablesEl.querySelector("p").innerText = formatAmountWithSeparators(rentalConsumablesVal);
         }
-        document.getElementById("totalExpenses").querySelector("p").innerText = Number(expenseVal || 0).toFixed(2);
+        document.getElementById("totalExpenses").querySelector("p").innerText = formatAmountWithSeparators(expenseVal);
         const technicianPaidEl = document.getElementById("technicianPaid");
         if(technicianPaidEl){
-            technicianPaidEl.querySelector("p").innerText = Number(technicianPaidVal || 0).toFixed(2);
+            technicianPaidEl.querySelector("p").innerText = formatAmountWithSeparators(technicianPaidVal);
         }
         const vendorPaidEl = document.getElementById("vendorPaid");
         if(vendorPaidEl){
-            vendorPaidEl.querySelector("p").innerText = Number(vendorPaidVal || 0).toFixed(2);
+            vendorPaidEl.querySelector("p").innerText = formatAmountWithSeparators(vendorPaidVal);
         }
-        document.getElementById("netProfit").querySelector("p").innerText = Number(profitVal || 0).toFixed(2);
+        document.getElementById("netProfit").querySelector("p").innerText = formatAmountWithSeparators(profitVal);
         const labelEl = document.getElementById("summaryRangeLabel");
         if(labelEl){
             const periodName = (summary.period || period || "day").toString().toLowerCase();
