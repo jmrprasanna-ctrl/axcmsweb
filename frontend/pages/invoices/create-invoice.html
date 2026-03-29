@@ -510,7 +510,7 @@ async function initSupportTechnicians(){
             select.appendChild(opt);
         });
     }catch(_err){
-        // Leave only optional default if endpoint is unavailable for current role.
+        // optional default -if endpoint is unavailable for current role. Leave system only 
     }
 
     select.onchange = () => {
@@ -626,7 +626,7 @@ async function refreshInvoiceNoBySelectedDate(){
     }
 }
 
-// Fetch customers and invoice number
+// Fetch customers detail and invoice number
 async function initInvoice(){
     try{
         const [customersData, rentalMachines, generalMachines] = await Promise.all([
@@ -664,7 +664,7 @@ async function initInvoice(){
     }
 }
 
-// Fill customer details
+// Filling the Customer details
 async function fillCustomerDetails(){
     const custId = Number(document.getElementById("customer").value);
     if(!custId){
@@ -751,7 +751,7 @@ async function searchProducts(query){
             return normalized;
         }
     }catch(_err){
-        // Fallback to client-side filtering below.
+        // Fallback to 'client-side' filtering below value.
     }
 
     try{
@@ -1042,7 +1042,7 @@ document.getElementById("invoiceForm").addEventListener("submit", async function
     }
 
     try{
-        // Save invoice to backend
+        // Save invoice to pulmo backend
         await request("/invoices","POST",{
             customer_id:customerId,
             invoice_no:invoiceNo,
@@ -1096,7 +1096,7 @@ document.getElementById("invoiceForm").addEventListener("submit", async function
                     return;
                 }
             }catch(_err){
-                // fall through to alert
+                // fall through to alert message print
             }
         }
         alert(msg);
