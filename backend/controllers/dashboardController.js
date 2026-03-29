@@ -157,7 +157,7 @@ exports.getSummary = async (req,res)=>{
                 ]
             }
         }) || 0;
-        const invoicesPeriod = await Invoice.findAll({
+        const invoicesPeriodForProfit = await Invoice.findAll({
             include: [getGeneralCustomerInclude()],
             where:{
                 [Op.and]: [
@@ -167,7 +167,17 @@ exports.getSummary = async (req,res)=>{
             },
             attributes:["total_amount","support_technician","support_technician_percentage"]
         });
-        const technicianPaidPeriod = sumTechnicianPaid(invoicesPeriod);
+        const technicianPaidPeriodForProfit = sumTechnicianPaid(invoicesPeriodForProfit);
+        const invoicesPeriodForCard = await Invoice.findAll({
+            where:{
+                [Op.and]: [
+                    buildDateOnlyRangeWhere("invoice_date", periodStartDate, periodEndDate),
+                    { support_technician: { [Op.not]: null } }
+                ]
+            },
+            attributes:["total_amount","support_technician","support_technician_percentage"]
+        });
+        const technicianPaidPeriod = sumTechnicianPaid(invoicesPeriodForCard);
         const invoiceItemsPeriod = await InvoiceItem.findAll({
             include: [
                 {
@@ -187,7 +197,7 @@ exports.getSummary = async (req,res)=>{
             attributes: ["qty"]
         });
         const vendorPaidPeriod = sumVendorPaidFromInvoiceItems(invoiceItemsPeriod);
-        const netProfitPeriod = receivedPaymentPeriod - totalExpensesPeriod - technicianPaidPeriod - vendorPaidPeriod;
+        const netProfitPeriod = receivedPaymentPeriod - totalExpensesPeriod - technicianPaidPeriodForProfit - vendorPaidPeriod;
         const rentalCountsPeriodRows = await RentalMachineCount.findAll({
             where: {
                 [Op.or]: [
@@ -224,14 +234,21 @@ exports.getSummary = async (req,res)=>{
                 payment_status: getReceivedPaymentStatusFilter()
             }
         }) || 0;
-        const invoicesAllTime = await Invoice.findAll({
+        const invoicesAllTimeForProfit = await Invoice.findAll({
             include: [getGeneralCustomerInclude()],
             where: {
                 payment_status: getReceivedPaymentStatusFilter()
             },
             attributes:["total_amount","support_technician","support_technician_percentage"]
         });
-        const technicianPaidAllTime = sumTechnicianPaid(invoicesAllTime);
+        const technicianPaidAllTimeForProfit = sumTechnicianPaid(invoicesAllTimeForProfit);
+        const invoicesAllTimeForCard = await Invoice.findAll({
+            where: {
+                support_technician: { [Op.not]: null }
+            },
+            attributes:["total_amount","support_technician","support_technician_percentage"]
+        });
+        const technicianPaidAllTime = sumTechnicianPaid(invoicesAllTimeForCard);
         const invoiceItemsAllTime = await InvoiceItem.findAll({
             include: [
                 {
@@ -248,7 +265,7 @@ exports.getSummary = async (req,res)=>{
             attributes: ["qty"]
         });
         const vendorPaidAllTime = sumVendorPaidFromInvoiceItems(invoiceItemsAllTime);
-        const netProfitAllTime = receivedPaymentAllTime - totalExpensesAllTime - technicianPaidAllTime - vendorPaidAllTime;
+        const netProfitAllTime = receivedPaymentAllTime - totalExpensesAllTime - technicianPaidAllTimeForProfit - vendorPaidAllTime;
         const rentalCountsAllTimeRows = await RentalMachineCount.findAll({
             attributes: ["input_count", "updated_count"]
         });
@@ -311,6 +328,7 @@ exports.getSummary = async (req,res)=>{
             totalExpenses: totalExpensesPeriod,
             netProfit: netProfitPeriod,
             technicianPaid: technicianPaidPeriod,
+            technicianPaidForProfit: technicianPaidPeriodForProfit,
             vendorPaid: vendorPaidPeriod,
             totalSalesAllTime,
             receivedPaymentAllTime,
@@ -321,6 +339,7 @@ exports.getSummary = async (req,res)=>{
             totalExpensesAllTime,
             netProfitAllTime,
             technicianPaidAllTime,
+            technicianPaidAllTimeForProfit,
             vendorPaidAllTime,
             totalSalesPeriod,
             receivedPaymentPeriod,
@@ -329,6 +348,7 @@ exports.getSummary = async (req,res)=>{
             totalExpensesPeriod,
             netProfitPeriod,
             technicianPaidPeriod,
+            technicianPaidForProfitPeriod: technicianPaidPeriodForProfit,
             vendorPaidPeriod,
             lowStock,
             months,
