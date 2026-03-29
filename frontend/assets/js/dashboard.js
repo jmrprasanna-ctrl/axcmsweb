@@ -215,17 +215,13 @@ async function fetchSummary(){
             ?? 0;
         const expenseVal = summary.totalExpensesPeriod ?? summary.totalExpenses ?? 0;
         const technicianPaidVal = summary.technicianPaidPeriod ?? summary.technicianPaid ?? 0;
-        const technicianPaidForProfitVal =
-            summary.technicianPaidForProfitPeriod
-            ?? summary.technicianPaidForProfit
-            ?? technicianPaidVal;
         const vendorPaidVal = summary.vendorPaidPeriod ?? summary.vendorPaid ?? 0;
         const profitVal =
             Number(receivedPaymentVal || 0)
             + Number(rentalMachinesCountsVal || 0)
             - Number(rentalConsumablesVal || 0)
             - Number(expenseVal || 0)
-            - Number(technicianPaidForProfitVal || 0)
+            - Number(technicianPaidVal || 0)
             - Number(vendorPaidVal || 0);
         document.getElementById("totalSales").querySelector("p").innerText = formatAmountWithSeparators(salesVal);
         const receivedPaymentEl = document.getElementById("receivedPayment");

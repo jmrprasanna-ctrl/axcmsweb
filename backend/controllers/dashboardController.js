@@ -197,7 +197,7 @@ exports.getSummary = async (req,res)=>{
             attributes: ["qty"]
         });
         const vendorPaidPeriod = sumVendorPaidFromInvoiceItems(invoiceItemsPeriod);
-        const netProfitPeriod = receivedPaymentPeriod - totalExpensesPeriod - technicianPaidPeriodForProfit - vendorPaidPeriod;
+        const netProfitPeriod = receivedPaymentPeriod - totalExpensesPeriod - technicianPaidPeriod - vendorPaidPeriod;
         const rentalCountsPeriodRows = await RentalMachineCount.findAll({
             where: {
                 [Op.or]: [
@@ -265,7 +265,7 @@ exports.getSummary = async (req,res)=>{
             attributes: ["qty"]
         });
         const vendorPaidAllTime = sumVendorPaidFromInvoiceItems(invoiceItemsAllTime);
-        const netProfitAllTime = receivedPaymentAllTime - totalExpensesAllTime - technicianPaidAllTimeForProfit - vendorPaidAllTime;
+        const netProfitAllTime = receivedPaymentAllTime - totalExpensesAllTime - technicianPaidAllTime - vendorPaidAllTime;
         const rentalCountsAllTimeRows = await RentalMachineCount.findAll({
             attributes: ["input_count", "updated_count"]
         });
