@@ -20,6 +20,34 @@ function classifyVendorSource(vendorName){
     return "VENDER";
 }
 
+function normalizeTechnicianPercentage(rawValue){
+    const raw = Number(rawValue || 0);
+    if(!Number.isFinite(raw)) return 0;
+    return Math.min(Math.max(raw, 0), 100);
+}
+
+function sumVendorProductValueFromInvoiceItems(items){
+    return (Array.isArray(items) ? items : []).reduce((sum, item) => {
+        const qty = Number(item?.qty || 0);
+        const dealer = Number(item?.Product?.dealer_price || 0);
+        if(!Number.isFinite(qty) || !Number.isFinite(dealer) || qty <= 0 || dealer <= 0){
+            return sum;
+        }
+        return sum + (qty * dealer);
+    }, 0);
+}
+
+function computeTechnicianPayableAmount(totalAmount, vendorProductValue, percentage){
+    const total = Number(totalAmount || 0);
+    const vendor = Number(vendorProductValue || 0);
+    const pct = normalizeTechnicianPercentage(percentage);
+    if(!Number.isFinite(total) || !Number.isFinite(vendor) || !Number.isFinite(pct) || pct <= 0){
+        return 0;
+    }
+    const balance = Math.max(total - vendor, 0);
+    return balance * (pct / 100);
+}
+
 function getRange(period, rawDate){
     const now = rawDate ? new Date(rawDate) : new Date();
     if(Number.isNaN(now.getTime())){
@@ -167,28 +195,34 @@ exports.technicianInvoicesMonthlyReport = async (req,res)=>{
 
         const invoices = await Invoice.findAll({
             where,
-            include: [{ model: Customer, attributes: ["id", "name"] }],
+            include: [
+                { model: Customer, attributes: ["id", "name"] },
+                {
+                    model: InvoiceItem,
+                    attributes: ["qty"],
+                    required: false,
+                    include: [{ model: Product, attributes: ["dealer_price"], required: false }]
+                }
+            ],
             order: [["invoice_date", "DESC"], ["createdAt", "DESC"]]
         });
 
         const normalized = invoices
             .filter((inv) => String(inv.support_technician || "").trim())
             .map((inv) => ({
-                technician_percentage: (() => {
-                    const raw = Number(inv.support_technician_percentage);
-                    if(!Number.isFinite(raw)) return 0;
-                    return Math.min(Math.max(raw, 0), 100);
-                })(),
+                technician_percentage: normalizeTechnicianPercentage(inv.support_technician_percentage),
                 id: inv.id,
                 invoice_no: inv.invoice_no,
                 technician: String(inv.support_technician || "").trim(),
                 customer_name: inv.Customer ? inv.Customer.name : "",
                 date: inv.invoice_date || inv.createdAt,
-                total_amount: Number(inv.total_amount || 0)
+                total_amount: Number(inv.total_amount || 0),
+                vendor_product_value: Number(sumVendorProductValueFromInvoiceItems(inv.InvoiceItems || []).toFixed(2))
             }))
             .map((row) => ({
                 ...row,
-                allocated_amount: Number((row.total_amount * (row.technician_percentage / 100)).toFixed(2))
+                balance_amount: Number(Math.max(Number(row.total_amount || 0) - Number(row.vendor_product_value || 0), 0).toFixed(2)),
+                allocated_amount: Number(computeTechnicianPayableAmount(row.total_amount, row.vendor_product_value, row.technician_percentage).toFixed(2))
             }));
 
         const grouped = new Map();
@@ -721,16 +755,25 @@ exports.financeOverview = async (req,res)=>{
                 invoice_date: { [Op.between]: [techStart, techEnd] },
                 support_technician: { [Op.not]: null }
             },
-            attributes: ["support_technician", "support_technician_percentage", "total_amount"]
+            attributes: ["id", "support_technician", "support_technician_percentage", "total_amount"],
+            include: [
+                {
+                    model: InvoiceItem,
+                    attributes: ["qty"],
+                    required: false,
+                    include: [{ model: Product, attributes: ["dealer_price"], required: false }]
+                }
+            ]
         });
 
         const techMap = new Map();
         techInvoices.forEach((inv) => {
             const technician = String(inv.support_technician || "").trim();
             if(!technician) return;
-            const pct = Number(inv.support_technician_percentage || 0);
+            const pct = normalizeTechnicianPercentage(inv.support_technician_percentage || 0);
             const total = Number(inv.total_amount || 0);
-            const pctAmount = total * (pct / 100);
+            const vendorProductValue = sumVendorProductValueFromInvoiceItems(inv.InvoiceItems || []);
+            const pctAmount = computeTechnicianPayableAmount(total, vendorProductValue, pct);
             if(!techMap.has(technician)){
                 techMap.set(technician, {
                     technician,

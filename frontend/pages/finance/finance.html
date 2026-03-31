@@ -123,7 +123,7 @@
 
     <div class="form-container section">
         <div class="section-head">
-            <h3>Support Technicians Invoice Percentage Amount (Technician Wise, Month Wise)</h3>
+            <h3>Support Technician Pay (on Balance: Invoice - Vendor Value) (Technician Wise, Month Wise)</h3>
             <div class="section-actions">
                 <button class="btn" type="button" onclick="exportTechnicianPDF()">Save PDF</button>
                 <button class="btn" type="button" onclick="exportTechnicianXlsx()">Save XLSX</button>
@@ -136,7 +136,7 @@
                     <th>Invoices</th>
                     <th>Total Sales</th>
                     <th>Avg %</th>
-                    <th>Percentage Amount</th>
+                    <th>Payable Amount</th>
                 </tr>
             </thead>
             <tbody id="technicianBody"></tbody>
@@ -542,7 +542,7 @@ function exportFinanceExcel(){
 
     lines.push("");
     lines.push("Technician Monthly Percentage");
-    lines.push("Technician,Invoices,Total Sales,Avg %,Percentage Amount");
+    lines.push("Technician,Invoices,Total Sales,Avg %,Payable Amount");
     (lastFinanceData.technician_monthly?.rows || []).forEach((r) => {
         lines.push([r.technician, r.invoices_count, fmt(r.total_sales), fmt(r.average_percentage), fmt(r.percentage_amount)].map(csvEscape).join(","));
     });
@@ -660,7 +660,7 @@ function exportSummaryXlsx(){
 }
 
 function exportTechnicianPDF(){
-    exportTablePDF("technicianTable", "Support Technicians Invoice Percentage Amount (Technician Wise, Month Wise)", "Finance_Technician_Percentage.pdf");
+    exportTablePDF("technicianTable", "Support Technician Pay (on Balance) (Technician Wise, Month Wise)", "Finance_Technician_Percentage.pdf");
 }
 function exportTechnicianXlsx(){
     exportTableXlsx("technicianTable", "Finance_Technician_Percentage.xlsx");

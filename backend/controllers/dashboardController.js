@@ -17,9 +17,11 @@ function sumTechnicianPaid(rows){
         const total = Number(inv.total_amount || 0);
         const rawPct = Number(inv.support_technician_percentage || 0);
         const pct = Number.isFinite(rawPct) ? Math.min(Math.max(rawPct, 0), 100) : 0;
+        const vendorProductValue = sumVendorPaidFromInvoiceItems(inv.InvoiceItems || []);
+        const balance = Math.max(total - vendorProductValue, 0);
         if(!technician) return sum;
         if(!Number.isFinite(total) || !Number.isFinite(pct) || pct <= 0) return sum;
-        return sum + (total * pct / 100);
+        return sum + (balance * pct / 100);
     }, 0);
 }
 
@@ -158,14 +160,22 @@ exports.getSummary = async (req,res)=>{
             }
         }) || 0;
         const invoicesPeriodForProfit = await Invoice.findAll({
-            include: [getGeneralCustomerInclude()],
             where:{
                 [Op.and]: [
                     buildDateOnlyRangeWhere("invoice_date", periodStartDate, periodEndDate),
                     { payment_status: getReceivedPaymentStatusFilter() }
                 ]
             },
-            attributes:["total_amount","support_technician","support_technician_percentage"]
+            attributes:["id","total_amount","support_technician","support_technician_percentage"],
+            include: [
+                getGeneralCustomerInclude(),
+                {
+                    model: InvoiceItem,
+                    required: false,
+                    attributes: ["qty"],
+                    include: [{ model: Product, required: false, attributes: ["dealer_price"] }]
+                }
+            ]
         });
         const technicianPaidPeriodForProfit = sumTechnicianPaid(invoicesPeriodForProfit);
         const invoicesPeriodForCard = await Invoice.findAll({
@@ -175,7 +185,15 @@ exports.getSummary = async (req,res)=>{
                     { support_technician: { [Op.not]: null } }
                 ]
             },
-            attributes:["total_amount","support_technician","support_technician_percentage"]
+            attributes:["id","total_amount","support_technician","support_technician_percentage"],
+            include: [
+                {
+                    model: InvoiceItem,
+                    required: false,
+                    attributes: ["qty"],
+                    include: [{ model: Product, required: false, attributes: ["dealer_price"] }]
+                }
+            ]
         });
         const technicianPaidPeriod = sumTechnicianPaid(invoicesPeriodForCard);
         const invoiceItemsPeriod = await InvoiceItem.findAll({
@@ -235,18 +253,34 @@ exports.getSummary = async (req,res)=>{
             }
         }) || 0;
         const invoicesAllTimeForProfit = await Invoice.findAll({
-            include: [getGeneralCustomerInclude()],
+            include: [
+                getGeneralCustomerInclude(),
+                {
+                    model: InvoiceItem,
+                    required: false,
+                    attributes: ["qty"],
+                    include: [{ model: Product, required: false, attributes: ["dealer_price"] }]
+                }
+            ],
             where: {
                 payment_status: getReceivedPaymentStatusFilter()
             },
-            attributes:["total_amount","support_technician","support_technician_percentage"]
+            attributes:["id","total_amount","support_technician","support_technician_percentage"]
         });
         const technicianPaidAllTimeForProfit = sumTechnicianPaid(invoicesAllTimeForProfit);
         const invoicesAllTimeForCard = await Invoice.findAll({
             where: {
                 support_technician: { [Op.not]: null }
             },
-            attributes:["total_amount","support_technician","support_technician_percentage"]
+            attributes:["id","total_amount","support_technician","support_technician_percentage"],
+            include: [
+                {
+                    model: InvoiceItem,
+                    required: false,
+                    attributes: ["qty"],
+                    include: [{ model: Product, required: false, attributes: ["dealer_price"] }]
+                }
+            ]
         });
         const technicianPaidAllTime = sumTechnicianPaid(invoicesAllTimeForCard);
         const invoiceItemsAllTime = await InvoiceItem.findAll({
@@ -296,7 +330,11 @@ exports.getSummary = async (req,res)=>{
 
             const salesInvoices = await Invoice.findAll({
                 where: buildDateOnlyRangeWhere("invoice_date", startText, endText),
-                include:[InvoiceItem]
+                include:[{
+                    model: InvoiceItem,
+                    required: false,
+                    include: [{ model: Product, required: false, attributes: ["dealer_price"] }]
+                }]
             });
 
             let monthSales = 0;
@@ -306,7 +344,9 @@ exports.getSummary = async (req,res)=>{
                 const technician = String(inv.support_technician || "").trim();
                 const rawPct = Number(inv.support_technician_percentage || 0);
                 const pct = Number.isFinite(rawPct) ? Math.min(Math.max(rawPct, 0), 100) : 0;
-                const technicianPaid = technician ? (Number(inv.total_amount || 0) * pct) / 100 : 0;
+                const vendorProductValue = sumVendorPaidFromInvoiceItems(inv.InvoiceItems || []);
+                const balanceForTechnician = Math.max(Number(inv.total_amount || 0) - vendorProductValue, 0);
+                const technicianPaid = technician ? (balanceForTechnician * pct) / 100 : 0;
                 monthProfit += inv.total_amount - inv.InvoiceItems.reduce((a,b)=>a+b.gross,0) - technicianPaid;
             });
             months.push(start.toLocaleString('default',{month:'short'}));
