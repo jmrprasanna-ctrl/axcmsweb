@@ -6,7 +6,8 @@ function getTemplatePaths() {
   const invoiceTemplate = (process.env.INVOICE_TEMPLATE_PDF || "D:\\26XX001 PUL1V INVOICE V.pdf").trim();
   const quotationTemplate = (process.env.QUOTATION_TEMPLATE_PDF || "D:\\26XX001 PUL1V QUATATION.pdf").trim();
   const quotation2Template = (process.env.QUOTATION2_TEMPLATE_PDF || "D:\\26XX001 PUL1V QUATATION 2.pdf").trim();
-  return { invoiceTemplate, quotationTemplate, quotation2Template };
+  const quotation3Template = (process.env.QUOTATION3_TEMPLATE_PDF || "D:\\26XX001 PUL1V QUATATION 3.pdf").trim();
+  return { invoiceTemplate, quotationTemplate, quotation2Template, quotation3Template };
 }
 
 function checkFile(filePath) {
@@ -54,6 +55,7 @@ async function getRuntimeChecks() {
     invoice: checkFile(templatePaths.invoiceTemplate),
     quotation: checkFile(templatePaths.quotationTemplate),
     quotation2: checkFile(templatePaths.quotation2Template),
+    quotation3: checkFile(templatePaths.quotation3Template),
   };
 
   const tools = {
@@ -86,7 +88,8 @@ function summarizeStatus(checks, dbConnected) {
   const templatesOk =
     checks.templateFiles.invoice.exists &&
     checks.templateFiles.quotation.exists &&
-    checks.templateFiles.quotation2.exists;
+    checks.templateFiles.quotation2.exists &&
+    checks.templateFiles.quotation3.exists;
 
   return {
     ok: Boolean(dbConnected) && toolOk && templatesOk,

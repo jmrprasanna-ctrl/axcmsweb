@@ -29,6 +29,7 @@ async function run() {
   console.log(`- Invoice template: ${checks.templateFiles.invoice.exists ? "OK" : "MISSING"} -> ${checks.templateFiles.invoice.path}`);
   console.log(`- Quotation template: ${checks.templateFiles.quotation.exists ? "OK" : "MISSING"} -> ${checks.templateFiles.quotation.path}`);
   console.log(`- Quotation 2 template: ${checks.templateFiles.quotation2.exists ? "OK" : "MISSING"} -> ${checks.templateFiles.quotation2.path}`);
+  console.log(`- Quotation 3 template: ${checks.templateFiles.quotation3.exists ? "OK" : "MISSING"} -> ${checks.templateFiles.quotation3.path}`);
 
   if (dbConnected) {
     const syncOptions = DB_SYNC_FORCE ? { force: true } : { alter: DB_SYNC_ALTER };
