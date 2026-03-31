@@ -876,65 +876,6 @@ exports.financeOverview = async (req,res)=>{
             date: e.date
         }));
 
-        const techMonthRaw = String(req.query.techMonth || "").trim();
-        const techRef = techMonthRaw ? new Date(`${techMonthRaw}-01T00:00:00`) : new Date();
-        const techYear = techRef.getFullYear();
-        const techMonth = clampMonth(techRef.getMonth() + 1);
-        const techStart = new Date(techYear, techMonth - 1, 1, 0, 0, 0, 0);
-        const techEnd = new Date(techYear, techMonth, 0, 23, 59, 59, 999);
-
-        const techInvoices = await Invoice.findAll({
-            where: {
-                invoice_date: { [Op.between]: [techStart, techEnd] },
-                support_technician: { [Op.not]: null }
-            },
-            attributes: ["id", "support_technician", "support_technician_percentage", "total_amount"],
-            include: [
-                {
-                    model: InvoiceItem,
-                    attributes: ["qty"],
-                    required: false,
-                    include: [{ model: Product, attributes: ["dealer_price"], required: false }]
-                }
-            ]
-        });
-
-        const techMap = new Map();
-        techInvoices.forEach((inv) => {
-            const technician = String(inv.support_technician || "").trim();
-            if(!technician) return;
-            const pct = normalizeTechnicianPercentage(inv.support_technician_percentage || 0);
-            const total = Number(inv.total_amount || 0);
-            const vendorProductValue = sumVendorProductValueFromInvoiceItems(inv.InvoiceItems || []);
-            const pctAmount = computeTechnicianPayableAmount(total, vendorProductValue, pct);
-            if(!techMap.has(technician)){
-                techMap.set(technician, {
-                    technician,
-                    invoices_count: 0,
-                    total_sales: 0,
-                    total_percentage_amount: 0,
-                    total_percentage_value: 0
-                });
-            }
-            const row = techMap.get(technician);
-            row.invoices_count += 1;
-            row.total_sales += total;
-            row.total_percentage_amount += pctAmount;
-            row.total_percentage_value += pct;
-        });
-
-        const technicianMonthly = {
-            year: techYear,
-            month: techMonth,
-            rows: Array.from(techMap.values()).map((r) => ({
-                technician: r.technician,
-                invoices_count: r.invoices_count,
-                total_sales: Number(r.total_sales.toFixed(2)),
-                average_percentage: Number((r.invoices_count ? (r.total_percentage_value / r.invoices_count) : 0).toFixed(2)),
-                percentage_amount: Number(r.total_percentage_amount.toFixed(2))
-            })).sort((a, b) => b.percentage_amount - a.percentage_amount)
-        };
-
         const soldProductSellingPriceByPeriod = [];
         const vendorDealerPriceByPeriod = [];
         const vendorDealerDetailsByPeriod = {};
@@ -1053,7 +994,6 @@ exports.financeOverview = async (req,res)=>{
         res.json({
             summary_by_period: summaryByPeriod,
             month_expense_rows: monthExpenseRows,
-            technician_monthly: technicianMonthly,
             sold_product_selling_price_by_period: soldProductSellingPriceByPeriod,
             vendor_dealer_price_by_period: vendorDealerPriceByPeriod,
             vendor_dealer_details_by_period: vendorDealerDetailsByPeriod,

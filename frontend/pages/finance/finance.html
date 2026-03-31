@@ -104,7 +104,7 @@
 
     <div class="form-container section">
         <div class="section-head">
-            <h3>Total Sales / Expenses / Net Profit (Week, Month, Annual)</h3>
+            <h3>Total Sales / Expenses / Net Profit</h3>
             <div class="section-actions">
                 <button class="btn" type="button" onclick="exportSummaryPDF()">Save PDF</button>
                 <button class="btn" type="button" onclick="exportSummaryXlsx()">Save XLSX</button>
@@ -120,28 +120,6 @@
                 </tr>
             </thead>
             <tbody id="summaryBody"></tbody>
-        </table>
-    </div>
-
-    <div class="form-container section">
-        <div class="section-head">
-            <h3>Support Technician Pay (on Balance: Invoice - Vendor Value) (Technician Wise, Month Wise)</h3>
-            <div class="section-actions">
-                <button class="btn" type="button" onclick="exportTechnicianPDF()">Save PDF</button>
-                <button class="btn" type="button" onclick="exportTechnicianXlsx()">Save XLSX</button>
-            </div>
-        </div>
-        <table id="technicianTable">
-            <thead>
-                <tr>
-                    <th>Technician</th>
-                    <th>Invoices</th>
-                    <th>Total Sales</th>
-                    <th>Avg %</th>
-                    <th>Payable Amount</th>
-                </tr>
-            </thead>
-            <tbody id="technicianBody"></tbody>
         </table>
     </div>
 
@@ -331,8 +309,7 @@ async function loadFinanceOverview(){
         const baseDate = (selectedExpenseYear && selectedExpenseMonth)
             ? `${selectedExpenseYear}-${String(selectedExpenseMonth).padStart(2, "0")}-01`
             : "";
-        const techMonth = "";
-        const query = `?date=${encodeURIComponent(baseDate)}&expenseYear=${encodeURIComponent(selectedExpenseYear)}&expenseMonth=${encodeURIComponent(selectedExpenseMonth)}&techMonth=${encodeURIComponent(techMonth)}`;
+        const query = `?date=${encodeURIComponent(baseDate)}&expenseYear=${encodeURIComponent(selectedExpenseYear)}&expenseMonth=${encodeURIComponent(selectedExpenseMonth)}`;
         const data = await request(`/reports/finance-overview${query}`, "GET");
         lastFinanceData = data;
 
@@ -372,15 +349,6 @@ async function loadFinanceOverview(){
             `;
         });
         putRows("summaryBody", summaryRows, 4);
-
-        const techRows = (data.technician_monthly?.rows || []).map((r) => `
-            <td>${r.technician || ""}</td>
-            <td>${Number(r.invoices_count || 0)}</td>
-            <td>${fmt(r.total_sales)}</td>
-            <td>${fmt(r.average_percentage)}</td>
-            <td>${fmt(r.percentage_amount)}</td>
-        `);
-        putRows("technicianBody", techRows, 5);
 
         const soldRows = (data.sold_product_selling_price_by_period || []).map((r) => `
             <td>${r.period || ""}</td>
@@ -462,13 +430,6 @@ function exportFinanceExcel(){
     });
 
     lines.push("");
-    lines.push("Technician Monthly Percentage");
-    lines.push("Technician,Invoices,Total Sales,Avg %,Payable Amount");
-    (lastFinanceData.technician_monthly?.rows || []).forEach((r) => {
-        lines.push([r.technician, r.invoices_count, fmt(r.total_sales), fmt(r.average_percentage), fmt(r.percentage_amount)].map(csvEscape).join(","));
-    });
-
-    lines.push("");
     lines.push("Sold Product Selling Price By Period");
     lines.push("Period,Total Amount");
     (lastFinanceData.sold_product_selling_price_by_period || []).forEach((r) => {
@@ -531,11 +492,6 @@ function exportFinancePDF(){
         line(`${s.period || k}: Sales ${fmt(s.total_sales)} | Expenses ${fmt(s.total_expenses)} | Net ${fmt(s.net_profit)}`);
     });
     line("");
-    line("Technician Monthly Percentage");
-    (lastFinanceData.technician_monthly?.rows || []).forEach((r) => {
-        line(`${r.technician || ""} | Invoices ${r.invoices_count || 0} | Sales ${fmt(r.total_sales)} | Avg% ${fmt(r.average_percentage)} | Amount ${fmt(r.percentage_amount)}`);
-    });
-    line("");
     line("Sold Product Selling Price By Period");
     (lastFinanceData.sold_product_selling_price_by_period || []).forEach((r) => {
         line(`${r.period || ""}: ${fmt(r.total_amount)}`);
@@ -561,17 +517,10 @@ function exportMonthExpenseXlsx(){
 }
 
 function exportSummaryPDF(){
-    exportTablePDF("summaryTable", "Total Sales / Expenses / Net Profit (Week, Month, Annual)", "Finance_Summary_By_Period.pdf");
+    exportTablePDF("summaryTable", "Total Sales / Expenses / Net Profit", "Finance_Summary_By_Period.pdf");
 }
 function exportSummaryXlsx(){
     exportTableXlsx("summaryTable", "Finance_Summary_By_Period.xlsx");
-}
-
-function exportTechnicianPDF(){
-    exportTablePDF("technicianTable", "Support Technician Pay (on Balance) (Technician Wise, Month Wise)", "Finance_Technician_Percentage.pdf");
-}
-function exportTechnicianXlsx(){
-    exportTableXlsx("technicianTable", "Finance_Technician_Percentage.xlsx");
 }
 
 function exportSoldPricePDF(){
