@@ -58,6 +58,7 @@
 
     <div class="toolbar">
         <a class="btn" id="paymentsBtn" href="payments.html">Payments</a>
+        <a class="btn" id="pendingsBtn" href="pendings.html">Pendings</a>
         <button class="btn" type="button" onclick="loadFinanceOverview()">Refresh</button>
         <a class="btn btn-secondary" href="../dashboard.html">Back</a>
     </div>
@@ -275,9 +276,16 @@ if(!canAccessFinance){
 const canAccessPayments = (role === "admin" || role === "manager")
     ? true
     : (role === "user" && allowedPaths.has("/finance/payments.html"));
+const canAccessPendings = (role === "admin" || role === "manager")
+    ? true
+    : (role === "user" && (allowedPaths.has("/finance/pendings.html") || allowedPaths.has("/finance/finance.html")));
 const paymentsBtnEl = document.getElementById("paymentsBtn");
 if(paymentsBtnEl && !canAccessPayments){
     paymentsBtnEl.style.display = "none";
+}
+const pendingsBtnEl = document.getElementById("pendingsBtn");
+if(pendingsBtnEl && !canAccessPendings){
+    pendingsBtnEl.style.display = "none";
 }
 
 function asNumber(v){

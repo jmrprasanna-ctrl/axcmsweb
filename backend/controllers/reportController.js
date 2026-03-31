@@ -611,6 +611,67 @@ function periodLabel(periodName){
     return "Annual";
 }
 
+exports.pendingInvoicesByYear = async (req, res) => {
+    try{
+        const nowYear = new Date().getFullYear();
+        const rawYear = String(req.query.year || "").trim();
+        const parsedYear = Number.parseInt(rawYear, 10);
+        const year = Number.isInteger(parsedYear) && parsedYear >= 2000 && parsedYear <= 9999 ? parsedYear : nowYear;
+
+        const start = `${year}-01-01`;
+        const end = `${year}-12-31`;
+        const customerMode = String(req.query.customerMode || "").trim().toLowerCase();
+
+        const where = {
+            invoice_date: { [Op.between]: [start, end] },
+            [Op.or]: [
+                { payment_status: { [Op.is]: null } },
+                { payment_status: { [Op.ne]: "Received" } }
+            ]
+        };
+
+        const include = [{
+            model: Customer,
+            required: false,
+            attributes: ["id", "name", "customer_mode"]
+        }];
+
+        if(customerMode){
+            include[0].where = { customer_mode: customerMode };
+        }
+
+        const invoices = await Invoice.findAll({
+            where,
+            include,
+            order: [["invoice_date", "DESC"], ["createdAt", "DESC"], ["id", "DESC"]]
+        });
+
+        const rows = invoices.map((inv) => ({
+            id: inv.id,
+            invoice_no: inv.invoice_no || "",
+            invoice_date: inv.invoice_date || inv.createdAt || null,
+            customer_name: inv.Customer ? (inv.Customer.name || "") : "",
+            customer_mode: inv.Customer ? (inv.Customer.customer_mode || "") : "",
+            total_amount: Number(inv.total_amount || 0),
+            payment_method: inv.payment_method || "Cash",
+            cheque_no: inv.cheque_no || "",
+            payment_status: inv.payment_status || "Pending",
+            payment_date: inv.payment_date || null
+        }));
+
+        const total_pending_amount = rows.reduce((sum, row) => sum + Number(row.total_amount || 0), 0);
+        res.json({
+            year,
+            customer_mode: customerMode || "all",
+            count: rows.length,
+            total_pending_amount: Number(total_pending_amount.toFixed(2)),
+            rows
+        });
+    }catch(err){
+        res.status(500).json({ message: err.message || "Failed to load pending invoices." });
+    }
+};
+
 exports.financeOverview = async (req,res)=>{
     try{
         const { week, month, year } = getPeriods(req.query.date);

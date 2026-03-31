@@ -467,6 +467,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     payment_method VARCHAR(50) DEFAULT 'Cash',
     cheque_no VARCHAR(100),
     payment_status VARCHAR(50) DEFAULT 'Pending',
+    payment_date DATE,
     total_amount DOUBLE PRECISION DEFAULT 0,
     "createdAt" TIMESTAMP DEFAULT NOW(),
     "updatedAt" TIMESTAMP DEFAULT NOW()
@@ -481,11 +482,13 @@ ALTER TABLE invoices ADD COLUMN IF NOT EXISTS support_technician_percentage DOUB
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50) DEFAULT 'Cash';
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS cheque_no VARCHAR(100);
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT 'Pending';
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_date DATE;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS invoice_date DATE DEFAULT CURRENT_DATE;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS quotation_date DATE DEFAULT CURRENT_DATE;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP DEFAULT NOW();
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP DEFAULT NOW();
 CREATE INDEX IF NOT EXISTS invoices_invoice_date_no_idx ON invoices(invoice_date, invoice_no);
+CREATE INDEX IF NOT EXISTS invoices_pending_lookup_idx ON invoices(payment_status, invoice_date, id);
 
 UPDATE invoices
 SET payment_status = 'Received'

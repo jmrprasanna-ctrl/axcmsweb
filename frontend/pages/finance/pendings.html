@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pendings - PULMO TECHNOLOGIES</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<style>
+    .toolbar{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;}
+    .toolbar .field{display:grid;gap:6px;min-width:170px;}
+    .summary-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+    .summary-box{border:1px solid #d9e4f0;border-radius:10px;padding:10px 12px;background:#fff;min-width:220px;}
+    .summary-box .label{font-size:12px;color:#556b84;margin-bottom:4px;}
+    .summary-box .value{font-weight:700;color:#0f6abf;}
+    .status-badge{padding:3px 8px;border-radius:999px;font-size:12px;font-weight:700;display:inline-block;background:#fde7e9;color:#b02a37;}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>PULMO TECHNOLOGIES</span>
+    </div>
+    <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../products/product-list.html">Products</a></li>
+        <li><a href="../products/general-machine.html">Machines</a></li>
+        <li><a href="../customers/customer-list.html">Customers</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
+        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../reports/sales-report.html">Reports</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+        <li><a href="finance.html">Finance</a></li>
+        <li><a href="payments.html">Payments</a></li>
+        <li><a href="pendings.html">Pendings</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header><h2>Pendings</h2></header>
+
+    <div class="form-container">
+        <div class="toolbar">
+            <div class="field">
+                <label for="yearFilter">Year</label>
+                <select id="yearFilter"></select>
+            </div>
+            <button type="button" onclick="loadPendings()">Refresh</button>
+            <a class="btn btn-secondary" href="finance.html">Back</a>
+        </div>
+
+        <div class="summary-row">
+            <div class="summary-box">
+                <div class="label">Pending Invoices</div>
+                <div class="value" id="pendingCount">0</div>
+            </div>
+            <div class="summary-box">
+                <div class="label">Pending Amount (Rs.)</div>
+                <div class="value" id="pendingAmount">0.00</div>
+            </div>
+        </div>
+
+        <table id="pendingTable">
+            <thead>
+                <tr>
+                    <th>Invoice No</th>
+                    <th>Customer</th>
+                    <th>Customer Mode</th>
+                    <th>Invoice Date</th>
+                    <th>Total Amount</th>
+                    <th>Payment Mode</th>
+                    <th>Cheque No</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script>
+const role = (localStorage.getItem("role") || "").toLowerCase();
+const allowedPaths = (() => {
+    try{
+        const rows = JSON.parse(localStorage.getItem("userAllowedPathsRuntime") || "[]");
+        return new Set((Array.isArray(rows) ? rows : []).map((x) => String(x || "").trim().toLowerCase()));
+    }catch(_err){
+        return new Set();
+    }
+})();
+const canAccessPendings = (role === "admin" || role === "manager")
+    ? true
+    : (role === "user" && (allowedPaths.has("/finance/pendings.html") || allowedPaths.has("/finance/finance.html")));
+if(!canAccessPendings){
+    alert("You don't have access to Pendings.");
+    window.location.href = "../dashboard.html";
+}
+
+const yearFilter = document.getElementById("yearFilter");
+let selectedYear = String(new Date().getFullYear());
+let rowsCache = [];
+
+function asNumber(v){
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+}
+
+function formatCurrency(v){
+    return asNumber(v).toFixed(2);
+}
+
+function normalizeStatus(v){
+    const raw = String(v || "").trim().toLowerCase();
+    if(raw === "received" || raw === "recieved"){
+        return "Received";
+    }
+    return "Pending";
+}
+
+function initYearFilter(){
+    const currentYear = new Date().getFullYear();
+    yearFilter.innerHTML = "";
+    for(let y = currentYear; y >= currentYear - 20; y -= 1){
+        const option = document.createElement("option");
+        option.value = String(y);
+        option.textContent = String(y);
+        yearFilter.appendChild(option);
+    }
+    yearFilter.value = selectedYear;
+}
+
+function renderTable(){
+    const tbody = document.querySelector("#pendingTable tbody");
+    tbody.innerHTML = "";
+
+    if(!rowsCache.length){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td colspan="8">No pending invoices found.</td>`;
+        tbody.appendChild(tr);
+        return;
+    }
+
+    rowsCache.forEach((row) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${row.invoice_no || ""}</td>
+            <td>${row.customer_name || ""}</td>
+            <td>${row.customer_mode || ""}</td>
+            <td>${row.invoice_date ? new Date(`${String(row.invoice_date).slice(0, 10)}T00:00:00`).toLocaleDateString() : ""}</td>
+            <td>${formatCurrency(row.total_amount)}</td>
+            <td>${row.payment_method || "Cash"}</td>
+            <td>${row.cheque_no || ""}</td>
+            <td><span class="status-badge">${normalizeStatus(row.payment_status)}</span></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function renderSummary(totalAmount){
+    document.getElementById("pendingCount").innerText = String(rowsCache.length);
+    document.getElementById("pendingAmount").innerText = formatCurrency(totalAmount);
+}
+
+async function loadPendings(){
+    try{
+        const year = String(selectedYear || "").trim();
+        const data = await request(`/reports/pending-invoices-yearly?year=${encodeURIComponent(year)}`, "GET");
+        rowsCache = Array.isArray(data?.rows) ? data.rows : [];
+        renderSummary(data?.total_pending_amount || 0);
+        renderTable();
+    }catch(err){
+        alert(err.message || "Failed to load pending invoices.");
+    }
+}
+
+yearFilter.addEventListener("change", () => {
+    selectedYear = String(yearFilter.value || "");
+    loadPendings();
+});
+
+initYearFilter();
+loadPendings();
+</script>
+</body>
+</html>

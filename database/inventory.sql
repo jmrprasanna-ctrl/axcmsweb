@@ -194,11 +194,13 @@ CREATE TABLE invoices (
     payment_method VARCHAR(50) DEFAULT 'Cash',
     cheque_no VARCHAR(100),
     payment_status VARCHAR(50) DEFAULT 'Pending',
+    payment_date DATE,
     total_amount FLOAT DEFAULT 0,
     createdAt TIMESTAMP DEFAULT NOW(),
     updatedAt TIMESTAMP DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS invoices_invoice_date_no_idx ON invoices(invoice_date, invoice_no);
+CREATE INDEX IF NOT EXISTS invoices_pending_lookup_idx ON invoices(payment_status, invoice_date, id);
 
 -- ==========================
 -- Invoice Items Table
