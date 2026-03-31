@@ -1154,8 +1154,8 @@ function initSignControl(){
     const signChk = document.getElementById("sign1Chk");
     if(!signChk) return;
     const allowed = hasMappedFeature("sign_q3") || hasMappedFeature("sign_c");
-    signChk.checked = false;
-    sign1Enabled = false;
+    signChk.checked = !!allowed;
+    sign1Enabled = !!allowed;
     signChk.disabled = !allowed;
     if(!allowed) return;
     signChk.addEventListener("change", async () => {
@@ -1188,8 +1188,8 @@ function initSealControl(){
     const sealChk = document.getElementById("seal1Chk");
     if(!sealChk) return;
     const allowed = hasMappedFeature("seal_q3") || hasMappedFeature("seal_c");
-    sealChk.checked = false;
-    seal1Enabled = false;
+    sealChk.checked = !!allowed;
+    seal1Enabled = !!allowed;
     sealChk.disabled = !allowed;
     if(!allowed) return;
     sealChk.addEventListener("change", async () => {
