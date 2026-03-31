@@ -118,12 +118,13 @@
 
         <div class="report-block admin-manager-only" id="technicianReportBlock">
             <div class="report-head">
-                <h3>Technicians Attended Invoices (Month Wise)</h3>
+                <h3>Technicians Attended Invoices</h3>
                 <div class="report-controls">
                     <select id="techTechnician">
                         <option value="">All Support Technicians</option>
                     </select>
-                    <input type="month" id="techMonth">
+                    <select id="techYear"></select>
+                    <select id="techMonth"></select>
                     <button type="button" onclick="loadTechnicianReport()">Load</button>
                     <button type="button" onclick="exportTechnicianPDF()">Export PDF</button>
                 </div>
@@ -313,7 +314,7 @@ function exportSalesPDF(){
 }
 
 function exportTechnicianPDF(){
-    exportTablePDF("technicianSummaryTable", "Technicians Attended Invoices (Month Wise)", "Technician_Invoices_Report.pdf");
+    exportTablePDF("technicianSummaryTable", "Technicians Attended Invoices", "Technician_Invoices_Report.pdf");
 }
 
 function exportStockReportsPDF(){
@@ -385,13 +386,13 @@ async function loadTechnicianReport(){
     try{
         const techEl = document.getElementById("techTechnician");
         const selectedTechnician = String(techEl?.value || "").trim();
-        const monthVal = document.getElementById("techMonth").value;
-        let year = new Date().getFullYear();
-        let month = new Date().getMonth() + 1;
-        if(monthVal){
-            const parts = monthVal.split("-");
-            year = Number(parts[0]) || year;
-            month = Number(parts[1]) || month;
+        let year = Number(document.getElementById("techYear")?.value || 0);
+        let month = Number(document.getElementById("techMonth")?.value || 0);
+        if(!Number.isFinite(year) || year <= 0){
+            year = new Date().getFullYear();
+        }
+        if(!Number.isFinite(month) || month <= 0){
+            month = new Date().getMonth() + 1;
         }
         const query = `year=${year}&month=${month}&technician=${encodeURIComponent(selectedTechnician)}`;
         const data = await request(`/reports/technician-invoices-monthly?${query}`,"GET");
@@ -636,6 +637,26 @@ function populateSalesMonthOptions(){
         .join("");
 }
 
+function populateTechYearOptions(){
+    const yearEl = document.getElementById("techYear");
+    if(!yearEl) return;
+    const currentYear = new Date().getFullYear();
+    const startYear = currentYear - 15;
+    const opts = [];
+    for(let y = currentYear; y >= startYear; y--){
+        opts.push(`<option value="${y}">${y}</option>`);
+    }
+    yearEl.innerHTML = opts.join("");
+}
+
+function populateTechMonthOptions(){
+    const monthEl = document.getElementById("techMonth");
+    if(!monthEl) return;
+    monthEl.innerHTML = REPORT_MONTH_NAMES
+        .map((name, i) => `<option value="${i + 1}">${name}</option>`)
+        .join("");
+}
+
 function toggleSalesPeriodSelectors(){
     const period = (document.getElementById("salesPeriod")?.value || "month").toLowerCase();
     const yearEl = document.getElementById("salesYearSelect");
@@ -664,11 +685,14 @@ function syncSalesDateFromSelectors(){
 }
 
 document.getElementById("salesDate").value = new Date().toISOString().slice(0,10);
-document.getElementById("techMonth").value = new Date().toISOString().slice(0,7);
 populateSalesYearOptions();
 populateSalesMonthOptions();
+populateTechYearOptions();
+populateTechMonthOptions();
 document.getElementById("salesYearSelect").value = String(new Date().getFullYear());
 document.getElementById("salesMonthSelect").value = String(new Date().getMonth() + 1).padStart(2,"0");
+document.getElementById("techYear").value = String(new Date().getFullYear());
+document.getElementById("techMonth").value = String(new Date().getMonth() + 1);
 toggleSalesPeriodSelectors();
 syncSalesDateFromSelectors();
 
@@ -678,6 +702,7 @@ document.getElementById("salesPeriod").addEventListener("change", () => {
 });
 document.getElementById("salesYearSelect").addEventListener("change", syncSalesDateFromSelectors);
 document.getElementById("salesMonthSelect").addEventListener("change", syncSalesDateFromSelectors);
+document.getElementById("techYear").addEventListener("change", loadTechnicianReport);
 document.getElementById("techMonth").addEventListener("change", loadTechnicianReport);
 document.getElementById("techTechnician").addEventListener("change", loadTechnicianReport);
 document.getElementById("stockVendorReport").addEventListener("change", loadStockReports);
