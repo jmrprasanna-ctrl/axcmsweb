@@ -80,8 +80,10 @@
 
     <div class="form-container section">
         <div class="section-head">
-            <h3>Expense Entries Used for Total Expenses (Month)</h3>
+            <h3>Total Expenses</h3>
             <div class="section-actions">
+                <select id="expenseYearFilter" style="min-width:130px;"></select>
+                <select id="expenseMonthFilter" style="min-width:170px;"></select>
                 <button class="btn" type="button" onclick="exportMonthExpensePDF()">Save PDF</button>
                 <button class="btn" type="button" onclick="exportMonthExpenseXlsx()">Save XLSX</button>
             </div>
@@ -301,6 +303,8 @@ let lastFinanceData = null;
 const rentalCountCustomerFilterEl = document.getElementById("rentalCountCustomerFilter");
 const rentalCountYearFilterEl = document.getElementById("rentalCountYearFilter");
 const rentalCountMonthFilterEl = document.getElementById("rentalCountMonthFilter");
+const expenseYearFilterEl = document.getElementById("expenseYearFilter");
+const expenseMonthFilterEl = document.getElementById("expenseMonthFilter");
 const MONTH_OPTION_ROWS = [
     { value: "1", label: "January" },
     { value: "2", label: "February" },
@@ -315,6 +319,32 @@ const MONTH_OPTION_ROWS = [
     { value: "11", label: "November" },
     { value: "12", label: "December" }
 ];
+
+function fillExpenseFilters(){
+    const currentYear = new Date().getFullYear();
+    if(expenseYearFilterEl){
+        const current = String(expenseYearFilterEl.value || "");
+        expenseYearFilterEl.innerHTML = "";
+        for(let y = currentYear; y >= currentYear - 20; y -= 1){
+            const opt = document.createElement("option");
+            opt.value = String(y);
+            opt.textContent = String(y);
+            expenseYearFilterEl.appendChild(opt);
+        }
+        expenseYearFilterEl.value = current || String(currentYear);
+    }
+    if(expenseMonthFilterEl){
+        const current = String(expenseMonthFilterEl.value || "");
+        expenseMonthFilterEl.innerHTML = "";
+        MONTH_OPTION_ROWS.forEach((month) => {
+            const opt = document.createElement("option");
+            opt.value = month.value;
+            opt.textContent = month.label;
+            expenseMonthFilterEl.appendChild(opt);
+        });
+        expenseMonthFilterEl.value = current || String(new Date().getMonth() + 1);
+    }
+}
 
 function ensureMonthOption(select, value){
     if(!select || !value) return;
@@ -394,12 +424,16 @@ function putRows(tbodyId, rows, emptyCols){
 
 async function loadFinanceOverview(){
     try{
-        const baseDate = "";
+        const selectedExpenseYear = String(expenseYearFilterEl?.value || "").trim();
+        const selectedExpenseMonth = String(expenseMonthFilterEl?.value || "").trim();
+        const baseDate = (selectedExpenseYear && selectedExpenseMonth)
+            ? `${selectedExpenseYear}-${String(selectedExpenseMonth).padStart(2, "0")}-01`
+            : "";
         const techMonth = "";
         const rentalCountCustomerId = String(rentalCountCustomerFilterEl?.value || "");
         const rentalCountYear = String(rentalCountYearFilterEl?.value || "");
         const rentalCountMonthNum = String(rentalCountMonthFilterEl?.value || "");
-        const query = `?date=${encodeURIComponent(baseDate)}&techMonth=${encodeURIComponent(techMonth)}&rentalCountCustomerId=${encodeURIComponent(rentalCountCustomerId)}&rentalCountYear=${encodeURIComponent(rentalCountYear)}&rentalCountMonthNum=${encodeURIComponent(rentalCountMonthNum)}`;
+        const query = `?date=${encodeURIComponent(baseDate)}&expenseYear=${encodeURIComponent(selectedExpenseYear)}&expenseMonth=${encodeURIComponent(selectedExpenseMonth)}&techMonth=${encodeURIComponent(techMonth)}&rentalCountCustomerId=${encodeURIComponent(rentalCountCustomerId)}&rentalCountYear=${encodeURIComponent(rentalCountYear)}&rentalCountMonthNum=${encodeURIComponent(rentalCountMonthNum)}`;
         const data = await request(`/reports/finance-overview${query}`, "GET");
         lastFinanceData = data;
         fillRentalCountFilters(data);
@@ -646,7 +680,7 @@ function exportFinancePDF(){
 }
 
 function exportMonthExpensePDF(){
-    exportTablePDF("monthExpenseTable", "Expense Entries Used for Total Expenses (Month)", "Finance_Month_Expense.pdf");
+    exportTablePDF("monthExpenseTable", "Total Expenses", "Finance_Month_Expense.pdf");
 }
 function exportMonthExpenseXlsx(){
     exportTableXlsx("monthExpenseTable", "Finance_Month_Expense.xlsx");
@@ -833,7 +867,10 @@ function logout(){
     window.location.href="../login.html";
 }
 
+fillExpenseFilters();
 loadFinanceOverview();
+expenseYearFilterEl?.addEventListener("change", loadFinanceOverview);
+expenseMonthFilterEl?.addEventListener("change", loadFinanceOverview);
 rentalCountCustomerFilterEl?.addEventListener("change", loadFinanceOverview);
 rentalCountYearFilterEl?.addEventListener("change", loadFinanceOverview);
 rentalCountMonthFilterEl?.addEventListener("change", loadFinanceOverview);

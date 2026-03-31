@@ -831,7 +831,17 @@ exports.pendingInvoicesByYear = async (req, res) => {
 
 exports.financeOverview = async (req,res)=>{
     try{
-        const { week, month, year } = getPeriods(req.query.date);
+        const rawExpenseYear = Number(req.query.expenseYear || 0);
+        const rawExpenseMonth = Number(req.query.expenseMonth || 0);
+        let baseDateForPeriods = req.query.date;
+        if(Number.isFinite(rawExpenseYear) && rawExpenseYear >= 2000 && rawExpenseYear <= 9999){
+            const m = Number.isFinite(rawExpenseMonth) && rawExpenseMonth >= 1 && rawExpenseMonth <= 12
+                ? rawExpenseMonth
+                : (new Date().getMonth() + 1);
+            baseDateForPeriods = `${rawExpenseYear}-${String(m).padStart(2, "0")}-01`;
+        }
+
+        const { week, month, year } = getPeriods(baseDateForPeriods);
         const periods = { week, month, year };
         const periodKeys = ["week", "month", "year"];
 
