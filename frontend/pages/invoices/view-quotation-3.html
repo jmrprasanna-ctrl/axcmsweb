@@ -87,6 +87,14 @@
             <option value="sealC">SEAL C</option>
             <option value="sealV">SEAL V</option>
         </select>
+        <div id="itemEditControls" style="display:none;align-items:center;gap:8px;">
+            <label id="itemEditRowLabel" for="layoutItemRowSelect" style="margin:0;font-weight:600;color:#1d3655;white-space:nowrap;">Item</label>
+            <select id="layoutItemRowSelect" style="min-width:120px;"></select>
+            <label id="itemEditValueLabel" for="layoutItemNameInput" style="margin:0;font-weight:600;color:#1d3655;white-space:nowrap;">Item Name</label>
+            <input type="text" id="layoutItemNameInput" placeholder="Custom item name" style="min-width:220px;">
+            <button class="btn btn-secondary" type="button" id="saveItemNameOverrideBtn">Apply</button>
+            <button class="btn btn-secondary" type="button" id="clearItemNameOverrideBtn">Clear</button>
+        </div>
         <label for="layoutFontSelect" style="margin:0;font-weight:600;color:#1d3655;white-space:nowrap;">Font size</label>
         <select id="layoutFontSelect" style="min-width:90px;">
             <option value="10">10</option>
@@ -160,6 +168,11 @@ let qut3PreviewCustomerName = "";
 const currentRole = String(localStorage.getItem("role") || "").trim().toLowerCase();
 const canConfigurePreview = currentRole === "admin" || currentRole === "manager";
 let invMapFlags = null;
+let qut3RenderVisibilityFromDb = null;
+let qut3RenderOverridesFromDb = null;
+let qut3ItemNameOverridesByInvoice = {};
+let qut3ItemRateOverridesByInvoice = {};
+let qut3RenderDbName = "";
 
 function hasMappedFeature(featureKey){
     if(!invMapFlags) return true;
@@ -171,8 +184,18 @@ async function loadInvMapFlags(){
         const res = await request("/users/inv-map/me", "GET");
         const flags = res && res.feature_flags && typeof res.feature_flags === "object" ? res.feature_flags : null;
         invMapFlags = flags;
+        qut3RenderVisibilityFromDb = res && res.quotation3_render_visibility && typeof res.quotation3_render_visibility === "object"
+            ? res.quotation3_render_visibility
+            : null;
+        qut3RenderOverridesFromDb = res && res.quotation3_render_overrides && typeof res.quotation3_render_overrides === "object"
+            ? res.quotation3_render_overrides
+            : null;
+        qut3RenderDbName = String(res?.mapping?.database_name || "").trim();
     }catch(_err){
         invMapFlags = null;
+        qut3RenderVisibilityFromDb = null;
+        qut3RenderOverridesFromDb = null;
+        qut3RenderDbName = "";
     }
 }
 const OVERLAY = {
@@ -288,6 +311,19 @@ function getLayoutVisible(key){
 
 function money(value){
     return Number(value || 0).toFixed(2);
+}
+
+function toNumeric(value, fallback = 0){
+    const num = Number(value);
+    return Number.isFinite(num) ? num : fallback;
+}
+
+function calculateGrossFromRate(item, rateValue){
+    const qty = toNumeric(item?.qty, 0);
+    const vatPercent = toNumeric(item?.vat, 0);
+    const base = qty * toNumeric(rateValue, 0);
+    const gross = base + ((base * vatPercent) / 100);
+    return Number.isFinite(gross) ? gross : 0;
 }
 
 function asDate(value){
@@ -796,16 +832,37 @@ async function drawInvoice(data, mimeType="image/png", renderSize=null){
     ctx.font = `${rowFs}px Arial`;
     let y = tableY + m.h(POS.table.rowStart - 86);
     const rowH = m.h(POS.table.rowH + OVERLAY.rowGap);
+    const currentInvoiceItemNameOverrides = getCurrentInvoiceItemNameOverrides();
+    const currentInvoiceItemRateOverrides = getCurrentInvoiceItemRateOverrides();
+    let previewTotalAmount = 0;
+    const allItems = Array.isArray(data.items) ? data.items : [];
+    allItems.forEach((item, idx) => {
+        const rowKey = String(idx + 1);
+        const overrideRate = sanitizeQut3RateValue(currentInvoiceItemRateOverrides[rowKey]);
+        if(Number.isFinite(overrideRate)){
+            previewTotalAmount += calculateGrossFromRate(item, overrideRate);
+        }else{
+            previewTotalAmount += toNumeric(item?.gross, 0);
+        }
+    });
     data.items.slice(0, 18).forEach((item, idx) => {
         const product = item.Product || {};
         const code = product.product_id || "";
-        const desc = product.description || product.model || "";
+        const defaultDesc = String(product.description || product.model || "").trim();
+        const overrideDesc = sanitizeQut3ItemName(currentInvoiceItemNameOverrides[String(idx + 1)] || "");
+        const desc = overrideDesc || defaultDesc;
+        const descriptionText = overrideDesc ? desc : `${code} ${desc}`.trim();
+        const rateOverrideValue = sanitizeQut3RateValue(currentInvoiceItemRateOverrides[String(idx + 1)]);
+        const displayRate = Number.isFinite(rateOverrideValue) ? rateOverrideValue : toNumeric(item.rate, 0);
+        const displayGross = Number.isFinite(rateOverrideValue)
+            ? calculateGrossFromRate(item, displayRate)
+            : toNumeric(item.gross, 0);
         if(getLayoutVisible("itemNo")) fitText(ctx, String(idx + 1), tableX + m.w(32 + itemNoCfg.x), y + m.h(itemNoCfg.y), m.w(34), itemNoFontSize, itemNoWeight, itemNoFontFamily);
-        if(getLayoutVisible("description")) fitText(ctx, `${code} ${desc}`.trim(), c1 + m.w(28 + descriptionCfg.x), y + m.h(descriptionCfg.y), c2 - c1 - m.w(16), descriptionFontSize, descriptionWeight, descriptionFontFamily);
+        if(getLayoutVisible("description")) fitText(ctx, descriptionText, c1 + m.w(28 + descriptionCfg.x), y + m.h(descriptionCfg.y), c2 - c1 - m.w(16), descriptionFontSize, descriptionWeight, descriptionFontFamily);
         if(getLayoutVisible("qty")) drawRight(ctx, String(item.qty || 0), c3 + m.w(12 + qtyCfg.x) - m.w(190), y + m.h(qtyCfg.y), c3 - c2 - m.w(16), qtyFontSize, qtyWeight, qtyFontFamily);
-        if(getLayoutVisible("rate")) drawRightFixed(ctx, money(item.rate), c4 + m.w(12 + rateCfg.x) - m.w(150), y + m.h(rateCfg.y), rateFontSize, rateWeight, rateFontFamily);
+        if(getLayoutVisible("rate")) drawRightFixed(ctx, money(displayRate), c4 + m.w(12 + rateCfg.x) - m.w(150), y + m.h(rateCfg.y), rateFontSize, rateWeight, rateFontFamily);
         if(getLayoutVisible("vat")) drawRight(ctx, `${money(item.vat)}%`, c5 + m.w(12 + vatCfg.x) - m.w(150), y + m.h(vatCfg.y), c5 - c4 - m.w(16), vatFontSize, vatWeight, vatFontFamily);
-        if(getLayoutVisible("grossAmount")) drawRight(ctx, money(item.gross), tableRight + m.w(12 + grossCfg.x) - m.w(40), y + m.h(grossCfg.y), tableRight - c5 - m.w(16), grossFontSize, grossWeight, grossFontFamily);
+        if(getLayoutVisible("grossAmount")) drawRight(ctx, money(displayGross), tableRight + m.w(12 + grossCfg.x) - m.w(40), y + m.h(grossCfg.y), tableRight - c5 - m.w(16), grossFontSize, grossWeight, grossFontFamily);
         y += rowH;
     });
 
@@ -816,7 +873,7 @@ async function drawInvoice(data, mimeType="image/png", renderSize=null){
     if(getLayoutVisible("totalAmount")){
         drawRight(
             ctx,
-            money(data.total_amount),
+            money(previewTotalAmount),
             tableRight - m.w(28 - totalAmountCfg.x),
             amountY + m.h(POS.total.yInCell - 247 + totalAmountCfg.y),
             tableRight - c5 - m.w(16),
@@ -831,7 +888,7 @@ async function drawInvoice(data, mimeType="image/png", renderSize=null){
     if(getLayoutVisible("amountWords")){
         drawFixedText(
             ctx,
-            amountInWords(data.total_amount),
+            amountInWords(previewTotalAmount),
             m.x(POS.amountWords.x + amountWordsCfg.x),
             tableY + m.h(POS.amountWords.yFromTable + POS.amountWords.yInCell - 247 + amountWordsCfg.y),
             getLayoutFont("amountWords", INPUT_FONT_SIZE),
@@ -1241,10 +1298,368 @@ function syncLayoutEditorSelects(){
     previewSelect.value = getLayoutVisible(selectedLayoutTarget) ? "true" : "false";
 }
 
+function getCurrentInvoiceKey(){
+    const invoiceId = Number(new URLSearchParams(window.location.search).get("id") || 0);
+    if(Number.isFinite(invoiceId) && invoiceId > 0){
+        return String(invoiceId);
+    }
+    const fallbackInvoiceId = Number(latestInvoiceData?.invoice?.id || 0);
+    if(Number.isFinite(fallbackInvoiceId) && fallbackInvoiceId > 0){
+        return String(fallbackInvoiceId);
+    }
+    return "";
+}
+
+function sanitizeQut3ItemName(value){
+    return String(value || "").trim().slice(0, 300);
+}
+
+function sanitizeQut3RateValue(value){
+    const numeric = Number(value);
+    if(!Number.isFinite(numeric)) return null;
+    return numeric;
+}
+
+function getCurrentInvoiceItemNameOverrides(){
+    const invoiceKey = getCurrentInvoiceKey();
+    if(!invoiceKey) return {};
+    const map = qut3ItemNameOverridesByInvoice[invoiceKey];
+    return map && typeof map === "object" ? map : {};
+}
+
+function getCurrentInvoiceItemRateOverrides(){
+    const invoiceKey = getCurrentInvoiceKey();
+    if(!invoiceKey) return {};
+    const map = qut3ItemRateOverridesByInvoice[invoiceKey];
+    return map && typeof map === "object" ? map : {};
+}
+
+function getCurrentInvoiceItemNameOverride(rowNumber){
+    const key = String(Number(rowNumber || 0));
+    if(!/^\d+$/.test(key)) return "";
+    const map = getCurrentInvoiceItemNameOverrides();
+    return sanitizeQut3ItemName(map[key] || "");
+}
+
+function getCurrentInvoiceItemRateOverride(rowNumber){
+    const key = String(Number(rowNumber || 0));
+    if(!/^\d+$/.test(key)) return null;
+    const map = getCurrentInvoiceItemRateOverrides();
+    const value = sanitizeQut3RateValue(map[key]);
+    return Number.isFinite(value) ? value : null;
+}
+
+function setCurrentInvoiceItemNameOverride(rowNumber, customName){
+    const invoiceKey = getCurrentInvoiceKey();
+    const rowKey = String(Number(rowNumber || 0));
+    if(!invoiceKey || !/^\d+$/.test(rowKey)) return;
+    if(!qut3ItemNameOverridesByInvoice[invoiceKey] || typeof qut3ItemNameOverridesByInvoice[invoiceKey] !== "object"){
+        qut3ItemNameOverridesByInvoice[invoiceKey] = {};
+    }
+    const safeName = sanitizeQut3ItemName(customName);
+    if(!safeName){
+        delete qut3ItemNameOverridesByInvoice[invoiceKey][rowKey];
+        if(!Object.keys(qut3ItemNameOverridesByInvoice[invoiceKey]).length){
+            delete qut3ItemNameOverridesByInvoice[invoiceKey];
+        }
+        return;
+    }
+    qut3ItemNameOverridesByInvoice[invoiceKey][rowKey] = safeName;
+}
+
+function setCurrentInvoiceItemRateOverride(rowNumber, customRate){
+    const invoiceKey = getCurrentInvoiceKey();
+    const rowKey = String(Number(rowNumber || 0));
+    if(!invoiceKey || !/^\d+$/.test(rowKey)) return;
+    if(!qut3ItemRateOverridesByInvoice[invoiceKey] || typeof qut3ItemRateOverridesByInvoice[invoiceKey] !== "object"){
+        qut3ItemRateOverridesByInvoice[invoiceKey] = {};
+    }
+    const safeRate = sanitizeQut3RateValue(customRate);
+    if(!Number.isFinite(safeRate)){
+        delete qut3ItemRateOverridesByInvoice[invoiceKey][rowKey];
+        if(!Object.keys(qut3ItemRateOverridesByInvoice[invoiceKey]).length){
+            delete qut3ItemRateOverridesByInvoice[invoiceKey];
+        }
+        return;
+    }
+    qut3ItemRateOverridesByInvoice[invoiceKey][rowKey] = safeRate;
+}
+
+function buildQut3LayoutStatePayload(){
+    const out = {};
+    Object.entries(layoutState).forEach(([key, cfg]) => {
+        if(!cfg || typeof cfg !== "object") return;
+        const next = {};
+        const x = Number(cfg.x);
+        const y = Number(cfg.y);
+        const font = Number(cfg.font);
+        const fontFamily = String(cfg.fontFamily || "").trim().slice(0, 80);
+        const fontWeight = String(cfg.fontWeight || "normal").toLowerCase() === "bold" ? "bold" : "normal";
+        if(Number.isFinite(x)) next.x = x;
+        if(Number.isFinite(y)) next.y = y;
+        if(Number.isFinite(font) && font > 0) next.font = font;
+        if(fontFamily) next.fontFamily = fontFamily;
+        next.fontWeight = fontWeight;
+        if(typeof cfg.visible === "boolean"){
+            next.visible = cfg.visible;
+        }
+        out[key] = next;
+    });
+    return out;
+}
+
+function buildQut3RenderOverridesPayload(){
+    return {
+        item_names_by_invoice: qut3ItemNameOverridesByInvoice,
+        item_rates_by_invoice: qut3ItemRateOverridesByInvoice,
+        layout_state: buildQut3LayoutStatePayload()
+    };
+}
+
+function applyPersistedQut3RenderVisibility(){
+    if(!qut3RenderVisibilityFromDb || typeof qut3RenderVisibilityFromDb !== "object") return;
+    const targetSelect = document.getElementById("layoutTargetSelect");
+    if(!targetSelect) return;
+    Array.from(targetSelect.options).forEach((opt) => {
+        const key = String(opt.value || "").trim();
+        if(!key) return;
+        if(Object.prototype.hasOwnProperty.call(qut3RenderVisibilityFromDb, key)){
+            getLayoutConfig(key).visible = !!qut3RenderVisibilityFromDb[key];
+        }
+    });
+}
+
+function applyPersistedQut3RenderOverrides(){
+    const sourceNameMap = qut3RenderOverridesFromDb
+        && typeof qut3RenderOverridesFromDb === "object"
+        && qut3RenderOverridesFromDb.item_names_by_invoice
+        && typeof qut3RenderOverridesFromDb.item_names_by_invoice === "object"
+        ? qut3RenderOverridesFromDb.item_names_by_invoice
+        : {};
+    const sourceRateMap = qut3RenderOverridesFromDb
+        && typeof qut3RenderOverridesFromDb === "object"
+        && qut3RenderOverridesFromDb.item_rates_by_invoice
+        && typeof qut3RenderOverridesFromDb.item_rates_by_invoice === "object"
+        ? qut3RenderOverridesFromDb.item_rates_by_invoice
+        : {};
+    const sourceLayoutState = qut3RenderOverridesFromDb
+        && typeof qut3RenderOverridesFromDb === "object"
+        && qut3RenderOverridesFromDb.layout_state
+        && typeof qut3RenderOverridesFromDb.layout_state === "object"
+        ? qut3RenderOverridesFromDb.layout_state
+        : {};
+    const nextNames = {};
+    const nextRates = {};
+    Object.entries(sourceNameMap).forEach(([invoiceKey, itemMap]) => {
+        const safeInvoiceKey = String(invoiceKey || "").trim();
+        if(!/^\d+$/.test(safeInvoiceKey) || !itemMap || typeof itemMap !== "object") return;
+        const normalizedItemMap = {};
+        Object.entries(itemMap).forEach(([rowNumber, name]) => {
+            const safeRowNumber = String(rowNumber || "").trim();
+            if(!/^\d+$/.test(safeRowNumber)) return;
+            const safeName = sanitizeQut3ItemName(name);
+            if(!safeName) return;
+            normalizedItemMap[safeRowNumber] = safeName;
+        });
+        if(Object.keys(normalizedItemMap).length){
+            nextNames[safeInvoiceKey] = normalizedItemMap;
+        }
+    });
+    Object.entries(sourceRateMap).forEach(([invoiceKey, itemMap]) => {
+        const safeInvoiceKey = String(invoiceKey || "").trim();
+        if(!/^\d+$/.test(safeInvoiceKey) || !itemMap || typeof itemMap !== "object") return;
+        const normalizedItemMap = {};
+        Object.entries(itemMap).forEach(([rowNumber, rate]) => {
+            const safeRowNumber = String(rowNumber || "").trim();
+            if(!/^\d+$/.test(safeRowNumber)) return;
+            const safeRate = sanitizeQut3RateValue(rate);
+            if(!Number.isFinite(safeRate)) return;
+            normalizedItemMap[safeRowNumber] = safeRate;
+        });
+        if(Object.keys(normalizedItemMap).length){
+            nextRates[safeInvoiceKey] = normalizedItemMap;
+        }
+    });
+    Object.entries(sourceLayoutState).forEach(([layoutKey, rawCfg]) => {
+        const cfg = rawCfg && typeof rawCfg === "object" ? rawCfg : null;
+        const target = layoutState[layoutKey];
+        if(!cfg || !target) return;
+        const x = Number(cfg.x);
+        const y = Number(cfg.y);
+        const font = Number(cfg.font);
+        const fontFamily = String(cfg.fontFamily || "").trim();
+        const fontWeight = String(cfg.fontWeight || "").trim().toLowerCase() === "bold" ? "bold" : "normal";
+        if(Number.isFinite(x)) target.x = x;
+        if(Number.isFinite(y)) target.y = y;
+        if(Number.isFinite(font) && font > 0) target.font = font;
+        if(fontFamily) target.fontFamily = fontFamily;
+        target.fontWeight = fontWeight;
+        if(typeof cfg.visible === "boolean") target.visible = cfg.visible;
+    });
+    qut3ItemNameOverridesByInvoice = nextNames;
+    qut3ItemRateOverridesByInvoice = nextRates;
+}
+
+async function savePersistedQut3RenderSettings(){
+    try{
+        const targetSelect = document.getElementById("layoutTargetSelect");
+        if(!targetSelect) return;
+        const renderVisibility = {};
+        Array.from(targetSelect.options).forEach((opt) => {
+            const key = String(opt.value || "").trim();
+            if(!key) return;
+            renderVisibility[key] = !!getLayoutVisible(key);
+        });
+        await request("/users/inv-map/me/quotation3-render-inputs", "PUT", {
+            database_name: qut3RenderDbName || undefined,
+            render_visibility: renderVisibility,
+            render_overrides: buildQut3RenderOverridesPayload()
+        });
+    }catch(_err){
+    }
+}
+
 async function moveSelectedLayout(dx, dy){
     const cfg = getLayoutConfig(selectedLayoutTarget);
     cfg.x += dx;
     cfg.y += dy;
+    await savePersistedQut3RenderSettings();
+    await refreshPreviewFromLatest();
+}
+
+function getInvoiceItemLabel(item, index){
+    const product = item && item.Product ? item.Product : {};
+    const code = String(product.product_id || "").trim();
+    const desc = String(product.description || product.model || "").trim();
+    const defaultLabel = desc || code || `Item ${index + 1}`;
+    return `${index + 1} - ${defaultLabel}`.trim();
+}
+
+function getInvoiceItemDefaultName(rowNumber){
+    const index = Number(rowNumber || 0) - 1;
+    if(!Number.isFinite(index) || index < 0) return "";
+    const item = Array.isArray(latestInvoiceData?.items) ? latestInvoiceData.items[index] : null;
+    if(!item) return "";
+    const product = item.Product || {};
+    return String(product.description || product.model || "").trim();
+}
+
+function getInvoiceItemDefaultRate(rowNumber){
+    const index = Number(rowNumber || 0) - 1;
+    if(!Number.isFinite(index) || index < 0) return "";
+    const item = Array.isArray(latestInvoiceData?.items) ? latestInvoiceData.items[index] : null;
+    if(!item) return "";
+    const numeric = Number(item.rate || 0);
+    return Number.isFinite(numeric) ? numeric.toFixed(2) : "";
+}
+
+function isQut3ItemOverrideTarget(){
+    return selectedLayoutTarget === "itemNo" || selectedLayoutTarget === "rate";
+}
+
+function syncQut3ItemOverrideInput(){
+    const rowSelect = document.getElementById("layoutItemRowSelect");
+    const input = document.getElementById("layoutItemNameInput");
+    const valueLabel = document.getElementById("itemEditValueLabel");
+    if(!rowSelect || !input || !valueLabel) return;
+    if(selectedLayoutTarget === "rate"){
+        valueLabel.textContent = "Rate";
+        input.placeholder = "Custom rate";
+        input.inputMode = "decimal";
+    }else{
+        valueLabel.textContent = "Item Name";
+        input.placeholder = "Custom item name";
+        input.inputMode = "text";
+    }
+    const selectedRow = String(rowSelect.value || "").trim();
+    if(selectedLayoutTarget === "rate"){
+        const overrideRate = getCurrentInvoiceItemRateOverride(selectedRow);
+        if(Number.isFinite(overrideRate)){
+            input.value = Number(overrideRate).toFixed(2);
+            return;
+        }
+        input.value = getInvoiceItemDefaultRate(selectedRow);
+        return;
+    }
+    const overrideValue = getCurrentInvoiceItemNameOverride(selectedRow);
+    if(overrideValue){
+        input.value = overrideValue;
+        return;
+    }
+    input.value = getInvoiceItemDefaultName(selectedRow);
+}
+
+function syncQut3ItemOverrideRowOptions(){
+    const rowSelect = document.getElementById("layoutItemRowSelect");
+    if(!rowSelect) return;
+    const items = Array.isArray(latestInvoiceData?.items) ? latestInvoiceData.items : [];
+    rowSelect.innerHTML = "";
+    if(!items.length){
+        const emptyOption = document.createElement("option");
+        emptyOption.value = "";
+        emptyOption.textContent = "No items";
+        rowSelect.appendChild(emptyOption);
+        rowSelect.disabled = true;
+        const input = document.getElementById("layoutItemNameInput");
+        if(input) input.value = "";
+        return;
+    }
+    rowSelect.disabled = false;
+    items.forEach((item, idx) => {
+        const rowNumber = String(idx + 1);
+        const option = document.createElement("option");
+        option.value = rowNumber;
+        option.textContent = getInvoiceItemLabel(item, idx);
+        rowSelect.appendChild(option);
+    });
+    rowSelect.value = rowSelect.options[0].value;
+    syncQut3ItemOverrideInput();
+}
+
+function toggleQut3ItemEditControls(){
+    const wrap = document.getElementById("itemEditControls");
+    const rowLabel = document.getElementById("itemEditRowLabel");
+    if(!wrap || !rowLabel) return;
+    wrap.style.display = isQut3ItemOverrideTarget() ? "flex" : "none";
+    rowLabel.textContent = "Item";
+    if(isQut3ItemOverrideTarget()){
+        syncQut3ItemOverrideInput();
+    }
+}
+
+async function applyQut3ItemOverrideFromControl(){
+    const rowSelect = document.getElementById("layoutItemRowSelect");
+    const input = document.getElementById("layoutItemNameInput");
+    if(!rowSelect || !input || rowSelect.disabled || !isQut3ItemOverrideTarget()) return;
+    const selectedRow = String(rowSelect.value || "").trim();
+    if(!selectedRow) return;
+    if(selectedLayoutTarget === "rate"){
+        const nextRate = sanitizeQut3RateValue(input.value);
+        if(!Number.isFinite(nextRate)){
+            alert("Enter a valid rate value.");
+            return;
+        }
+        setCurrentInvoiceItemRateOverride(selectedRow, nextRate);
+    }else{
+        setCurrentInvoiceItemNameOverride(selectedRow, input.value);
+    }
+    syncQut3ItemOverrideInput();
+    await savePersistedQut3RenderSettings();
+    await refreshPreviewFromLatest();
+}
+
+async function clearQut3ItemOverrideFromControl(){
+    const rowSelect = document.getElementById("layoutItemRowSelect");
+    if(!rowSelect || rowSelect.disabled || !isQut3ItemOverrideTarget()) return;
+    const selectedRow = String(rowSelect.value || "").trim();
+    if(!selectedRow) return;
+    if(selectedLayoutTarget === "rate"){
+        setCurrentInvoiceItemRateOverride(selectedRow, null);
+    }else{
+        setCurrentInvoiceItemNameOverride(selectedRow, "");
+    }
+    syncQut3ItemOverrideInput();
+    await savePersistedQut3RenderSettings();
     await refreshPreviewFromLatest();
 }
 
@@ -1258,23 +1673,32 @@ function initLayoutEditor(){
     const rightBtn = document.getElementById("moveRightBtn");
     const upBtn = document.getElementById("moveUpBtn");
     const downBtn = document.getElementById("moveDownBtn");
+    const itemRowSelect = document.getElementById("layoutItemRowSelect");
+    const itemNameInput = document.getElementById("layoutItemNameInput");
+    const saveItemNameBtn = document.getElementById("saveItemNameOverrideBtn");
+    const clearItemNameBtn = document.getElementById("clearItemNameOverrideBtn");
 
     if(!targetSelect || !fontSelect || !fontFamilySelect || !weightSelect || !previewSelect || !leftBtn || !rightBtn || !upBtn || !downBtn){
         return;
     }
 
     targetSelect.value = selectedLayoutTarget;
+    applyPersistedQut3RenderVisibility();
+    applyPersistedQut3RenderOverrides();
     syncLayoutEditorSelects();
+    toggleQut3ItemEditControls();
 
     targetSelect.addEventListener("change", () => {
         selectedLayoutTarget = targetSelect.value || "customerName";
         syncLayoutEditorSelects();
+        toggleQut3ItemEditControls();
     });
 
     fontSelect.addEventListener("change", async () => {
         const nextFont = Number(fontSelect.value || INPUT_FONT_SIZE);
         if(Number.isFinite(nextFont) && nextFont > 0){
             getLayoutConfig(selectedLayoutTarget).font = nextFont;
+            await savePersistedQut3RenderSettings();
             await refreshPreviewFromLatest();
         }
     });
@@ -1282,17 +1706,20 @@ function initLayoutEditor(){
     fontFamilySelect.addEventListener("change", async () => {
         const nextFamily = String(fontFamilySelect.value || INPUT_FONT_FAMILY).trim();
         getLayoutConfig(selectedLayoutTarget).fontFamily = nextFamily || INPUT_FONT_FAMILY;
+        await savePersistedQut3RenderSettings();
         await refreshPreviewFromLatest();
     });
 
     weightSelect.addEventListener("change", async () => {
         const nextWeight = String(weightSelect.value || "normal").toLowerCase() === "bold" ? "bold" : "normal";
         getLayoutConfig(selectedLayoutTarget).fontWeight = nextWeight;
+        await savePersistedQut3RenderSettings();
         await refreshPreviewFromLatest();
     });
 
     previewSelect.addEventListener("change", async () => {
         getLayoutConfig(selectedLayoutTarget).visible = previewSelect.value !== "false";
+        await savePersistedQut3RenderSettings();
         await refreshPreviewFromLatest();
     });
 
@@ -1300,12 +1727,37 @@ function initLayoutEditor(){
     rightBtn.addEventListener("click", async () => moveSelectedLayout(LAYOUT_STEP, 0));
     upBtn.addEventListener("click", async () => moveSelectedLayout(0, -LAYOUT_STEP));
     downBtn.addEventListener("click", async () => moveSelectedLayout(0, LAYOUT_STEP));
+
+    if(itemRowSelect){
+        itemRowSelect.addEventListener("change", () => {
+            syncQut3ItemOverrideInput();
+        });
+    }
+    if(saveItemNameBtn){
+        saveItemNameBtn.addEventListener("click", async () => {
+            await applyQut3ItemOverrideFromControl();
+        });
+    }
+    if(clearItemNameBtn){
+        clearItemNameBtn.addEventListener("click", async () => {
+            await clearQut3ItemOverrideFromControl();
+        });
+    }
+    if(itemNameInput){
+        itemNameInput.addEventListener("keydown", async (ev) => {
+            if(ev.key === "Enter"){
+                ev.preventDefault();
+                await applyQut3ItemOverrideFromControl();
+            }
+        });
+    }
 }
 
 async function renderInvoice(){
     try{
         latestInvoiceData = await fetchInvoiceData();
         qut3PreviewCustomerName = String(latestInvoiceData?.customer?.name || "").trim();
+        syncQut3ItemOverrideRowOptions();
         syncQut3DateInput();
         syncQut3CustomerNameInput();
         await refreshPreviewFromLatest();
