@@ -39,7 +39,7 @@
         <label for="renderInputToggle" style="margin:0;font-weight:600;color:#1d3655;">Render Input</label>
         <div id="renderInputDropdown" style="position:relative;min-width:220px;">
             <button type="button" class="btn btn-secondary" id="renderInputToggle" style="margin-top:0;width:100%;text-align:left;">Render Inputs</button>
-            <div id="renderInputChecklist" style="display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:40;min-width:260px;max-height:260px;overflow:auto;background:#fff;border:1px solid #d6e3f2;border-radius:10px;padding:8px;box-shadow:0 10px 25px rgba(0,0,0,.12);"></div>
+            <div id="renderInputChecklist" style="display:none;position:fixed;z-index:9999;min-width:260px;max-height:260px;overflow:auto;background:#fff;border:1px solid #d6e3f2;border-radius:10px;padding:8px;box-shadow:0 10px 25px rgba(0,0,0,.12);"></div>
         </div>
         <label for="layoutTargetSelect" style="margin:0;font-weight:600;color:#1d3655;">Edit Input</label>
         <select id="layoutTargetSelect" style="min-width:180px;">
@@ -979,6 +979,19 @@ function initRenderInputChecklist(){
         key: String(opt.value || "").trim(),
         label: String(opt.textContent || "").trim()
     }));
+    let panelOpen = false;
+
+    const placePanel = () => {
+        const rect = toggle.getBoundingClientRect();
+        const top = rect.bottom + 6;
+        let left = rect.left;
+        const maxLeft = window.innerWidth - 280;
+        if(left > maxLeft){
+            left = Math.max(8, maxLeft);
+        }
+        panel.style.top = `${Math.max(8, top)}px`;
+        panel.style.left = `${Math.max(8, left)}px`;
+    };
 
     panel.innerHTML = "";
     options.forEach((item) => {
@@ -1024,14 +1037,31 @@ function initRenderInputChecklist(){
 
     toggle.addEventListener("click", (ev) => {
         ev.stopPropagation();
-        panel.style.display = panel.style.display === "block" ? "none" : "block";
+        panelOpen = !panelOpen;
+        if(panelOpen){
+            placePanel();
+            panel.style.display = "block";
+        }else{
+            panel.style.display = "none";
+        }
     });
 
     document.addEventListener("click", (ev) => {
         if(!dropdown.contains(ev.target)){
             panel.style.display = "none";
+            panelOpen = false;
         }
     });
+    window.addEventListener("resize", () => {
+        if(panelOpen){
+            placePanel();
+        }
+    });
+    window.addEventListener("scroll", () => {
+        if(panelOpen){
+            placePanel();
+        }
+    }, true);
 
     syncRenderInputChecklist();
 }
