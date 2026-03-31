@@ -1893,35 +1893,47 @@ async function printPDF(){
         return;
     }
     try{
-        // Use the same render profile as preview so font sizes match exactly.
-        const image = await drawInvoice(latestInvoiceData, "image/jpeg", { width: BASE_W, height: BASE_H });
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: "p", unit: "pt", format: "a4", compress: true });
-        const pageW = doc.internal.pageSize.getWidth();
-        const pageH = doc.internal.pageSize.getHeight();
-        const margin = 18;
-        const maxW = pageW - margin * 2;
-        const maxH = pageH - margin * 2;
-        const ratio = 1754 / 1240;
-
-        let imgW = maxW;
-        let imgH = imgW * ratio;
-        if(imgH > maxH){
-            imgH = maxH;
-            imgW = imgH / ratio;
-        }
-        const x = (pageW - imgW) / 2;
-        const y = (pageH - imgH) / 2;
-
-        doc.addImage(image, "JPEG", x, y, imgW, imgH, undefined, "MEDIUM");
-        const invoiceNo = String(latestInvoiceData.invoice.invoice_no || "Details").trim();
-        const customerName = String((latestInvoiceData.customer && latestInvoiceData.customer.name) || "Customer").trim();
-        const safeCustomer = customerName.replace(/[\\/:*?"<>|]/g, "_");
-        const safeInvoiceNo = invoiceNo.replace(/[\\/:*?"<>|]/g, "_");
-        doc.save(`Quatation3_${safeInvoiceNo}_${safeCustomer}.pdf`);
+        const rendered = await buildQuotation3RenderedPdf();
+        rendered.doc.save(rendered.fileName);
     }catch(err){
         alert(err.message || "Failed to export PDF");
     }
+}
+
+async function buildQuotation3RenderedPdf(){
+    if(!latestInvoiceData){
+        await renderInvoice();
+    }
+    if(!latestInvoiceData){
+        throw new Error("Invoice preview is not ready yet.");
+    }
+    const image = await drawInvoice(latestInvoiceData, "image/jpeg", { width: BASE_W, height: BASE_H });
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "p", unit: "pt", format: "a4", compress: true });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 18;
+    const maxW = pageW - margin * 2;
+    const maxH = pageH - margin * 2;
+    const ratio = 1754 / 1240;
+
+    let imgW = maxW;
+    let imgH = imgW * ratio;
+    if(imgH > maxH){
+        imgH = maxH;
+        imgW = imgH / ratio;
+    }
+    const x = (pageW - imgW) / 2;
+    const y = (pageH - imgH) / 2;
+
+    doc.addImage(image, "JPEG", x, y, imgW, imgH, undefined, "MEDIUM");
+    const invoiceNo = String(latestInvoiceData.invoice.invoice_no || "Details").trim();
+    const customerName = String((latestInvoiceData.customer && latestInvoiceData.customer.name) || "Customer").trim();
+    const safeCustomer = customerName.replace(/[\\/:*?"<>|]/g, "_");
+    const safeInvoiceNo = invoiceNo.replace(/[\\/:*?"<>|]/g, "_");
+    const fileName = `Quotation_3_${safeInvoiceNo}_${safeCustomer}.pdf`;
+    const pdfBlob = doc.output("blob");
+    return { doc, pdfBlob, fileName };
 }
 
 async function emailInvoice(){

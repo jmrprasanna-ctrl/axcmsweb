@@ -1447,12 +1447,20 @@ async function emailQuotations(){
     try{
         const attachments = [];
         const defs = [
-            { type: "quotation2", feature: "quotation2", prefix: "Quotation_2" },
-            { type: "quotation3", feature: "quotation3", prefix: "Quotation_3" }
+            {
+                feature: "quotation2",
+                page: "view-quotation-2.html",
+                buildFnName: "buildQuotation2RenderedPdf"
+            },
+            {
+                feature: "quotation3",
+                page: "view-quotation-3.html",
+                buildFnName: "buildQuotation3RenderedPdf"
+            }
         ];
         for(const def of defs){
             if(!hasMappedFeature(def.feature)) continue;
-            const rendered = await buildRenderedInvoicePdf(def.type, def.prefix);
+            const rendered = await buildRenderedPdfFromQuotationPage(invoiceId, def.page, def.buildFnName);
             const dataUrl = await blobToDataUrl(rendered.pdfBlob);
             attachments.push({
                 attachment_pdf_base64: dataUrl,
@@ -1475,6 +1483,59 @@ async function emailQuotations(){
         }
     }catch(err){
         alert(err.message || "Failed to send Quotation 2/3 email");
+    }
+}
+
+function waitForIframeLoad(frame){
+    return new Promise((resolve, reject) => {
+        const timeout = window.setTimeout(() => {
+            reject(new Error("Loading quotation preview page timed out."));
+        }, 30000);
+        frame.onload = () => {
+            window.clearTimeout(timeout);
+            resolve();
+        };
+        frame.onerror = () => {
+            window.clearTimeout(timeout);
+            reject(new Error("Failed to load quotation preview page."));
+        };
+    });
+}
+
+async function waitForIframeBuilder(frame, buildFnName){
+    const started = Date.now();
+    while(Date.now() - started < 30000){
+        const w = frame.contentWindow;
+        const fn = w && typeof w[buildFnName] === "function" ? w[buildFnName] : null;
+        if(fn){
+            return fn.bind(w);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 120));
+    }
+    throw new Error("Quotation preview renderer is not ready.");
+}
+
+async function buildRenderedPdfFromQuotationPage(invoiceId, pageName, buildFnName){
+    const frame = document.createElement("iframe");
+    frame.style.position = "fixed";
+    frame.style.left = "-10000px";
+    frame.style.top = "-10000px";
+    frame.style.width = "1px";
+    frame.style.height = "1px";
+    frame.style.opacity = "0";
+    frame.setAttribute("aria-hidden", "true");
+    frame.src = `${pageName}?id=${encodeURIComponent(invoiceId)}&embed=email`;
+    document.body.appendChild(frame);
+    try{
+        await waitForIframeLoad(frame);
+        const buildFn = await waitForIframeBuilder(frame, buildFnName);
+        const rendered = await buildFn();
+        if(!rendered || !rendered.pdfBlob){
+            throw new Error("Failed to build quotation PDF attachment.");
+        }
+        return rendered;
+    }finally{
+        frame.remove();
     }
 }
 
