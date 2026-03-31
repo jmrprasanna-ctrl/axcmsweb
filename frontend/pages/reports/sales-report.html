@@ -83,7 +83,7 @@
     <header><h2>Sales Report</h2></header>
 
     <div class="form-container">
-        <div class="report-block">
+        <div class="report-block" id="reportExpenseBlock">
             <div class="report-head">
                 <h3>Total Expenses</h3>
                 <div class="report-controls">
@@ -609,7 +609,15 @@ async function loadReportExpenses(){
         const data = await request(`/reports/finance-overview${query}`,"GET");
         const tbody = document.querySelector("#reportExpenseTable tbody");
         tbody.innerHTML = "";
-        (data.month_expense_rows || []).forEach((row) => {
+        const rows = Array.isArray(data.month_expense_rows) ? data.month_expense_rows : [];
+        if(!rows.length){
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td colspan="5">No data found.</td>`;
+            tbody.appendChild(tr);
+            applyTableScrollLimit("reportExpenseTable");
+            return;
+        }
+        rows.forEach((row) => {
             const tr = document.createElement("tr");
             tr.innerHTML = `
                 <td>${row.date ? new Date(row.date).toLocaleDateString() : ""}</td>
@@ -622,7 +630,10 @@ async function loadReportExpenses(){
         });
         applyTableScrollLimit("reportExpenseTable");
     }catch(err){
-        alert(err.message || "Failed to load total expenses");
+        const tbody = document.querySelector("#reportExpenseTable tbody");
+        if(tbody){
+            tbody.innerHTML = `<tr><td colspan="5">${err.message || "Failed to load total expenses"}</td></tr>`;
+        }
     }
 }
 
@@ -983,6 +994,10 @@ document.getElementById("rentalCountMonthFilter").addEventListener("change", loa
 document.getElementById("rentalMachineFilter").addEventListener("change", loadRentalCountReport);
 
 loadSales();
+const reportExpenseBlockEl = document.getElementById("reportExpenseBlock");
+if(reportExpenseBlockEl){
+    reportExpenseBlockEl.style.display = "";
+}
 loadReportExpenses();
 loadRentalCustomerFilterOptions();
 loadRentalCountCustomerFilterOptions();
