@@ -1050,112 +1050,6 @@ exports.financeOverview = async (req,res)=>{
                 .sort((a, b) => b.total_amount - a.total_amount)
         };
 
-        const rentalCountCustomerId = Number(req.query.rentalCountCustomerId || 0);
-        const rentalCountYear = Number(req.query.rentalCountYear || 0);
-        const rentalCountMonthNum = Number(req.query.rentalCountMonthNum || 0);
-        const rentalMachines = await RentalMachine.findAll({
-            include: [
-                { model: Customer, attributes: ["id", "name"] }
-            ],
-            order: [["machine_id", "ASC"]]
-        });
-
-        const rentalCountRows = await RentalMachineCount.findAll({
-            include: [
-                { model: Customer, attributes: ["id", "name"] },
-                { model: RentalMachine, attributes: ["id", "machine_id", "serial_no", "page_per_price"] }
-            ],
-            order: [["createdAt", "DESC"], ["id", "DESC"]]
-        });
-
-        const rentalCountCustomerMap = new Map();
-        rentalMachines.forEach((m) => {
-            const customerId = Number(m.customer_id || (m.Customer && m.Customer.id) || 0);
-            const customerName = (m.Customer && m.Customer.name) || "";
-            if(customerId > 0 && !rentalCountCustomerMap.has(customerId)){
-                rentalCountCustomerMap.set(customerId, {
-                    customer_id: customerId,
-                    customer_name: customerName || `Customer ${customerId}`
-                });
-            }
-        });
-        const rentalCountYearSet = new Set();
-        const rentalCountMonthMap = new Map();
-        rentalCountRows.forEach((row) => {
-            const dtSource = row.entry_date || row.createdAt;
-            const dt = new Date(dtSource);
-            if(Number.isNaN(dt.getTime())) return;
-            const rowYear = dt.getFullYear();
-            const rowMonthNum = dt.getMonth() + 1;
-            const monthKey = `${rowYear}-${String(rowMonthNum).padStart(2, "0")}`;
-            const customerId = Number((row.Customer && row.Customer.id) || row.customer_id || 0);
-            const customerName = row.Customer ? row.Customer.name : "Unknown";
-            rentalCountYearSet.add(rowYear);
-            if(rentalCountCustomerId > 0 && customerId !== rentalCountCustomerId){
-                return;
-            }
-            if(rentalCountYear > 0 && rowYear !== rentalCountYear){
-                return;
-            }
-            if(rentalCountMonthNum > 0 && rowMonthNum !== rentalCountMonthNum){
-                return;
-            }
-            const machineId = row.RentalMachine ? (row.RentalMachine.machine_id || "") : "";
-            const serialNo = row.RentalMachine ? (row.RentalMachine.serial_no || "") : "";
-            const pagePerPrice = Number((row.RentalMachine && row.RentalMachine.page_per_price) || 0);
-            const inputCount = Number(row.input_count || 0);
-            const updatedCount = Number(row.updated_count || 0);
-            const copiedPages = Math.max(0, updatedCount - inputCount);
-            const rowPrice = copiedPages * pagePerPrice;
-            const key = `${monthKey}__${customerId}__${customerName}__${machineId}__${serialNo}`;
-            if(!rentalCountMonthMap.has(key)){
-                rentalCountMonthMap.set(key, {
-                    month_name: monthKey,
-                    customer_id: customerId,
-                    customer_name: customerName,
-                    machine_id: machineId,
-                    serial_no: serialNo,
-                    transactions: 0,
-                    machine_count: Number(row.updated_count || 0),
-                    latest_entry_at: row.createdAt,
-                    total_price: 0
-                });
-            }
-            const r = rentalCountMonthMap.get(key);
-            r.transactions += 1;
-            r.total_price += rowPrice;
-            if(new Date(row.createdAt).getTime() >= new Date(r.latest_entry_at).getTime()){
-                r.machine_count = Number(row.updated_count || 0);
-                r.latest_entry_at = row.createdAt;
-            }
-        });
-
-        const rentalCountMonthWise = Array.from(rentalCountMonthMap.values())
-            .map((r) => ({
-                month_name: r.month_name,
-                customer_id: Number(r.customer_id || 0),
-                customer_name: r.customer_name,
-                machine_id: r.machine_id,
-                serial_no: r.serial_no,
-                transactions: Number(r.transactions || 0),
-                machine_count: Number(r.machine_count || 0),
-                total_price: Number((r.total_price || 0).toFixed(2)),
-                latest_entry_at: r.latest_entry_at
-            }))
-            .sort((a, b) => {
-                const m = a.month_name.localeCompare(b.month_name);
-                if(m !== 0) return m;
-                const c = a.customer_name.localeCompare(b.customer_name);
-                if(c !== 0) return c;
-                return a.machine_id.localeCompare(b.machine_id);
-            });
-
-        // Keep year options broad so users can filter/enter historical records easily.
-        const currentYear = new Date().getFullYear();
-        for(let y = currentYear; y >= currentYear - 20; y -= 1){
-            rentalCountYearSet.add(y);
-        }
-
         res.json({
             summary_by_period: summaryByPeriod,
             month_expense_rows: monthExpenseRows,
@@ -1163,14 +1057,7 @@ exports.financeOverview = async (req,res)=>{
             sold_product_selling_price_by_period: soldProductSellingPriceByPeriod,
             vendor_dealer_price_by_period: vendorDealerPriceByPeriod,
             vendor_dealer_details_by_period: vendorDealerDetailsByPeriod,
-            rental_consumables: rentalConsumables,
-            rental_count_month_wise: rentalCountMonthWise,
-            rental_count_customer_options: Array.from(rentalCountCustomerMap.values())
-                .sort((a, b) => String(a.customer_name || "").localeCompare(String(b.customer_name || ""))),
-            rental_count_year_options: Array.from(rentalCountYearSet.values())
-                .map((y) => Number(y))
-                .filter((y) => Number.isFinite(y) && y > 0)
-                .sort((a, b) => b - a)
+            rental_consumables: rentalConsumables
         });
     }catch(err){
         res.status(500).json({ message: err.message || "Failed to load finance overview." });
