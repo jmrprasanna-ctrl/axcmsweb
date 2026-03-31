@@ -465,6 +465,8 @@ CREATE TABLE IF NOT EXISTS invoices (
     quotation_date DATE DEFAULT CURRENT_DATE,
     quotation2_date DATE DEFAULT CURRENT_DATE,
     quotation3_date DATE DEFAULT CURRENT_DATE,
+    quotation2_customer_name VARCHAR(255),
+    quotation3_customer_name VARCHAR(255),
     machine_description VARCHAR(255),
     serial_no VARCHAR(100),
     machine_count INT,
@@ -493,6 +495,8 @@ ALTER TABLE invoices ADD COLUMN IF NOT EXISTS invoice_date DATE DEFAULT CURRENT_
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS quotation_date DATE DEFAULT CURRENT_DATE;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS quotation2_date DATE DEFAULT CURRENT_DATE;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS quotation3_date DATE DEFAULT CURRENT_DATE;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS quotation2_customer_name VARCHAR(255);
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS quotation3_customer_name VARCHAR(255);
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP DEFAULT NOW();
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP DEFAULT NOW();
 UPDATE invoices SET quotation2_date = COALESCE(quotation2_date, quotation_date, invoice_date, CURRENT_DATE) WHERE quotation2_date IS NULL;

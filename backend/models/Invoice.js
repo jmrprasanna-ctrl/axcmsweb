@@ -10,6 +10,8 @@ const Invoice = db.define("Invoice",{
     quotation_date:{ type: DataTypes.DATEONLY, allowNull: true, defaultValue: DataTypes.NOW },
     quotation2_date:{ type: DataTypes.DATEONLY, allowNull: true, defaultValue: DataTypes.NOW },
     quotation3_date:{ type: DataTypes.DATEONLY, allowNull: true, defaultValue: DataTypes.NOW },
+    quotation2_customer_name:{ type: DataTypes.STRING, allowNull: true },
+    quotation3_customer_name:{ type: DataTypes.STRING, allowNull: true },
     customer_id:{ type: DataTypes.INTEGER, references:{ model:Customer,key:"id" } },
     machine_description:{ type: DataTypes.STRING, allowNull: true },
     serial_no:{ type: DataTypes.STRING, allowNull: true },

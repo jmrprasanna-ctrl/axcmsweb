@@ -188,6 +188,8 @@ CREATE TABLE invoices (
     quotation_date DATE DEFAULT CURRENT_DATE,
     quotation2_date DATE DEFAULT CURRENT_DATE,
     quotation3_date DATE DEFAULT CURRENT_DATE,
+    quotation2_customer_name VARCHAR(255),
+    quotation3_customer_name VARCHAR(255),
     machine_description VARCHAR(255),
     serial_no VARCHAR(100),
     machine_count INT DEFAULT 0,
@@ -203,6 +205,8 @@ CREATE TABLE invoices (
 );
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS quotation2_date DATE DEFAULT CURRENT_DATE;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS quotation3_date DATE DEFAULT CURRENT_DATE;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS quotation2_customer_name VARCHAR(255);
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS quotation3_customer_name VARCHAR(255);
 UPDATE invoices SET quotation2_date = COALESCE(quotation2_date, quotation_date, invoice_date, CURRENT_DATE) WHERE quotation2_date IS NULL;
 UPDATE invoices SET quotation3_date = COALESCE(quotation3_date, quotation_date, invoice_date, CURRENT_DATE) WHERE quotation3_date IS NULL;
 CREATE INDEX IF NOT EXISTS rental_machine_consumables_customer_entry_idx

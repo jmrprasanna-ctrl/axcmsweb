@@ -51,6 +51,11 @@
             <input type="date" id="qut2DateInput">
             <button class="btn btn-secondary" type="button" id="saveQut2DateBtn">Update</button>
         </div>
+        <div class="invoice-date-inline">
+            <label for="qut2CustomerNameInput" style="margin:0;font-weight:600;color:#1d3655;white-space:nowrap;">Customer</label>
+            <input type="text" id="qut2CustomerNameInput" placeholder="Customer Name">
+            <button class="btn btn-secondary" type="button" id="saveQut2CustomerNameBtn">Update</button>
+        </div>
     </div>
     <div class="invoice-layout-controls" style="margin: 0 0 12px; padding: 10px 12px; background: rgba(255, 255, 255, 0.86); border: 1px solid #d6e3f2; border-radius: 14px; display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; overflow-x: auto;">
         <label for="layoutTargetSelect" style="margin:0;font-weight:600;color:#1d3655;">Render Input</label>
@@ -665,8 +670,10 @@ async function drawInvoice(data, mimeType="image/png", renderSize=null){
     const machineTitleWeight = getLayoutFontWeight("machineTitle");
     const supportTechnicianWeight = getLayoutFontWeight("supportTechnician");
     ctx.font = `${normalFs}px Arial`;
+    const qut2CustomerName = String(data.invoice.quotation2_customer_name || "").trim();
+    const displayCustomerName = qut2CustomerName || c.name || "";
     if(getLayoutVisible("customerName")){
-        fitText(ctx, c.name || "", m.x(POS.customer.x + customerNameCfg.x), m.y(POS.customer.nameY - 103 + customerNameCfg.y), m.w(POS.customer.w), customerNameFont, customerNameWeight, customerNameFamily);
+        fitText(ctx, displayCustomerName, m.x(POS.customer.x + customerNameCfg.x), m.y(POS.customer.nameY - 103 + customerNameCfg.y), m.w(POS.customer.w), customerNameFont, customerNameWeight, customerNameFamily);
     }
     if(getLayoutVisible("customerAddress")){
         fitText(ctx, c.address || "", m.x(POS.customer.x + customerAddressCfg.x), m.y(POS.customer.addressY - 103 + customerAddressCfg.y), m.w(POS.customer.w), customerAddressFont, customerAddressWeight, customerAddressFamily);
@@ -994,6 +1001,14 @@ function syncQut2DateInput(){
     }
 }
 
+function syncQut2CustomerNameInput(){
+    const input = document.getElementById("qut2CustomerNameInput");
+    if(!input || !latestInvoiceData) return;
+    const overrideName = String(latestInvoiceData.invoice?.quotation2_customer_name || "").trim();
+    const fallbackName = String(latestInvoiceData.customer?.name || "").trim();
+    input.value = overrideName || fallbackName;
+}
+
 async function updateQuotation2DateFromTile(){
     const input = document.getElementById("qut2DateInput");
     const invoiceId = new URLSearchParams(window.location.search).get("id");
@@ -1014,6 +1029,29 @@ async function updateQuotation2DateFromTile(){
         }
     }catch(err){
         alert(err.message || "Failed to update Qut 2 Date");
+    }
+}
+
+async function updateQuotation2CustomerNameFromTile(){
+    const input = document.getElementById("qut2CustomerNameInput");
+    const invoiceId = new URLSearchParams(window.location.search).get("id");
+    if(!input || !invoiceId) return;
+    const value = String(input.value || "").trim();
+    if(!value){
+        alert("Enter a customer name.");
+        return;
+    }
+    try{
+        const res = await request(`/invoices/${invoiceId}/payment`, "PUT", { quotation2_customer_name: value });
+        if(!latestInvoiceData) latestInvoiceData = { invoice: {}, customer: {} };
+        if(!latestInvoiceData.invoice) latestInvoiceData.invoice = {};
+        latestInvoiceData.invoice.quotation2_customer_name = res?.invoice?.quotation2_customer_name || value;
+        await refreshPreviewFromLatest();
+        if(typeof showMessageBox === "function"){
+            showMessageBox("Qut 2 customer updated");
+        }
+    }catch(err){
+        alert(err.message || "Failed to update Qut 2 customer");
     }
 }
 
@@ -1276,6 +1314,7 @@ async function renderInvoice(){
     try{
         latestInvoiceData = await fetchInvoiceData();
         syncQut2DateInput();
+        syncQut2CustomerNameInput();
         await refreshPreviewFromLatest();
     }catch(err){
         alert(err.message || "Failed to load invoice details");
@@ -1348,6 +1387,10 @@ window.addEventListener("DOMContentLoaded", async () => {
     const saveQut2DateBtn = document.getElementById("saveQut2DateBtn");
     if(saveQut2DateBtn){
         saveQut2DateBtn.addEventListener("click", updateQuotation2DateFromTile);
+    }
+    const saveQut2CustomerNameBtn = document.getElementById("saveQut2CustomerNameBtn");
+    if(saveQut2CustomerNameBtn){
+        saveQut2CustomerNameBtn.addEventListener("click", updateQuotation2CustomerNameFromTile);
     }
     applyPreviewAccessByRole();
     if(canConfigurePreview){

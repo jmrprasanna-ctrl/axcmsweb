@@ -400,6 +400,8 @@ exports.listInvoices = async (req,res)=>{
             quotation_date: inv.quotation_date || inv.invoice_date || inv.createdAt,
             quotation2_date: inv.quotation2_date || inv.quotation_date || inv.invoice_date || inv.createdAt,
             quotation3_date: inv.quotation3_date || inv.quotation_date || inv.invoice_date || inv.createdAt,
+            quotation2_customer_name: inv.quotation2_customer_name || "",
+            quotation3_customer_name: inv.quotation3_customer_name || "",
             payment_method: inv.payment_method || "Cash",
             cheque_no: inv.cheque_no || "",
             payment_status: inv.payment_status || "Pending"
@@ -653,7 +655,7 @@ exports.getSealVImage = async (req,res)=>{
 };
 
 exports.createInvoice = async (req,res)=>{
-    const { invoice_no, invoice_date, quotation_date, quotation2_date, quotation3_date, customer_id, items, importants, machine_description, serial_no, machine_count, support_technician, support_technician_percentage, payment_method } = req.body;
+    const { invoice_no, invoice_date, quotation_date, quotation2_date, quotation3_date, quotation2_customer_name, quotation3_customer_name, customer_id, items, importants, machine_description, serial_no, machine_count, support_technician, support_technician_percentage, payment_method } = req.body;
     if(!customer_id || !invoice_no || !items || !items.length) {
         return res.status(400).json({message:"Invalid data"});
     }
@@ -696,6 +698,8 @@ exports.createInvoice = async (req,res)=>{
         if(!isValidQuotation3Date){
             return res.status(400).json({ message: "Invalid quotation 3 date." });
         }
+        const quotation2CustomerNameValue = String(quotation2_customer_name || "").trim() || null;
+        const quotation3CustomerNameValue = String(quotation3_customer_name || "").trim() || null;
         const invoiceYearToken = getYearTokenFromIsoDate(invoiceDateValue);
         let nextInvoiceNo = String(invoice_no || "").trim().toUpperCase();
         const invoiceNoMatch = nextInvoiceNo.match(/^(\d{2})INV(\d{4,})$/);
@@ -714,6 +718,8 @@ exports.createInvoice = async (req,res)=>{
             quotation_date: quotationDateValue,
             quotation2_date: quotation2DateValue,
             quotation3_date: quotation3DateValue,
+            quotation2_customer_name: quotation2CustomerNameValue,
+            quotation3_customer_name: quotation3CustomerNameValue,
             customer_id,
             machine_description: String(machine_description || "").trim() || null,
             serial_no: String(serial_no || "").trim() || null,
@@ -929,6 +935,22 @@ exports.updateInvoicePayment = async (req,res)=>{
             }
             quotation3_date = parsedQuotation3Date;
         }
+        let quotation2_customer_name = invoice.quotation2_customer_name || null;
+        if(req.body.quotation2_customer_name !== undefined){
+            const parsedQuotation2CustomerName = String(req.body.quotation2_customer_name || "").trim();
+            if(!parsedQuotation2CustomerName){
+                return res.status(400).json({ message: "Quotation 2 customer name is required." });
+            }
+            quotation2_customer_name = parsedQuotation2CustomerName;
+        }
+        let quotation3_customer_name = invoice.quotation3_customer_name || null;
+        if(req.body.quotation3_customer_name !== undefined){
+            const parsedQuotation3CustomerName = String(req.body.quotation3_customer_name || "").trim();
+            if(!parsedQuotation3CustomerName){
+                return res.status(400).json({ message: "Quotation 3 customer name is required." });
+            }
+            quotation3_customer_name = parsedQuotation3CustomerName;
+        }
         let payment_date = invoice.payment_date || null;
         if(req.body.payment_date !== undefined){
             const parsedPaymentDate = String(req.body.payment_date || "").trim();
@@ -951,6 +973,8 @@ exports.updateInvoicePayment = async (req,res)=>{
             quotation_date,
             quotation2_date,
             quotation3_date,
+            quotation2_customer_name,
+            quotation3_customer_name,
             payment_date
         });
 
@@ -975,6 +999,8 @@ exports.updateInvoicePayment = async (req,res)=>{
                 quotation_date: invoice.quotation_date,
                 quotation2_date: invoice.quotation2_date,
                 quotation3_date: invoice.quotation3_date,
+                quotation2_customer_name: invoice.quotation2_customer_name,
+                quotation3_customer_name: invoice.quotation3_customer_name,
                 payment_date: invoice.payment_date,
                 payment_method: invoice.payment_method,
                 cheque_no: invoice.cheque_no,

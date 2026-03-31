@@ -462,6 +462,14 @@ async function ensureInvoiceDateSchema() {
       ALTER TABLE invoices
       ADD COLUMN IF NOT EXISTS quotation3_date DATE;
     `);
+    await db.query(`
+      ALTER TABLE invoices
+      ADD COLUMN IF NOT EXISTS quotation2_customer_name VARCHAR(255);
+    `);
+    await db.query(`
+      ALTER TABLE invoices
+      ADD COLUMN IF NOT EXISTS quotation3_customer_name VARCHAR(255);
+    `);
 
     await db.query(`
       UPDATE invoices
