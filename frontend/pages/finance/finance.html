@@ -101,7 +101,7 @@
 
     <div class="form-container section">
         <div class="section-head">
-            <h3>Sold Product Selling Price (Week, Month, Annual)</h3>
+            <h3>Sold Product Price</h3>
             <div class="section-actions">
                 <button class="btn" type="button" onclick="exportSoldPricePDF()">Save PDF</button>
                 <button class="btn" type="button" onclick="exportSoldPriceXlsx()">Save XLSX</button>
@@ -337,7 +337,7 @@ function exportFinanceExcel(){
     });
 
     lines.push("");
-    lines.push("Sold Product Selling Price By Period");
+    lines.push("Sold Product Price");
     lines.push("Period,Total Amount");
     (lastFinanceData.sold_product_selling_price_by_period || []).forEach((r) => {
         lines.push([r.period, fmt(r.total_amount)].map(csvEscape).join(","));
@@ -399,7 +399,7 @@ function exportFinancePDF(){
         line(`${s.period || k}: Sales ${fmt(s.total_sales)} | Expenses ${fmt(s.total_expenses)} | Net ${fmt(s.net_profit)}`);
     });
     line("");
-    line("Sold Product Selling Price By Period");
+    line("Sold Product Price");
     (lastFinanceData.sold_product_selling_price_by_period || []).forEach((r) => {
         line(`${r.period || ""}: ${fmt(r.total_amount)}`);
     });
@@ -424,7 +424,7 @@ function exportSummaryXlsx(){
 }
 
 function exportSoldPricePDF(){
-    exportTablePDF("soldPriceTable", "Sold Product Selling Price (Week, Month, Annual)", "Finance_Sold_Product_Price.pdf");
+    exportTablePDF("soldPriceTable", "Sold Product Price", "Finance_Sold_Product_Price.pdf");
 }
 function exportSoldPriceXlsx(){
     exportTableXlsx("soldPriceTable", "Finance_Sold_Product_Price.xlsx");
