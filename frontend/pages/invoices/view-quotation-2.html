@@ -13,14 +13,6 @@
     <h1 class="invoice-title">Quatation Details 2</h1>
     <div class="invoice-address-controls">
         <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
-            <input type="checkbox" id="addressColomboChk" checked>
-            Address Colombo
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
-            <input type="checkbox" id="addressVChk">
-            Address V
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
             <input type="checkbox" id="sign1Chk">
             SIGN C
         </label>
@@ -80,8 +72,6 @@
             <option value="vat">VAT</option>
             <option value="grossAmount">GROSS AMOUNT</option>
             <option value="logoWithName">Logo with Name</option>
-            <option value="addressColombo">Colombo Address</option>
-            <option value="addressV">Address V</option>
             <option value="signC">SIGN C</option>
             <option value="signV">SIGN V</option>
             <option value="sealC">SEAL C</option>
@@ -246,23 +236,6 @@ const POS = {
     sealV: { x: 297, y: 1452, w: 235, h: 110 },
     total: { yFromTable: 790, yInCell: 28, fs: 14 }
 };
-const ADDRESS_TEXTS = {
-    colombo: [
-        "PULMO TECHNOLOGIES",
-        "No 528/48, 2nd Maradana, Colombo 10.",
-        "TEL : 0770 3000 80",
-        "pulmotechnologies@gmail.com",
-        "www.pulmotech.lk"
-    ],
-    v: [
-        "PULMO TECHNOLOGIES",
-        "No 30/1, Muddaragama, Veyangoda.",
-        "TEL : 0770 3000 80",
-        "pulmotechnologies@gmail.com",
-        "www.pulmotech.lk"
-    ]
-};
-let selectedAddressKey = "colombo";
 
 function getLayoutConfig(key){
     return layoutState[key] || { x: 0, y: 0, font: INPUT_FONT_SIZE, fontFamily: INPUT_FONT_FAMILY, fontWeight: "normal" };
@@ -840,36 +813,6 @@ async function drawInvoice(data, mimeType="image/png", renderSize=null){
         );
     }
 
-    // Optional selectable address label block
-    if(selectedAddressKey && ADDRESS_TEXTS[selectedAddressKey] && getLayoutVisible(selectedAddressKey === "colombo" ? "addressColombo" : "addressV")){
-        const blockPos = selectedAddressKey === "colombo"
-            ? POS.addressBlockColombo
-            : POS.addressBlockV;
-        const addressCfg = selectedAddressKey === "colombo"
-            ? getLayoutConfig("addressColombo")
-            : getLayoutConfig("addressV");
-        const addressFont = selectedAddressKey === "colombo"
-            ? getLayoutFont("addressColombo", m.fs(blockPos.fs))
-            : getLayoutFont("addressV", m.fs(blockPos.fs));
-        const addressFamily = selectedAddressKey === "colombo"
-            ? getLayoutFontFamily("addressColombo", "Bahnschrift SemiCondensed")
-            : getLayoutFontFamily("addressV", "Bahnschrift SemiCondensed");
-        const addressX = m.x(blockPos.x + addressCfg.x);
-        const contentRight = m.x(BASE_W - 70);
-        const addressMaxW = Math.max(m.w(120), contentRight - addressX - m.w(8));
-        drawMultilineFixedText(
-            ctx,
-            ADDRESS_TEXTS[selectedAddressKey],
-            addressX,
-            m.y(blockPos.y + addressCfg.y),
-            m.h(blockPos.lineH),
-            addressFont,
-            getLayoutFontWeight(selectedAddressKey === "colombo" ? "addressColombo" : "addressV"),
-            addressFamily,
-            addressMaxW
-        );
-    }
-
     // Important notes
     const importantCfg = getLayoutConfig("important");
     if(getLayoutVisible("important")){
@@ -1078,41 +1021,6 @@ function initEditModeControl(){
         updateNavigationTileByEditToggle();
     });
     updateNavigationTileByEditToggle();
-}
-
-function initAddressControls(){
-    const cChk = document.getElementById("addressColomboChk");
-    const vChk = document.getElementById("addressVChk");
-    if(!cChk || !vChk) return;
-    cChk.checked = true;
-    vChk.checked = false;
-    selectedAddressKey = "colombo";
-
-    cChk.addEventListener("change", async () => {
-        if(cChk.checked){
-            vChk.checked = false;
-            selectedAddressKey = "colombo";
-        }else if(!vChk.checked){
-            cChk.checked = true;
-            selectedAddressKey = "colombo";
-        }else{
-            selectedAddressKey = "v";
-        }
-        await refreshPreviewFromLatest();
-    });
-
-    vChk.addEventListener("change", async () => {
-        if(vChk.checked){
-            cChk.checked = false;
-            selectedAddressKey = "v";
-        }else if(!cChk.checked){
-            vChk.checked = true;
-            selectedAddressKey = "v";
-        }else{
-            selectedAddressKey = "colombo";
-        }
-        await refreshPreviewFromLatest();
-    });
 }
 
 function initSignControl(){
@@ -1388,7 +1296,6 @@ window.addEventListener("DOMContentLoaded", async () => {
     applyPreviewAccessByRole();
     if(canConfigurePreview){
         initEditModeControl();
-        initAddressControls();
         initSignControl();
         initSignVControl();
         initSealControl();
