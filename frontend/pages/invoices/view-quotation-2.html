@@ -266,6 +266,19 @@ function money(value){
     return Number(value || 0).toFixed(2);
 }
 
+function toNumeric(value, fallback = 0){
+    const num = Number(value);
+    return Number.isFinite(num) ? num : fallback;
+}
+
+function calculateGrossFromRate(item, rateValue){
+    const qty = toNumeric(item?.qty, 0);
+    const vatPercent = toNumeric(item?.vat, 0);
+    const base = qty * toNumeric(rateValue, 0);
+    const gross = base + ((base * vatPercent) / 100);
+    return Number.isFinite(gross) ? gross : 0;
+}
+
 function asDate(value){
     const dt = new Date(value);
     if(Number.isNaN(dt.getTime())) return "";
@@ -718,6 +731,17 @@ async function drawInvoice(data, mimeType="image/png", renderSize=null){
     const rowH = m.h(POS.table.rowH + OVERLAY.rowGap);
     const currentInvoiceItemNameOverrides = getCurrentInvoiceItemNameOverrides();
     const currentInvoiceItemRateOverrides = getCurrentInvoiceItemRateOverrides();
+    let previewTotalAmount = 0;
+    const allItems = Array.isArray(data.items) ? data.items : [];
+    allItems.forEach((item, idx) => {
+        const rowKey = String(idx + 1);
+        const overrideRate = sanitizeQut2RateValue(currentInvoiceItemRateOverrides[rowKey]);
+        if(Number.isFinite(overrideRate)){
+            previewTotalAmount += calculateGrossFromRate(item, overrideRate);
+        }else{
+            previewTotalAmount += toNumeric(item?.gross, 0);
+        }
+    });
     data.items.slice(0, 18).forEach((item, idx) => {
         const product = item.Product || {};
         const code = product.product_id || "";
@@ -726,13 +750,16 @@ async function drawInvoice(data, mimeType="image/png", renderSize=null){
         const desc = overrideDesc || defaultDesc;
         const descriptionText = overrideDesc ? desc : `${code} ${desc}`.trim();
         const rateOverrideValue = sanitizeQut2RateValue(currentInvoiceItemRateOverrides[String(idx + 1)]);
-        const displayRate = Number.isFinite(rateOverrideValue) ? rateOverrideValue : Number(item.rate || 0);
+        const displayRate = Number.isFinite(rateOverrideValue) ? rateOverrideValue : toNumeric(item.rate, 0);
+        const displayGross = Number.isFinite(rateOverrideValue)
+            ? calculateGrossFromRate(item, displayRate)
+            : toNumeric(item.gross, 0);
         if(getLayoutVisible("itemNo")) fitText(ctx, String(idx + 1), tableX + m.w(32 + itemNoCfg.x), y + m.h(itemNoCfg.y), m.w(34), itemNoFontSize, itemNoWeight, itemNoFontFamily);
         if(getLayoutVisible("description")) fitText(ctx, descriptionText, c1 + m.w(28 + descriptionCfg.x), y + m.h(descriptionCfg.y), c2 - c1 - m.w(16), descriptionFontSize, descriptionWeight, descriptionFontFamily);
         if(getLayoutVisible("qty")) drawRight(ctx, String(item.qty || 0), c3 + m.w(12 + qtyCfg.x) - m.w(190), y + m.h(qtyCfg.y), c3 - c2 - m.w(16), qtyFontSize, qtyWeight, qtyFontFamily);
         if(getLayoutVisible("rate")) drawRightFixed(ctx, money(displayRate), c4 + m.w(12 + rateCfg.x) - m.w(150), y + m.h(rateCfg.y), rateFontSize, rateWeight, rateFontFamily);
         if(getLayoutVisible("vat")) drawRight(ctx, `${money(item.vat)}%`, c5 + m.w(12 + vatCfg.x) - m.w(150), y + m.h(vatCfg.y), c5 - c4 - m.w(16), vatFontSize, vatWeight, vatFontFamily);
-        if(getLayoutVisible("grossAmount")) drawRight(ctx, money(item.gross), tableRight + m.w(12 + grossCfg.x) - m.w(40), y + m.h(grossCfg.y), tableRight - c5 - m.w(16), grossFontSize, grossWeight, grossFontFamily);
+        if(getLayoutVisible("grossAmount")) drawRight(ctx, money(displayGross), tableRight + m.w(12 + grossCfg.x) - m.w(40), y + m.h(grossCfg.y), tableRight - c5 - m.w(16), grossFontSize, grossWeight, grossFontFamily);
         y += rowH;
     });
 
@@ -743,7 +770,7 @@ async function drawInvoice(data, mimeType="image/png", renderSize=null){
     if(getLayoutVisible("totalAmount")){
         drawRight(
             ctx,
-            money(data.total_amount),
+            money(previewTotalAmount),
             tableRight - m.w(28 - totalAmountCfg.x),
             amountY + m.h(POS.total.yInCell - 247 + totalAmountCfg.y),
             tableRight - c5 - m.w(16),
@@ -758,7 +785,7 @@ async function drawInvoice(data, mimeType="image/png", renderSize=null){
     if(getLayoutVisible("amountWords")){
         drawFixedText(
             ctx,
-            amountInWords(data.total_amount),
+            amountInWords(previewTotalAmount),
             m.x(POS.amountWords.x + amountWordsCfg.x),
             tableY + m.h(POS.amountWords.yFromTable + POS.amountWords.yInCell - 247 + amountWordsCfg.y),
             getLayoutFont("amountWords", INPUT_FONT_SIZE),
