@@ -830,6 +830,24 @@ async function ensureUserPreferenceSettingsSchema() {
   });
 }
 
+async function ensureUserQuotationRenderSettingsSchema() {
+  await runOnBusinessDatabases(async () => {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS user_quotation_render_settings (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        database_name VARCHAR(120) NOT NULL,
+        quotation_type VARCHAR(32) NOT NULL,
+        render_visibility_json TEXT NOT NULL DEFAULT '{}',
+        created_by INTEGER,
+        "createdAt" TIMESTAMP DEFAULT NOW(),
+        "updatedAt" TIMESTAMP DEFAULT NOW(),
+        UNIQUE(user_id, database_name, quotation_type)
+      );
+    `);
+  });
+}
+
 async function ensureUserSuperSchema() {
   await runOnBusinessDatabases(async () => {
     await db.query(`
@@ -930,6 +948,7 @@ async function startServer() {
     await ensureUserMappingSchema();
     await ensureUserInvoiceMappingSchema();
     await ensureUserPreferenceSettingsSchema();
+    await ensureUserQuotationRenderSettingsSchema();
     await ensureUserSuperSchema();
     await ensureInvoiceDateSchema();
     await ensureInvoiceNumberingSchema();

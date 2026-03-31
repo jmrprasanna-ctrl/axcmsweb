@@ -18,7 +18,31 @@ const COMPANY_REGISTRY_TABLE = "company_profiles";
 const COMPANY_STORAGE_ROOT = path.resolve(__dirname, "../storage/companies");
 const COMPANY_LOGO_EXTENSIONS = new Set([".jpg", ".jpeg", ".bmp", ".gif", ".tiff", ".tif", ".png"]);
 const USER_INVOICE_MAPPING_TABLE = "user_invoice_mappings";
+const USER_QUOTATION_RENDER_TABLE = "user_quotation_render_settings";
 const INV_MAP_PATH = "/users/inv-map.html";
+const QUOTATION2_RENDER_KEYS = new Set([
+  "customerName",
+  "customerAddress",
+  "customerTel",
+  "count",
+  "serialNo",
+  "date",
+  "invoiceNo",
+  "machineTitle",
+  "supportTechnician",
+  "paymentMethod",
+  "amountWords",
+  "totalAmount",
+  "important",
+  "itemNo",
+  "description",
+  "qty",
+  "rate",
+  "vat",
+  "grossAmount",
+  "signC",
+  "sealC",
+]);
 const ensuredUiSettingsDbSet = new Set();
 const DEFAULT_CATEGORIES = [
   "Photocopier",
@@ -436,6 +460,42 @@ async function ensureUserInvoiceMappingTable(client) {
       UNIQUE(user_id, database_name)
     );
   `);
+}
+
+async function ensureUserQuotationRenderTable(client) {
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS ${USER_QUOTATION_RENDER_TABLE} (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      database_name VARCHAR(120) NOT NULL,
+      quotation_type VARCHAR(32) NOT NULL,
+      render_visibility_json TEXT NOT NULL DEFAULT '{}',
+      created_by INTEGER,
+      "createdAt" TIMESTAMP DEFAULT NOW(),
+      "updatedAt" TIMESTAMP DEFAULT NOW(),
+      UNIQUE(user_id, database_name, quotation_type)
+    );
+  `);
+}
+
+function normalizeQuotation2RenderVisibility(raw) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const out = {};
+  QUOTATION2_RENDER_KEYS.forEach((key) => {
+    if (Object.prototype.hasOwnProperty.call(source, key)) {
+      out[key] = Boolean(source[key]);
+    }
+  });
+  return out;
+}
+
+function parseQuotationRenderVisibility(row) {
+  try {
+    const parsed = JSON.parse(String(row?.render_visibility_json || "{}"));
+    return normalizeQuotation2RenderVisibility(parsed);
+  } catch (_err) {
+    return {};
+  }
 }
 
 function normalizeNameCompare(value) {
@@ -2238,6 +2298,7 @@ exports.getMyInvMap = async (req, res) => {
 
     await mainDbClient.connect();
     await ensureUserInvoiceMappingTable(mainDbClient);
+    await ensureUserQuotationRenderTable(mainDbClient);
     const rs = await mainDbClient.query(
       `SELECT *
        FROM ${USER_INVOICE_MAPPING_TABLE}
@@ -2252,6 +2313,16 @@ exports.getMyInvMap = async (req, res) => {
       });
     }
     const row = rs.rows[0];
+    const visibilityRs = await mainDbClient.query(
+      `SELECT render_visibility_json
+       FROM ${USER_QUOTATION_RENDER_TABLE}
+       WHERE user_id = $1 AND LOWER(database_name) = LOWER($2) AND quotation_type = 'quotation2'
+       LIMIT 1`,
+      [Number(canonicalUserId || row.user_id || 0), databaseName]
+    );
+    const quotation2RenderVisibility = visibilityRs.rowCount
+      ? parseQuotationRenderVisibility(visibilityRs.rows[0])
+      : {};
     res.json({
       mapping: {
         user_id: Number(canonicalUserId || row.user_id || 0),
@@ -2270,9 +2341,69 @@ exports.getMyInvMap = async (req, res) => {
         seal_v: Boolean(row.seal_v_enabled),
         theme: Boolean(row.theme_enabled),
       },
+      quotation2_render_visibility: quotation2RenderVisibility,
     });
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to load your Inv Map." });
+  } finally {
+    await mainDbClient.end().catch(() => {});
+  }
+};
+
+exports.saveMyQuotation2RenderVisibility = async (req, res) => {
+  const userId = Number(req.user?.id || req.user?.userId || 0);
+  if (!Number.isFinite(userId) || userId <= 0) {
+    return res.status(401).json({ message: "Invalid token user." });
+  }
+
+  const requesterDatabase = normalizeDatabaseName(req.databaseName || req.user?.database_name || req.headers["x-database-name"]) || INVENTORY_DB_NAME;
+  const databaseName = normalizeDatabaseName(req.body?.database_name) || requesterDatabase;
+  const rawVisibility = req.body?.render_visibility;
+  const normalizedVisibility = normalizeQuotation2RenderVisibility(rawVisibility);
+  if (!Object.keys(normalizedVisibility).length) {
+    return res.status(400).json({ message: "At least one render input value is required." });
+  }
+
+  const cfg = getDbConfig();
+  const mainDbClient = new Client({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: cfg.database || INVENTORY_DB_NAME,
+  });
+
+  try {
+    const requesterUser = await getUserFromDatabase(requesterDatabase, userId);
+    const canonicalUserId = await resolveCanonicalInvMapUserId(
+      { user_database: requesterDatabase, user_id: userId },
+      requesterUser
+    );
+
+    await mainDbClient.connect();
+    await ensureUserQuotationRenderTable(mainDbClient);
+    await mainDbClient.query(
+      `INSERT INTO ${USER_QUOTATION_RENDER_TABLE}
+       (user_id, database_name, quotation_type, render_visibility_json, created_by, "createdAt", "updatedAt")
+       VALUES ($1, $2, 'quotation2', $3, $4, NOW(), NOW())
+       ON CONFLICT (user_id, database_name, quotation_type)
+       DO UPDATE SET render_visibility_json = EXCLUDED.render_visibility_json,
+                     "updatedAt" = NOW()`,
+      [
+        Number(canonicalUserId || userId),
+        databaseName,
+        JSON.stringify(normalizedVisibility),
+        Number(req.user?.id || 0) || null,
+      ]
+    );
+
+    res.json({
+      message: "Quotation 2 render inputs saved.",
+      database_name: databaseName,
+      render_visibility: normalizedVisibility,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to save quotation 2 render inputs." });
   } finally {
     await mainDbClient.end().catch(() => {});
   }

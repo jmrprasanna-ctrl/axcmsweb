@@ -138,6 +138,8 @@ let qut2PreviewCustomerName = "";
 const currentRole = String(localStorage.getItem("role") || "").trim().toLowerCase();
 const canConfigurePreview = currentRole === "admin" || currentRole === "manager";
 let invMapFlags = null;
+let qut2RenderVisibilityFromDb = null;
+let qut2RenderDbName = "";
 
 function hasMappedFeature(featureKey){
     if(!invMapFlags) return true;
@@ -149,8 +151,15 @@ async function loadInvMapFlags(){
         const res = await request("/users/inv-map/me", "GET");
         const flags = res && res.feature_flags && typeof res.feature_flags === "object" ? res.feature_flags : null;
         invMapFlags = flags;
+        const renderVisibility = res && res.quotation2_render_visibility && typeof res.quotation2_render_visibility === "object"
+            ? res.quotation2_render_visibility
+            : null;
+        qut2RenderVisibilityFromDb = renderVisibility;
+        qut2RenderDbName = String(res?.mapping?.database_name || "").trim();
     }catch(_err){
         invMapFlags = null;
+        qut2RenderVisibilityFromDb = null;
+        qut2RenderDbName = "";
     }
 }
 const OVERLAY = {
@@ -968,6 +977,37 @@ function syncRenderInputChecklist(){
     updateRenderInputToggleText();
 }
 
+function applyPersistedQut2RenderVisibility(){
+    if(!qut2RenderVisibilityFromDb || typeof qut2RenderVisibilityFromDb !== "object") return;
+    const targetSelect = document.getElementById("layoutTargetSelect");
+    if(!targetSelect) return;
+    Array.from(targetSelect.options).forEach((opt) => {
+        const key = String(opt.value || "").trim();
+        if(!key) return;
+        if(Object.prototype.hasOwnProperty.call(qut2RenderVisibilityFromDb, key)){
+            getLayoutConfig(key).visible = !!qut2RenderVisibilityFromDb[key];
+        }
+    });
+}
+
+async function savePersistedQut2RenderVisibility(){
+    try{
+        const targetSelect = document.getElementById("layoutTargetSelect");
+        if(!targetSelect) return;
+        const renderVisibility = {};
+        Array.from(targetSelect.options).forEach((opt) => {
+            const key = String(opt.value || "").trim();
+            if(!key) return;
+            renderVisibility[key] = !!getLayoutVisible(key);
+        });
+        await request("/users/inv-map/me/quotation2-render-inputs", "PUT", {
+            database_name: qut2RenderDbName || undefined,
+            render_visibility: renderVisibility
+        });
+    }catch(_err){
+    }
+}
+
 function initRenderInputChecklist(){
     const dropdown = document.getElementById("renderInputDropdown");
     const toggle = document.getElementById("renderInputToggle");
@@ -1030,6 +1070,7 @@ function initRenderInputChecklist(){
                 }
             }
             syncRenderInputChecklist();
+            await savePersistedQut2RenderVisibility();
             await refreshPreviewFromLatest();
         });
 
@@ -1104,6 +1145,7 @@ function initLayoutEditor(){
     }
 
     targetSelect.value = selectedLayoutTarget;
+    applyPersistedQut2RenderVisibility();
     syncLayoutEditorSelects();
     syncRenderInputChecklist();
 
@@ -1136,6 +1178,7 @@ function initLayoutEditor(){
     previewSelect.addEventListener("change", async () => {
         getLayoutConfig(selectedLayoutTarget).visible = previewSelect.value !== "false";
         syncRenderInputChecklist();
+        await savePersistedQut2RenderVisibility();
         await refreshPreviewFromLatest();
     });
 
