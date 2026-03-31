@@ -793,6 +793,10 @@ async function ensureUserInvoiceMappingSchema() {
         sign_v_enabled BOOLEAN NOT NULL DEFAULT FALSE,
         seal_c_enabled BOOLEAN NOT NULL DEFAULT FALSE,
         seal_v_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+        sign_q2_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+        seal_q2_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+        sign_q3_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+        seal_q3_enabled BOOLEAN NOT NULL DEFAULT FALSE,
         theme_enabled BOOLEAN NOT NULL DEFAULT FALSE,
         is_verified BOOLEAN NOT NULL DEFAULT FALSE,
         created_by INTEGER,
@@ -801,6 +805,10 @@ async function ensureUserInvoiceMappingSchema() {
         UNIQUE(user_id, database_name)
       );
     `);
+    await db.query(`ALTER TABLE user_invoice_mappings ADD COLUMN IF NOT EXISTS sign_q2_enabled BOOLEAN NOT NULL DEFAULT FALSE;`);
+    await db.query(`ALTER TABLE user_invoice_mappings ADD COLUMN IF NOT EXISTS seal_q2_enabled BOOLEAN NOT NULL DEFAULT FALSE;`);
+    await db.query(`ALTER TABLE user_invoice_mappings ADD COLUMN IF NOT EXISTS sign_q3_enabled BOOLEAN NOT NULL DEFAULT FALSE;`);
+    await db.query(`ALTER TABLE user_invoice_mappings ADD COLUMN IF NOT EXISTS seal_q3_enabled BOOLEAN NOT NULL DEFAULT FALSE;`);
   });
 }
 

@@ -480,6 +480,10 @@ async function ensureUserInvoiceMappingTable(client) {
       sign_v_enabled BOOLEAN NOT NULL DEFAULT FALSE,
       seal_c_enabled BOOLEAN NOT NULL DEFAULT FALSE,
       seal_v_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+      sign_q2_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+      seal_q2_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+      sign_q3_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+      seal_q3_enabled BOOLEAN NOT NULL DEFAULT FALSE,
       theme_enabled BOOLEAN NOT NULL DEFAULT FALSE,
       is_verified BOOLEAN NOT NULL DEFAULT FALSE,
       created_by INTEGER,
@@ -487,6 +491,22 @@ async function ensureUserInvoiceMappingTable(client) {
       "updatedAt" TIMESTAMP DEFAULT NOW(),
       UNIQUE(user_id, database_name)
     );
+  `);
+  await client.query(`
+    ALTER TABLE ${USER_INVOICE_MAPPING_TABLE}
+    ADD COLUMN IF NOT EXISTS sign_q2_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+  `);
+  await client.query(`
+    ALTER TABLE ${USER_INVOICE_MAPPING_TABLE}
+    ADD COLUMN IF NOT EXISTS seal_q2_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+  `);
+  await client.query(`
+    ALTER TABLE ${USER_INVOICE_MAPPING_TABLE}
+    ADD COLUMN IF NOT EXISTS sign_q3_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+  `);
+  await client.query(`
+    ALTER TABLE ${USER_INVOICE_MAPPING_TABLE}
+    ADD COLUMN IF NOT EXISTS seal_q3_enabled BOOLEAN NOT NULL DEFAULT FALSE;
   `);
 }
 
@@ -1064,6 +1084,10 @@ function normalizeInvMapFlags(raw) {
     sign_v: Boolean(source.sign_v),
     seal_c: Boolean(source.seal_c),
     seal_v: Boolean(source.seal_v),
+    sign_q2: Boolean(source.sign_q2),
+    seal_q2: Boolean(source.seal_q2),
+    sign_q3: Boolean(source.sign_q3),
+    seal_q3: Boolean(source.seal_q3),
     theme: Boolean(source.theme),
   };
 }
@@ -1159,6 +1183,10 @@ async function getPreferenceAvailability(databaseName, userId) {
     sign_v: Boolean(signVPath),
     seal_c: Boolean(sealCPath),
     seal_v: Boolean(sealVPath),
+    sign_q2: Boolean(signCPath),
+    seal_q2: Boolean(sealCPath),
+    sign_q3: Boolean(signCPath),
+    seal_q3: Boolean(sealCPath),
     theme: Boolean(themeMode),
   };
 }
@@ -2098,6 +2126,10 @@ exports.listInvMapEntries = async (req, res) => {
         sign_v: Boolean(row.sign_v_enabled),
         seal_c: Boolean(row.seal_c_enabled),
         seal_v: Boolean(row.seal_v_enabled),
+        sign_q2: Boolean(row.sign_q2_enabled),
+        seal_q2: Boolean(row.seal_q2_enabled),
+        sign_q3: Boolean(row.sign_q3_enabled),
+        seal_q3: Boolean(row.seal_q3_enabled),
         theme: Boolean(row.theme_enabled),
       },
       is_verified: Boolean(row.is_verified),
@@ -2245,6 +2277,10 @@ exports.getInvMapByUser = async (req, res) => {
           sign_v: Boolean(row.sign_v_enabled),
           seal_c: Boolean(row.seal_c_enabled),
           seal_v: Boolean(row.seal_v_enabled),
+          sign_q2: Boolean(row.sign_q2_enabled),
+          seal_q2: Boolean(row.seal_q2_enabled),
+          sign_q3: Boolean(row.sign_q3_enabled),
+          seal_q3: Boolean(row.seal_q3_enabled),
           theme: Boolean(row.theme_enabled),
         },
         is_verified: Boolean(row.is_verified),
@@ -2345,8 +2381,8 @@ exports.saveInvMap = async (req, res) => {
     await mainDbClient.query(
       `INSERT INTO ${USER_INVOICE_MAPPING_TABLE}
        (user_id, database_name, logo_enabled, invoice_enabled, quotation_enabled, quotation2_enabled, quotation3_enabled,
-        sign_c_enabled, sign_v_enabled, seal_c_enabled, seal_v_enabled, theme_enabled, is_verified, created_by, "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, TRUE, $13, NOW(), NOW())
+        sign_c_enabled, sign_v_enabled, seal_c_enabled, seal_v_enabled, sign_q2_enabled, seal_q2_enabled, sign_q3_enabled, seal_q3_enabled, theme_enabled, is_verified, created_by, "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, TRUE, $17, NOW(), NOW())
        ON CONFLICT (user_id, database_name)
        DO UPDATE SET logo_enabled = EXCLUDED.logo_enabled,
                      invoice_enabled = EXCLUDED.invoice_enabled,
@@ -2357,6 +2393,10 @@ exports.saveInvMap = async (req, res) => {
                      sign_v_enabled = EXCLUDED.sign_v_enabled,
                      seal_c_enabled = EXCLUDED.seal_c_enabled,
                      seal_v_enabled = EXCLUDED.seal_v_enabled,
+                     sign_q2_enabled = EXCLUDED.sign_q2_enabled,
+                     seal_q2_enabled = EXCLUDED.seal_q2_enabled,
+                     sign_q3_enabled = EXCLUDED.sign_q3_enabled,
+                     seal_q3_enabled = EXCLUDED.seal_q3_enabled,
                      theme_enabled = EXCLUDED.theme_enabled,
                      is_verified = TRUE,
                      "updatedAt" = NOW()`,
@@ -2372,6 +2412,10 @@ exports.saveInvMap = async (req, res) => {
         featureFlags.sign_v,
         featureFlags.seal_c,
         featureFlags.seal_v,
+        featureFlags.sign_q2,
+        featureFlags.seal_q2,
+        featureFlags.sign_q3,
+        featureFlags.seal_q3,
         featureFlags.theme,
         Number(req.user?.id || 0) || null,
       ]
@@ -2479,6 +2523,10 @@ exports.getMyInvMap = async (req, res) => {
         sign_v: Boolean(row.sign_v_enabled),
         seal_c: Boolean(row.seal_c_enabled),
         seal_v: Boolean(row.seal_v_enabled),
+        sign_q2: Boolean(row.sign_q2_enabled),
+        seal_q2: Boolean(row.seal_q2_enabled),
+        sign_q3: Boolean(row.sign_q3_enabled),
+        seal_q3: Boolean(row.seal_q3_enabled),
         theme: Boolean(row.theme_enabled),
       },
       quotation2_render_visibility: quotation2RenderVisibility,
