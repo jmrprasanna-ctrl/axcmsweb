@@ -139,6 +139,7 @@
     <div class="invoice-actions">
         <button class="btn btn-primary" onclick="printPDF()">Print PDF</button>
         <button class="btn btn-primary" onclick="emailInvoice()">email</button>
+        <button class="btn btn-primary" onclick="emailQuotation()">Quatation Email</button>
         <button class="btn btn-primary" onclick="emailQuotations()">Quatation 2/3 Email</button>
         <button class="btn btn-secondary" type="button" onclick="window.location.href='invoice-list.html'">Back</button>
     </div>
@@ -1397,6 +1398,39 @@ async function emailInvoice(){
         }
     }catch(err){
         alert(err.message || "Failed to send invoice email");
+    }
+}
+
+async function emailQuotation(){
+    if(!latestInvoiceData){
+        alert("Invoice details are not ready yet.");
+        return;
+    }
+    const invoiceId = new URLSearchParams(window.location.search).get("id");
+    if(!invoiceId){
+        alert("Invoice id is missing.");
+        return;
+    }
+    if(!hasMappedFeature("quotation")){
+        alert("Quotation function is not mapped for this user/database.");
+        return;
+    }
+    try{
+        const rendered = await buildRenderedInvoicePdf("quotation", "Quotation");
+        const attachmentDataUrl = await blobToDataUrl(rendered.pdfBlob);
+        const res = await request(`/invoices/${invoiceId}/send-email`, "POST", {
+            attachment_pdf_base64: attachmentDataUrl,
+            attachment_file_name: rendered.fileName,
+            email_type: "quotation",
+            require_rendered_attachment: true
+        });
+        if(typeof showMessageBox === "function"){
+            showMessageBox(res.message || "Quotation email sent");
+        }else{
+            alert(res.message || "Quotation email sent");
+        }
+    }catch(err){
+        alert(err.message || "Failed to send Quotation email");
     }
 }
 

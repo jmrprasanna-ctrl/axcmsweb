@@ -1275,7 +1275,9 @@ exports.sendInvoiceEmail = async (req, res) => {
         }
 
         const emailType = String(req.body?.email_type || "").trim().toLowerCase();
+        const isQuotationEmail = emailType === "quotation";
         const isQuotation23Email = emailType === "quotation23";
+        const isAnyQuotationEmail = isQuotationEmail || isQuotation23Email;
 
         const templateData = {
             invoice_no: String(invoice.invoice_no || ""),
@@ -1287,15 +1289,19 @@ exports.sendInvoiceEmail = async (req, res) => {
         const templateSetup = currentSetupResolved || inventorySetupResolved || null;
         const defaultSubjectTemplate = isQuotation23Email
             ? "Quotation 2/3 {{invoice_no}} - PULMO TECHNOLOGIES"
-            : "Invoice {{invoice_no}} - PULMO TECHNOLOGIES";
+            : (isQuotationEmail
+                ? "Quotation {{invoice_no}} - PULMO TECHNOLOGIES"
+                : "Invoice {{invoice_no}} - PULMO TECHNOLOGIES");
         const defaultBodyTemplate = isQuotation23Email
             ? "Dear {{customer_name}},\n\nPlease find attached your Quotation 2 and Quotation 3 for reference {{invoice_no}}.\n\nThank you.\nPULMO TECHNOLOGIES"
-            : "Dear {{customer_name}},\n\nPlease find attached your invoice {{invoice_no}}.\n\nThank you.\nPULMO TECHNOLOGIES";
+            : (isQuotationEmail
+                ? "Dear {{customer_name}},\n\nPlease find attached your Quotation for reference {{invoice_no}}.\n\nThank you.\nPULMO TECHNOLOGIES"
+                : "Dear {{customer_name}},\n\nPlease find attached your invoice {{invoice_no}}.\n\nThank you.\nPULMO TECHNOLOGIES");
 
-        const subjectTemplate = isQuotation23Email
+        const subjectTemplate = isAnyQuotationEmail
             ? defaultSubjectTemplate
             : (templateSetup?.subject_template || defaultSubjectTemplate);
-        const bodyTemplate = isQuotation23Email
+        const bodyTemplate = isAnyQuotationEmail
             ? defaultBodyTemplate
             : (templateSetup?.body_template || defaultBodyTemplate);
 
@@ -1333,7 +1339,9 @@ exports.sendInvoiceEmail = async (req, res) => {
             throw lastAuthError || new Error("Failed to send invoice email.");
         }
 
-        const successLabel = isQuotation23Email ? "Quotation 2/3 email" : "Invoice email";
+        const successLabel = isQuotation23Email
+            ? "Quotation 2/3 email"
+            : (isQuotationEmail ? "Quotation email" : "Invoice email");
         res.json({
             message: `${successLabel} sent to ${recipient} (attachment source: ${attachmentSource})`,
             filenames: emailAttachments.map((x) => x.filename),
@@ -1344,7 +1352,9 @@ exports.sendInvoiceEmail = async (req, res) => {
         const requestedType = String(req.body?.email_type || "").trim().toLowerCase();
         const defaultError = requestedType === "quotation23"
             ? "Failed to send Quotation 2/3 email."
-            : "Failed to send invoice email.";
+            : (requestedType === "quotation"
+                ? "Failed to send Quotation email."
+                : "Failed to send invoice email.");
         res.status(500).json({ message: err.message || defaultError });
     }
 };
