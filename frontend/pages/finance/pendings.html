@@ -49,6 +49,7 @@
                 <select id="yearFilter"></select>
             </div>
             <button type="button" onclick="loadPendings()">Refresh</button>
+            <button type="button" onclick="exportPendingsPDF()">Save PDF</button>
             <a class="btn btn-secondary" href="finance.html">Back</a>
         </div>
 
@@ -82,6 +83,7 @@
 </div>
 
 <script src="../../assets/js/api.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 const role = (localStorage.getItem("role") || "").toLowerCase();
 const allowedPaths = (() => {
@@ -175,6 +177,51 @@ async function loadPendings(){
     }catch(err){
         alert(err.message || "Failed to load pending invoices.");
     }
+}
+
+function exportPendingsPDF(){
+    if(!rowsCache.length){
+        alert("No pending invoices to export.");
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ format: "a4" });
+    doc.setFontSize(12);
+    doc.text(`Pending Invoices - ${selectedYear}`, 14, 20);
+    doc.setFontSize(9);
+    doc.text(`Total Invoices: ${rowsCache.length}`, 14, 27);
+    doc.text(`Pending Amount (Rs.): ${formatCurrency(rowsCache.reduce((sum, row) => sum + asNumber(row.total_amount), 0))}`, 14, 32);
+
+    let y = 40;
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const maxWidth = doc.internal.pageSize.getWidth() - 28;
+
+    rowsCache.forEach((row, index) => {
+        const invoiceDate = row.invoice_date ? new Date(`${String(row.invoice_date).slice(0, 10)}T00:00:00`).toLocaleDateString() : "";
+        const line = [
+            `${index + 1}.`,
+            row.invoice_no || "",
+            row.customer_name || "",
+            row.customer_mode || "",
+            invoiceDate,
+            formatCurrency(row.total_amount),
+            row.payment_method || "Cash",
+            row.cheque_no || "",
+            normalizeStatus(row.payment_status)
+        ].join(" | ");
+
+        const wrapped = doc.splitTextToSize(line, maxWidth);
+        const nextY = y + (wrapped.length * 5);
+        if(nextY > pageHeight - 10){
+            doc.addPage();
+            y = 15;
+        }
+        doc.text(wrapped, 14, y);
+        y += (wrapped.length * 5) + 3;
+    });
+
+    doc.save(`Pending_Invoices_${selectedYear}.pdf`);
 }
 
 yearFilter.addEventListener("change", () => {
