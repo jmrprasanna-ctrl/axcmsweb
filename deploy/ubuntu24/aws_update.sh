@@ -6,6 +6,7 @@ PM2_NAME="${PM2_NAME:-pulmo-backend}"
 API_HEALTH_URL="${API_HEALTH_URL:-http://127.0.0.1:5000/api/health}"
 WEB_HEALTH_URL="${WEB_HEALTH_URL:-http://127.0.0.1}"
 RUN_DB_CLEANUP="${RUN_DB_CLEANUP:-false}"
+RUN_BASELINE_MIGRATION="${RUN_BASELINE_MIGRATION:-false}"
 
 echo "==> AWS update started"
 echo "    app: ${APP_DIR}"
@@ -30,6 +31,11 @@ fi
 if [[ "${RUN_DB_CLEANUP}" == "true" ]]; then
   echo "==> Running sample/test data cleanup (inventory + demo)"
   npm --prefix backend run cleanup:test-data
+fi
+
+if [[ "${RUN_BASELINE_MIGRATION}" == "true" ]]; then
+  echo "==> Running consolidated baseline migration"
+  npm run migrate:baseline
 fi
 
 echo "==> Restarting app via PM2"

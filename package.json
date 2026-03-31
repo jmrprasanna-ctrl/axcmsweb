@@ -8,6 +8,7 @@
     "dev": "nodemon backend/server.js",
     "setup": "node backend/scripts/setup.js",
     "doctor": "node backend/scripts/setup.js",
+    "migrate:baseline": "node backend/scripts/runBaselineMigration.js",
     "start:auto": "npm run doctor && npm run start",
     "lint": "eslint .",
     "sync-db": "node backend/scripts/setup.js"
