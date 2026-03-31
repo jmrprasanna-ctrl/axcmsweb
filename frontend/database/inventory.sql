@@ -463,6 +463,8 @@ CREATE TABLE IF NOT EXISTS invoices (
     customer_id INT,
     invoice_date DATE DEFAULT CURRENT_DATE,
     quotation_date DATE DEFAULT CURRENT_DATE,
+    quotation2_date DATE DEFAULT CURRENT_DATE,
+    quotation3_date DATE DEFAULT CURRENT_DATE,
     machine_description VARCHAR(255),
     serial_no VARCHAR(100),
     machine_count INT,
@@ -489,8 +491,12 @@ ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_date DATE;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS invoice_date DATE DEFAULT CURRENT_DATE;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS quotation_date DATE DEFAULT CURRENT_DATE;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS quotation2_date DATE DEFAULT CURRENT_DATE;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS quotation3_date DATE DEFAULT CURRENT_DATE;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP DEFAULT NOW();
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP DEFAULT NOW();
+UPDATE invoices SET quotation2_date = COALESCE(quotation2_date, quotation_date, invoice_date, CURRENT_DATE) WHERE quotation2_date IS NULL;
+UPDATE invoices SET quotation3_date = COALESCE(quotation3_date, quotation_date, invoice_date, CURRENT_DATE) WHERE quotation3_date IS NULL;
 CREATE INDEX IF NOT EXISTS invoices_invoice_date_no_idx ON invoices(invoice_date, invoice_no);
 CREATE INDEX IF NOT EXISTS invoices_pending_lookup_idx ON invoices(payment_status, invoice_date, id);
 

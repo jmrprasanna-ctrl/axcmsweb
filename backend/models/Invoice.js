@@ -8,6 +8,8 @@ const Invoice = db.define("Invoice",{
     // Keep nullable at schema level for safe rollout on existing rows; controller enforces value on create.
     invoice_date:{ type: DataTypes.DATEONLY, allowNull: true, defaultValue: DataTypes.NOW },
     quotation_date:{ type: DataTypes.DATEONLY, allowNull: true, defaultValue: DataTypes.NOW },
+    quotation2_date:{ type: DataTypes.DATEONLY, allowNull: true, defaultValue: DataTypes.NOW },
+    quotation3_date:{ type: DataTypes.DATEONLY, allowNull: true, defaultValue: DataTypes.NOW },
     customer_id:{ type: DataTypes.INTEGER, references:{ model:Customer,key:"id" } },
     machine_description:{ type: DataTypes.STRING, allowNull: true },
     serial_no:{ type: DataTypes.STRING, allowNull: true },

@@ -46,6 +46,11 @@
         </label>
         <input type="file" id="logoFileInput" accept="image/*" style="display:none;">
         <button class="btn btn-secondary" type="button" id="logoBrowseBtn" title="Browse logo">Browse</button>
+        <div class="invoice-date-inline">
+            <label for="qutDateInput" style="margin:0;font-weight:600;color:#1d3655;white-space:nowrap;">Qut Date</label>
+            <input type="date" id="qutDateInput">
+            <button class="btn btn-secondary" type="button" id="saveQutDateBtn">Update</button>
+        </div>
     </div>
     <div class="invoice-layout-controls" style="margin: 0 0 12px; padding: 10px 12px; background: rgba(255, 255, 255, 0.86); border: 1px solid #d6e3f2; border-radius: 14px; display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; overflow-x: auto;">
         <label for="layoutTargetSelect" style="margin:0;font-weight:600;color:#1d3655;">Render Input</label>
@@ -980,6 +985,38 @@ async function refreshPreviewFromLatest(){
     document.getElementById("invoicePreview").src = preview;
 }
 
+function syncQutDateInput(){
+    const input = document.getElementById("qutDateInput");
+    if(!input || !latestInvoiceData || !latestInvoiceData.invoice) return;
+    const raw = String(latestInvoiceData.invoice.quotation_date || latestInvoiceData.invoice.invoice_date || "").trim();
+    if(/^\d{4}-\d{2}-\d{2}$/.test(raw)){
+        input.value = raw;
+    }
+}
+
+async function updateQuotationDateFromTile(){
+    const input = document.getElementById("qutDateInput");
+    const invoiceId = new URLSearchParams(window.location.search).get("id");
+    if(!input || !invoiceId) return;
+    const value = String(input.value || "").trim();
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(value)){
+        alert("Enter a valid Qut Date.");
+        return;
+    }
+    try{
+        const res = await request(`/invoices/${invoiceId}/payment`, "PUT", { quotation_date: value });
+        if(!latestInvoiceData) latestInvoiceData = { invoice: {} };
+        if(!latestInvoiceData.invoice) latestInvoiceData.invoice = {};
+        latestInvoiceData.invoice.quotation_date = res?.invoice?.quotation_date || value;
+        await refreshPreviewFromLatest();
+        if(typeof showMessageBox === "function"){
+            showMessageBox("Qut Date updated");
+        }
+    }catch(err){
+        alert(err.message || "Failed to update Qut Date");
+    }
+}
+
 function applyPreviewAccessByRole(){
     const addressControls = document.querySelector(".invoice-address-controls");
     const layoutControls = document.querySelector(".invoice-layout-controls");
@@ -1238,6 +1275,7 @@ function initLayoutEditor(){
 async function renderInvoice(){
     try{
         latestInvoiceData = await fetchInvoiceData();
+        syncQutDateInput();
         await refreshPreviewFromLatest();
     }catch(err){
         alert(err.message || "Failed to load invoice details");
@@ -1307,6 +1345,10 @@ async function emailInvoice(){
 
 window.addEventListener("DOMContentLoaded", async () => {
     await loadInvMapFlags();
+    const saveQutDateBtn = document.getElementById("saveQutDateBtn");
+    if(saveQutDateBtn){
+        saveQutDateBtn.addEventListener("click", updateQuotationDateFromTile);
+    }
     applyPreviewAccessByRole();
     if(canConfigurePreview){
         initEditModeControl();

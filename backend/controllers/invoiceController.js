@@ -398,6 +398,8 @@ exports.listInvoices = async (req,res)=>{
             invoice_date: inv.invoice_date || inv.createdAt,
             payment_date: inv.payment_date || null,
             quotation_date: inv.quotation_date || inv.invoice_date || inv.createdAt,
+            quotation2_date: inv.quotation2_date || inv.quotation_date || inv.invoice_date || inv.createdAt,
+            quotation3_date: inv.quotation3_date || inv.quotation_date || inv.invoice_date || inv.createdAt,
             payment_method: inv.payment_method || "Cash",
             cheque_no: inv.cheque_no || "",
             payment_status: inv.payment_status || "Pending"
@@ -651,7 +653,7 @@ exports.getSealVImage = async (req,res)=>{
 };
 
 exports.createInvoice = async (req,res)=>{
-    const { invoice_no, invoice_date, quotation_date, customer_id, items, importants, machine_description, serial_no, machine_count, support_technician, support_technician_percentage, payment_method } = req.body;
+    const { invoice_no, invoice_date, quotation_date, quotation2_date, quotation3_date, customer_id, items, importants, machine_description, serial_no, machine_count, support_technician, support_technician_percentage, payment_method } = req.body;
     if(!customer_id || !invoice_no || !items || !items.length) {
         return res.status(400).json({message:"Invalid data"});
     }
@@ -682,6 +684,18 @@ exports.createInvoice = async (req,res)=>{
         if(!isValidQuotationDate){
             return res.status(400).json({ message: "Invalid quotation date." });
         }
+        const parsedQuotation2Date = String(quotation2_date || "").trim();
+        const quotation2DateValue = parsedQuotation2Date || quotationDateValue;
+        const isValidQuotation2Date = /^\d{4}-\d{2}-\d{2}$/.test(quotation2DateValue) && !Number.isNaN(new Date(`${quotation2DateValue}T00:00:00`).getTime());
+        if(!isValidQuotation2Date){
+            return res.status(400).json({ message: "Invalid quotation 2 date." });
+        }
+        const parsedQuotation3Date = String(quotation3_date || "").trim();
+        const quotation3DateValue = parsedQuotation3Date || quotationDateValue;
+        const isValidQuotation3Date = /^\d{4}-\d{2}-\d{2}$/.test(quotation3DateValue) && !Number.isNaN(new Date(`${quotation3DateValue}T00:00:00`).getTime());
+        if(!isValidQuotation3Date){
+            return res.status(400).json({ message: "Invalid quotation 3 date." });
+        }
         const invoiceYearToken = getYearTokenFromIsoDate(invoiceDateValue);
         let nextInvoiceNo = String(invoice_no || "").trim().toUpperCase();
         const invoiceNoMatch = nextInvoiceNo.match(/^(\d{2})INV(\d{4,})$/);
@@ -698,6 +712,8 @@ exports.createInvoice = async (req,res)=>{
             invoice_no: nextInvoiceNo,
             invoice_date: invoiceDateValue,
             quotation_date: quotationDateValue,
+            quotation2_date: quotation2DateValue,
+            quotation3_date: quotation3DateValue,
             customer_id,
             machine_description: String(machine_description || "").trim() || null,
             serial_no: String(serial_no || "").trim() || null,
@@ -886,6 +902,33 @@ exports.updateInvoicePayment = async (req,res)=>{
             }
             invoice_date = parsedInvoiceDate;
         }
+        let quotation_date = invoice.quotation_date || invoice.invoice_date || null;
+        if(req.body.quotation_date !== undefined){
+            const parsedQuotationDate = String(req.body.quotation_date || "").trim();
+            const isValidQuotationDate = /^\d{4}-\d{2}-\d{2}$/.test(parsedQuotationDate) && !Number.isNaN(new Date(`${parsedQuotationDate}T00:00:00`).getTime());
+            if(!isValidQuotationDate){
+                return res.status(400).json({ message: "Invalid quotation date." });
+            }
+            quotation_date = parsedQuotationDate;
+        }
+        let quotation2_date = invoice.quotation2_date || invoice.quotation_date || invoice.invoice_date || null;
+        if(req.body.quotation2_date !== undefined){
+            const parsedQuotation2Date = String(req.body.quotation2_date || "").trim();
+            const isValidQuotation2Date = /^\d{4}-\d{2}-\d{2}$/.test(parsedQuotation2Date) && !Number.isNaN(new Date(`${parsedQuotation2Date}T00:00:00`).getTime());
+            if(!isValidQuotation2Date){
+                return res.status(400).json({ message: "Invalid quotation 2 date." });
+            }
+            quotation2_date = parsedQuotation2Date;
+        }
+        let quotation3_date = invoice.quotation3_date || invoice.quotation_date || invoice.invoice_date || null;
+        if(req.body.quotation3_date !== undefined){
+            const parsedQuotation3Date = String(req.body.quotation3_date || "").trim();
+            const isValidQuotation3Date = /^\d{4}-\d{2}-\d{2}$/.test(parsedQuotation3Date) && !Number.isNaN(new Date(`${parsedQuotation3Date}T00:00:00`).getTime());
+            if(!isValidQuotation3Date){
+                return res.status(400).json({ message: "Invalid quotation 3 date." });
+            }
+            quotation3_date = parsedQuotation3Date;
+        }
         let payment_date = invoice.payment_date || null;
         if(req.body.payment_date !== undefined){
             const parsedPaymentDate = String(req.body.payment_date || "").trim();
@@ -905,6 +948,9 @@ exports.updateInvoicePayment = async (req,res)=>{
             cheque_no,
             payment_status,
             invoice_date,
+            quotation_date,
+            quotation2_date,
+            quotation3_date,
             payment_date
         });
 
@@ -926,6 +972,9 @@ exports.updateInvoicePayment = async (req,res)=>{
                 id: invoice.id,
                 invoice_no: invoice.invoice_no,
                 invoice_date: invoice.invoice_date,
+                quotation_date: invoice.quotation_date,
+                quotation2_date: invoice.quotation2_date,
+                quotation3_date: invoice.quotation3_date,
                 payment_date: invoice.payment_date,
                 payment_method: invoice.payment_method,
                 cheque_no: invoice.cheque_no,

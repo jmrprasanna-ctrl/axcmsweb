@@ -186,6 +186,8 @@ CREATE TABLE invoices (
     customer_id INT REFERENCES customers(id),
     invoice_date DATE DEFAULT CURRENT_DATE,
     quotation_date DATE DEFAULT CURRENT_DATE,
+    quotation2_date DATE DEFAULT CURRENT_DATE,
+    quotation3_date DATE DEFAULT CURRENT_DATE,
     machine_description VARCHAR(255),
     serial_no VARCHAR(100),
     machine_count INT DEFAULT 0,
@@ -199,6 +201,10 @@ CREATE TABLE invoices (
     createdAt TIMESTAMP DEFAULT NOW(),
     updatedAt TIMESTAMP DEFAULT NOW()
 );
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS quotation2_date DATE DEFAULT CURRENT_DATE;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS quotation3_date DATE DEFAULT CURRENT_DATE;
+UPDATE invoices SET quotation2_date = COALESCE(quotation2_date, quotation_date, invoice_date, CURRENT_DATE) WHERE quotation2_date IS NULL;
+UPDATE invoices SET quotation3_date = COALESCE(quotation3_date, quotation_date, invoice_date, CURRENT_DATE) WHERE quotation3_date IS NULL;
 CREATE INDEX IF NOT EXISTS rental_machine_consumables_customer_entry_idx
 ON rental_machine_consumables(customer_id, entry_date, id);
 CREATE INDEX IF NOT EXISTS invoices_invoice_date_no_idx ON invoices(invoice_date, invoice_no);
