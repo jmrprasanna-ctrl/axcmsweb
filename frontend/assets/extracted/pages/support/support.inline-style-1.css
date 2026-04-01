@@ -3,6 +3,21 @@
         gap:12px;
         flex-wrap:wrap;
     }
+    .card-mb-12{
+        margin-bottom: 12px;
+    }
+    .card-mt-12{
+        margin-top: 12px;
+    }
+    .is-hidden{
+        display: none;
+    }
+    .support-form-actions{
+        display:flex;
+        gap:12px;
+        flex-wrap:wrap;
+        margin-top:10px;
+    }
     .support-action-row{
         display:flex;
         gap:8px;

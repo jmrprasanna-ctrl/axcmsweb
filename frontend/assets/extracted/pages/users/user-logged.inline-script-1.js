@@ -4,9 +4,12 @@ const role = (localStorage.getItem("role") || "").toLowerCase();
             window.location.href = "../dashboard.html";
         }
 
-        const periodEl = document.getElementById("periodSelect");
-        const dateEl = document.getElementById("dateInput");
-        const userEl = document.getElementById("userSelect");
+const periodEl = document.getElementById("periodSelect");
+const dateEl = document.getElementById("dateInput");
+const userEl = document.getElementById("userSelect");
+const clearLogsBtn = document.getElementById("clearLogsBtn");
+const searchLogsBtn = document.getElementById("searchLogsBtn");
+const saveLogsPdfBtn = document.getElementById("saveLogsPdfBtn");
 
         async function loadUsers(){
             try{
@@ -90,10 +93,19 @@ const role = (localStorage.getItem("role") || "").toLowerCase();
             doc.save("User_Logged_Times.pdf");
         }
 
-        dateEl.value = new Date().toISOString().slice(0, 10);
-        periodEl.addEventListener("change", loadLogs);
-        dateEl.addEventListener("change", loadLogs);
-        userEl.addEventListener("change", loadLogs);
+dateEl.value = new Date().toISOString().slice(0, 10);
+periodEl.addEventListener("change", loadLogs);
+dateEl.addEventListener("change", loadLogs);
+userEl.addEventListener("change", loadLogs);
+if(clearLogsBtn){
+    clearLogsBtn.addEventListener("click", clearLogs);
+}
+if(searchLogsBtn){
+    searchLogsBtn.addEventListener("click", loadLogs);
+}
+if(saveLogsPdfBtn){
+    saveLogsPdfBtn.addEventListener("click", savePDF);
+}
 
         (async function init(){
             await loadUsers();

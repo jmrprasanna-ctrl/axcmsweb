@@ -46,8 +46,8 @@
                 </div>
                 <div>
                     <label for="superUserCheckbox">Super User</label>
-                    <div style="display:flex; align-items:center; gap:8px; min-height:42px;">
-                        <input id="superUserCheckbox" type="checkbox" style="width:18px; height:18px;">
+                    <div class="super-user-row">
+                        <input id="superUserCheckbox" type="checkbox" class="super-user-checkbox">
                         <span class="path-hint">Protect admin from other admins (edit/delete/view).</span>
                     </div>
                 </div>
@@ -57,14 +57,14 @@
             <div class="access-matrix" id="accessMatrix"></div>
 
             <div class="access-actions">
-                <button class="btn btn-primary" type="button" onclick="saveAccess()">Save</button>
-                <button class="btn btn-primary" type="button" onclick="editAccess()">Load</button>
+                <button class="btn btn-primary" id="saveAccessBtn" type="button">Save</button>
+                <button class="btn btn-primary" id="loadAccessBtn" type="button">Load</button>
                 <a class="btn btn-primary" href="db-create.html">DB Create</a>
                 <a class="btn btn-primary" href="company-create.html">Company Create</a>
                 <a class="btn btn-primary" href="mapped.html">Mapped</a>
                 <a class="btn btn-primary" href="inv-map.html">Inv Map</a>
-                <button class="btn btn-secondary" type="button" onclick="selectAllAccess()">Select All</button>
-                <button class="btn btn-secondary" type="button" onclick="clearAccess()">Clear</button>
+                <button class="btn btn-secondary" id="selectAllAccessBtn" type="button">Select All</button>
+                <button class="btn btn-secondary" id="clearAccessBtn" type="button">Clear</button>
                 <a class="btn btn-secondary" href="user-list.html">Back</a>
             </div>
         </div>

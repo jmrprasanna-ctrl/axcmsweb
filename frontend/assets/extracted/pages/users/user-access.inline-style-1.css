@@ -1,6 +1,16 @@
 .access-shell{
             overflow: visible !important;
         }
+        .super-user-row{
+            display:flex;
+            align-items:center;
+            gap:8px;
+            min-height:42px;
+        }
+        .super-user-checkbox{
+            width:18px;
+            height:18px;
+        }
         .access-grid{
             display:grid;
             grid-template-columns: 1fr 1fr;

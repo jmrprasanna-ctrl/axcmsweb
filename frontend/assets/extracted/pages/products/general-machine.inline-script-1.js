@@ -18,11 +18,15 @@ const canEditGeneralMachine = canManage || (role === "user" && typeof hasUserAct
 const canDeleteGeneralMachine = canManage || (role === "user" && typeof hasUserActionPermission === "function" && hasUserActionPermission("/products/general-machine.html", "delete"));
 const isReadOnlyUser = !canEditGeneralMachine && !canDeleteGeneralMachine;
 const addMachineBtn = document.getElementById("addMachineBtn");
+const savePdfBtn = document.getElementById("savePdfBtn");
 const machineSearchEl = document.getElementById("machineSearch");
 let allMachines = [];
 
 if(addMachineBtn && !canAddGeneralMachine){
     addMachineBtn.style.display = "none";
+}
+if(savePdfBtn){
+    savePdfBtn.addEventListener("click", savePDF);
 }
 
 if(isReadOnlyUser){

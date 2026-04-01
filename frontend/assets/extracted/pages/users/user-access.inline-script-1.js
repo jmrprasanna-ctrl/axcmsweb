@@ -235,10 +235,22 @@ const userSelectEl = document.getElementById("userSelect");
             }
         });
 
-        window.saveAccess = saveAccess;
-        window.editAccess = editAccess;
-        window.selectAllAccess = selectAllAccess;
-        window.clearAccess = clearAccess;
+        const saveAccessBtn = document.getElementById("saveAccessBtn");
+        if(saveAccessBtn){
+            saveAccessBtn.addEventListener("click", saveAccess);
+        }
+        const loadAccessBtn = document.getElementById("loadAccessBtn");
+        if(loadAccessBtn){
+            loadAccessBtn.addEventListener("click", editAccess);
+        }
+        const selectAllAccessBtn = document.getElementById("selectAllAccessBtn");
+        if(selectAllAccessBtn){
+            selectAllAccessBtn.addEventListener("click", selectAllAccess);
+        }
+        const clearAccessBtn = document.getElementById("clearAccessBtn");
+        if(clearAccessBtn){
+            clearAccessBtn.addEventListener("click", clearAccess);
+        }
 
         (async function init(){
             const role = (localStorage.getItem("role") || "").toLowerCase();

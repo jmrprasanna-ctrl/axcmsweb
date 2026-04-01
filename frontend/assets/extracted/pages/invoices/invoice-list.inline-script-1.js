@@ -1,7 +1,8 @@
 const invoiceSearchEl = document.getElementById("invoiceSearch");
-        const invoiceYearEl = document.getElementById("invoiceYearFilter");
-        let allInvoices = [];
-        let selectedYear = String(new Date().getFullYear());
+const invoiceYearEl = document.getElementById("invoiceYearFilter");
+const addInvoiceBtn = document.getElementById("addInvoiceBtn");
+let allInvoices = [];
+let selectedYear = String(new Date().getFullYear());
 
         function isAdmin(){
             return (localStorage.getItem("role") || "").toLowerCase() === "admin";
@@ -129,12 +130,17 @@ const invoiceSearchEl = document.getElementById("invoiceSearch");
         if(invoiceSearchEl){
             invoiceSearchEl.addEventListener("input", applyInvoiceFilter);
         }
-        if(invoiceYearEl){
-            invoiceYearEl.addEventListener("change", () => {
-                selectedYear = String(invoiceYearEl.value || "");
-                applyInvoiceFilter();
-            });
-        }
+if(invoiceYearEl){
+    invoiceYearEl.addEventListener("change", () => {
+        selectedYear = String(invoiceYearEl.value || "");
+        applyInvoiceFilter();
+    });
+}
+if(addInvoiceBtn){
+    addInvoiceBtn.addEventListener("click", () => {
+        window.location.href = "create-invoice.html";
+    });
+}
 
         window.addEventListener('DOMContentLoaded', loadInvoices);
 

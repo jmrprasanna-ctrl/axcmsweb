@@ -30,8 +30,29 @@ function canShowAdminTool(path){
             map.forEach((item) => {
                 const el = document.getElementById(item.id);
                 if(!el) return;
-                el.style.display = canShowAdminTool(item.path) ? "" : "none";
+                el.classList.toggle("is-hidden", !canShowAdminTool(item.path));
             });
+        }
+
+        function bindTopButtons(){
+            const bindClick = (id, handler) => {
+                const el = document.getElementById(id);
+                if(el){
+                    el.addEventListener("click", handler);
+                }
+            };
+            bindClick("btnAddUser", () => { window.location.href = "add-user.html"; });
+            bindClick("btnPreference", () => { window.location.href = "preference.html"; });
+            bindClick("btnAccess", () => { window.location.href = "user-access.html"; });
+            bindClick("btnLogged", () => { window.location.href = "user-logged.html"; });
+            bindClick("btnEmailSetup", () => { window.location.href = "../support/email-setup.html"; });
+            bindClick("btnCheckTools", checkBackupTools);
+            bindClick("btnBackup", downloadSystemBackup);
+            bindClick("btnUploadDb", openRestorePicker);
+            const restoreInput = document.getElementById("restore-db-file");
+            if(restoreInput){
+                restoreInput.addEventListener("change", restoreSystemBackup);
+            }
         }
 
         async function loadUsers(){
@@ -256,6 +277,7 @@ function canShowAdminTool(path){
             if(typeof window.__waitForUserAccessPermissions === "function"){
                 await window.__waitForUserAccessPermissions();
             }
+            bindTopButtons();
             applyTopButtonVisibility();
             const healthRefreshBtn = document.getElementById("healthRefreshBtn");
             if(healthRefreshBtn){

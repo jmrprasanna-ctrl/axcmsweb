@@ -162,6 +162,12 @@ document.getElementById("transactionId").addEventListener("blur", (e) => {
 
 document.getElementById("rentalMachineId").addEventListener("change", onMachineChange);
 document.getElementById("machineTitleFilter").addEventListener("change", renderRentalCounts);
+const backToMachineBtn = document.getElementById("backToMachineBtn");
+if(backToMachineBtn){
+    backToMachineBtn.addEventListener("click", () => {
+        window.location.href = "machine.html";
+    });
+}
 
 document.getElementById("rentalCountForm").addEventListener("submit", async (e) => {
     e.preventDefault();

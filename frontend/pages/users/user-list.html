@@ -30,15 +30,15 @@
     <div class="main-content">
         <header><h2>User List</h2></header>
         <div class="form-actions">
-            <button id="btnAddUser" class="btn btn-primary" style="display:none" onclick="window.location.href='add-user.html'">Add User</button>
-            <button id="btnPreference" class="btn btn-primary" style="display:none" onclick="window.location.href='preference.html'">Preference</button>
-            <button id="btnAccess" class="btn btn-primary" style="display:none" onclick="window.location.href='user-access.html'">Access</button>
-            <button id="btnLogged" class="btn btn-primary" style="display:none" onclick="window.location.href='user-logged.html'">Logged</button>
-            <button id="btnEmailSetup" class="btn btn-primary" style="display:none" onclick="window.location.href='../support/email-setup.html'">email</button>
-            <button id="btnCheckTools" class="btn btn-primary" style="display:none" type="button" onclick="checkBackupTools()">Check Tools</button>
-            <button id="btnBackup" class="btn btn-primary" style="display:none" type="button" onclick="downloadSystemBackup()">Backup</button>
-            <button id="btnUploadDb" class="btn btn-primary" style="display:none" type="button" onclick="openRestorePicker()">Upload DB</button>
-            <input id="restore-db-file" type="file" accept=".sql" style="display:none" onchange="restoreSystemBackup(event)">
+            <button id="btnAddUser" class="btn btn-primary is-hidden" type="button">Add User</button>
+            <button id="btnPreference" class="btn btn-primary is-hidden" type="button">Preference</button>
+            <button id="btnAccess" class="btn btn-primary is-hidden" type="button">Access</button>
+            <button id="btnLogged" class="btn btn-primary is-hidden" type="button">Logged</button>
+            <button id="btnEmailSetup" class="btn btn-primary is-hidden" type="button">email</button>
+            <button id="btnCheckTools" class="btn btn-primary is-hidden" type="button">Check Tools</button>
+            <button id="btnBackup" class="btn btn-primary is-hidden" type="button">Backup</button>
+            <button id="btnUploadDb" class="btn btn-primary is-hidden" type="button">Upload DB</button>
+            <input id="restore-db-file" type="file" accept=".sql" class="is-hidden">
             <a class="btn btn-secondary" href="../dashboard.html">Back</a>
         </div>
 
@@ -56,7 +56,7 @@
                 <div class="health-item"><span class="health-label">Quotation Template</span><span class="health-badge unknown" id="healthTplQuotation">Unknown</span></div>
                 <div class="health-item"><span class="health-label">Quotation2 Template</span><span class="health-badge unknown" id="healthTplQuotation2">Unknown</span></div>
             </div>
-            <p class="muted" id="healthUpdatedAt" style="margin:10px 0 0 0;">Last updated: -</p>
+            <p class="muted health-updated" id="healthUpdatedAt">Last updated: -</p>
         </section>
 
         <div class="card">

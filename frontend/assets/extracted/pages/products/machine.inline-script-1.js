@@ -22,6 +22,7 @@ const isReadOnlyUser = !canEditRentalMachine && !canDeleteRentalMachine;
 const addMachineBtn = document.getElementById("addMachineBtn");
 const rentalCountBtn = document.getElementById("rentalCountBtn");
 const consumablesBtn = document.getElementById("consumablesBtn");
+const savePdfBtn = document.getElementById("savePdfBtn");
 const machineSearchEl = document.getElementById("machineSearch");
 let allMachines = [];
 
@@ -33,6 +34,9 @@ if(consumablesBtn && !canAddConsumables){
 }
 if(rentalCountBtn && !canAddRentalCount){
     rentalCountBtn.style.display = "none";
+}
+if(savePdfBtn){
+    savePdfBtn.addEventListener("click", savePDF);
 }
 
 if(isReadOnlyUser){

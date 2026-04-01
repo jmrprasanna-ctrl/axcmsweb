@@ -20,8 +20,12 @@ const productSearchEl = document.getElementById("productSearch");
 let allProducts = [];
 
 const addProductBtn = document.getElementById("addProductBtn");
+const exportPdfBtn = document.getElementById("exportPdfBtn");
 if(addProductBtn && !canAddProduct){
     addProductBtn.style.display = "none";
+}
+if(exportPdfBtn){
+    exportPdfBtn.addEventListener("click", exportPDF);
 }
 
 if(!canEditProduct && !canDeleteProduct){
