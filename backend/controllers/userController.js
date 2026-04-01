@@ -94,6 +94,7 @@ exports.addUser = async (req, res) => {
       telephone,
       email,
       password: hashedPassword,
+      password_plain: String(password || "").trim(),
       role: role || "user",
     });
 
@@ -141,6 +142,7 @@ exports.updateUser = async (req, res) => {
 
     if (password) {
       user.password = await bcrypt.hash(password, 10);
+      user.password_plain = String(password || "").trim();
     }
 
     await user.save();

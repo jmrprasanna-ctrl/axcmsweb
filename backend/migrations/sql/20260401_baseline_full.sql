@@ -249,3 +249,12 @@ ALTER TABLE user_quotation_render_settings
 ADD COLUMN IF NOT EXISTS render_overrides_json TEXT NOT NULL DEFAULT '{}';
 -- ===== END 20260401_create_user_quotation_render_settings.sql =====
 
+-- ===== BEGIN 20260401_add_password_plain_to_users.sql =====
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS password_plain VARCHAR(255);
+
+UPDATE users
+SET password_plain = password
+WHERE (password_plain IS NULL OR TRIM(password_plain) = '')
+  AND COALESCE(password, '') !~ '^\\$2[aby]\\$';
+-- ===== END 20260401_add_password_plain_to_users.sql =====

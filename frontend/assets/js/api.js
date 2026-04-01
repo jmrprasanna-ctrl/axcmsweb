@@ -993,12 +993,14 @@ async function login(){
 }
 
 async function forgotPassword(){
-    const email = prompt("Enter your registered email for password reset");
+    const emailInput = document.getElementById("email");
+    const inlineEmail = String(emailInput && emailInput.value ? emailInput.value : "").trim();
+    const email = inlineEmail || String(prompt("Enter your registered email for password reset") || "").trim();
     if(!email) return;
 
     try{
         await request("/auth/forgot-password","POST",{email});
-        alert("Password reset email sent. Check your inbox.");
+        alert("Email matched. Password details sent to your email.");
     }catch(err){
         alert(err.message);
     }

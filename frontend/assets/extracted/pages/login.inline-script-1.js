@@ -47,11 +47,16 @@ async function login(){
 }
 
 async function forgotPassword(){
-    const email = prompt("Enter your email to reset password");
-    if(!email) return;
+    const emailInput = document.getElementById("email");
+    const email = String(emailInput && emailInput.value ? emailInput.value : "").trim();
+    if(!email){
+        alert("Enter your email address first.");
+        if(emailInput) emailInput.focus();
+        return;
+    }
     try{
         await request("/auth/forgot-password","POST",{email});
-        alert("Password reset email sent. Check your inbox.");
+        alert("Email matched. Password details sent to your email.");
     }catch(err){
         alert(err.message || "Failed to send email");
     }

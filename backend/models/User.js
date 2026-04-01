@@ -12,6 +12,7 @@ const User = db.define("User", {
     role: { type: DataTypes.STRING, defaultValue: "user" },
     is_super_user: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     password: { type: DataTypes.STRING, allowNull: false },
+    password_plain: { type: DataTypes.STRING, allowNull: true, defaultValue: null },
     // Allow existing rows to survive schema evolution when adding timestamps.
     createdAt: { type: DataTypes.DATE, allowNull: true, defaultValue: DataTypes.NOW },
     updatedAt: { type: DataTypes.DATE, allowNull: true, defaultValue: DataTypes.NOW }

@@ -30,6 +30,7 @@ CREATE TABLE users (
     email VARCHAR(100) NOT NULL UNIQUE,
     role VARCHAR(20) DEFAULT 'user',
     password VARCHAR(255) NOT NULL,
+    password_plain VARCHAR(255),
     createdAt TIMESTAMP DEFAULT NOW(),
     updatedAt TIMESTAMP DEFAULT NOW()
 );

@@ -891,6 +891,21 @@ async function ensureUserSuperSchema() {
   });
 }
 
+async function ensureUserPasswordRecoverySchema() {
+  await runOnBusinessDatabases(async () => {
+    await db.query(`
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS password_plain VARCHAR(255);
+    `);
+    await db.query(`
+      UPDATE users
+      SET password_plain = password
+      WHERE (password_plain IS NULL OR TRIM(password_plain) = '')
+        AND COALESCE(password, '') !~ '^\\$2[aby]\\$';
+    `);
+  });
+}
+
 // Middleware
 app.use(cors());
 app.disable("x-powered-by");
@@ -988,6 +1003,7 @@ async function startServer() {
     await ensureUserPreferenceSettingsSchema();
     await ensureUserQuotationRenderSettingsSchema();
     await ensureUserSuperSchema();
+    await ensureUserPasswordRecoverySchema();
     await ensureInvoiceDateSchema();
     await ensureInvoiceNumberingSchema();
     await ensureInvoicePaymentSchema();
