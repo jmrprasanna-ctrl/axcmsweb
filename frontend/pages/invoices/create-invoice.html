@@ -45,14 +45,14 @@
             <div class="add-product-grid invoice-grid">
                 <div class="field">
                     <label for="customer">Customer</label>
-                    <select id="customer" required onchange="fillCustomerDetails()">
+                    <select id="customer" required>
                         <option value="">Select Customer</option>
                     </select>
                 </div>
 
                 <div class="field">
                     <label for="machine">Machine</label>
-                    <select id="machine" onchange="fillMachineSerialNo()">
+                    <select id="machine">
                         <option value="">Select Customer First</option>
                     </select>
                 </div>
@@ -103,11 +103,11 @@
                     </select>
                 </div>
 
-                <div id="vatNoWrap" class="field" style="display:none;">
+                <div id="vatNoWrap" class="field is-hidden">
                     <label for="vatNo">VAT No</label>
                     <input class="readonly-input" type="text" id="vatNo" readonly>
                 </div>
-                <div id="vatValueWrap" class="field" style="display:none;">
+                <div id="vatValueWrap" class="field is-hidden">
                     <label for="vatValue">VAT Value (%)</label>
                     <input type="number" id="vatValue" min="0" step="0.01" value="0" placeholder="Enter VAT %">
                 </div>
@@ -128,20 +128,20 @@
 
                 <div class="card product-card field-span-full">
                     <div class="product-toolbar">
-                        <button class="btn btn-inline-add" type="button" onclick="addProductRow()">Add Product</button>
+                        <button class="btn btn-inline-add" id="addProductRowBtn" type="button">Add Product</button>
                         <span class="product-hint">Search by Product ID or Description</span>
                     </div>
                         <div class="table-scroll">
                             <table class="table product-table">
                                 <thead>
                                     <tr>
-                                        <th style="width:300px;">Product</th>
-                                        <th style="width:240px;">Description</th>
-                                        <th style="width:90px;">Qty</th>
-                                        <th style="width:110px;">Rate</th>
-                                        <th style="width:90px;">VAT %</th>
-                                        <th style="width:130px;">Gross</th>
-                                        <th style="width:120px;">Action</th>
+                                        <th class="w-300">Product</th>
+                                        <th class="w-240">Description</th>
+                                        <th class="w-90">Qty</th>
+                                        <th class="w-110">Rate</th>
+                                        <th class="w-90">VAT %</th>
+                                        <th class="w-130">Gross</th>
+                                        <th class="w-120">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody id="productRows"></tbody>
@@ -155,20 +155,20 @@
 
                 <div class="field-span-full">
                     <div class="important-actions">
-                        <button class="btn btn-inline" type="button" onclick="addImportantRow()">Important</button>
-                        <select id="supportImportantSelect" style="min-width:260px;">
+                        <button class="btn btn-inline" id="addImportantBtn" type="button">Important</button>
+                        <select id="supportImportantSelect" class="support-important-select">
                             <option value="">Select Support Important</option>
                         </select>
-                        <button class="btn btn-inline" type="button" onclick="addImportantFromSupport()">Add important</button>
+                        <button class="btn btn-inline" id="addImportantFromSupportBtn" type="button">Add important</button>
                     </div>
-                    <div class="card" style="margin-top:12px;">
+                    <div class="card card-mt-12">
                         <div class="table-scroll">
                             <table class="table">
                                 <thead>
                                     <tr>
-                                        <th style="width:80px;">Line</th>
+                                        <th class="w-80">Line</th>
                                         <th>Important Note</th>
-                                        <th style="width:140px;">Action</th>
+                                        <th class="w-140">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody id="important-table-body"></tbody>
@@ -179,7 +179,7 @@
             </div>
             <div class="add-product-actions">
                 <button type="submit">Save</button>
-                <button class="btn btn-secondary" type="button" onclick="window.location.href='invoice-list.html'">Back</button>
+                <button class="btn btn-secondary" id="backToInvoiceListBtn" type="button">Back</button>
             </div>
         </form>
     </div>

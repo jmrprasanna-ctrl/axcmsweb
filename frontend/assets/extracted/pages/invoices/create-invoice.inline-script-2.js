@@ -31,7 +31,7 @@ function renderImportantTable(){
         tr.innerHTML = `
             <td>${idx + 1}</td>
             <td>${note}</td>
-            <td><button type="button" class="btn btn-danger btn-inline" onclick="removeImportantRow(${idx})">Remove</button></td>
+            <td><button type="button" class="btn btn-danger btn-inline remove-important-btn" data-index="${idx}">Remove</button></td>
         `;
         tbody.appendChild(tr);
     });
@@ -140,9 +140,9 @@ function clearCustomerDetails(){
     const vatValueEl = document.getElementById("vatValue");
     const vatValueWrapEl = document.getElementById("vatValueWrap");
     if(vatNoEl) vatNoEl.value = "";
-    if(vatWrapEl) vatWrapEl.style.display = "none";
+    if(vatWrapEl) vatWrapEl.classList.add("is-hidden");
     if(vatValueEl) vatValueEl.value = "0";
-    if(vatValueWrapEl) vatValueWrapEl.style.display = "none";
+    if(vatValueWrapEl) vatValueWrapEl.classList.add("is-hidden");
     applyGlobalVatToAllRows(0);
 }
 
@@ -291,9 +291,9 @@ async function fillCustomerDetails(){
         const vatValueEl = document.getElementById("vatValue");
         const vatValueWrapEl = document.getElementById("vatValueWrap");
         if(vatNoEl) vatNoEl.value = vatNo;
-        if(vatWrapEl) vatWrapEl.style.display = vatNo ? "block" : "none";
+        if(vatWrapEl) vatWrapEl.classList.toggle("is-hidden", !vatNo);
         if(vatValueEl) vatValueEl.value = "0";
-        if(vatValueWrapEl) vatValueWrapEl.style.display = vatNo ? "block" : "none";
+        if(vatValueWrapEl) vatValueWrapEl.classList.toggle("is-hidden", !vatNo);
         applyGlobalVatToAllRows(0);
         populateMachineSelect(custId);
     }catch(err){
@@ -322,16 +322,20 @@ async function addProductRow(){
             <td><input type="number" class="rate compact-input" readonly title="Rate"></td>
             <td><input type="number" class="vat compact-input" value="0" title="VAT"></td>
             <td><input type="number" class="gross compact-input" readonly title="Gross"></td>
-            <td><button class="btn btn-danger btn-inline" type="button" onclick="removeRow(this)">Remove</button></td>
+            <td><button class="btn btn-danger btn-inline remove-product-row-btn" type="button">Remove</button></td>
         `;
 
         document.getElementById("productRows").appendChild(row);
         const vatValueWrapEl = document.getElementById("vatValueWrap");
         const vatValueEl = document.getElementById("vatValue");
-        const defaultVat = (vatValueWrapEl && vatValueWrapEl.style.display !== "none")
+        const defaultVat = (vatValueWrapEl && !vatValueWrapEl.classList.contains("is-hidden"))
             ? Number(vatValueEl?.value || 0)
             : 0;
         row.querySelector(".vat").value = Number.isFinite(defaultVat) ? defaultVat : 0;
+        const removeBtn = row.querySelector(".remove-product-row-btn");
+        if(removeBtn){
+            removeBtn.addEventListener("click", () => removeRow(removeBtn));
+        }
         initProductRowHandlers(row);
         calculateRow(row.querySelector(".vat"));
     }catch(err){
@@ -832,6 +836,43 @@ const vatValueInput = document.getElementById("vatValue");
 if(vatValueInput){
     vatValueInput.addEventListener("input", () => {
         applyGlobalVatToAllRows(vatValueInput.value);
+    });
+}
+const customerInput = document.getElementById("customer");
+if(customerInput){
+    customerInput.addEventListener("change", fillCustomerDetails);
+}
+const machineInput = document.getElementById("machine");
+if(machineInput){
+    machineInput.addEventListener("change", fillMachineSerialNo);
+}
+const addProductRowBtn = document.getElementById("addProductRowBtn");
+if(addProductRowBtn){
+    addProductRowBtn.addEventListener("click", addProductRow);
+}
+const addImportantBtn = document.getElementById("addImportantBtn");
+if(addImportantBtn){
+    addImportantBtn.addEventListener("click", addImportantRow);
+}
+const addImportantFromSupportBtn = document.getElementById("addImportantFromSupportBtn");
+if(addImportantFromSupportBtn){
+    addImportantFromSupportBtn.addEventListener("click", addImportantFromSupport);
+}
+const importantTableBody = document.getElementById("important-table-body");
+if(importantTableBody){
+    importantTableBody.addEventListener("click", (e) => {
+        const target = e.target.closest(".remove-important-btn");
+        if(!target) return;
+        const idx = Number(target.dataset.index);
+        if(Number.isFinite(idx)){
+            removeImportantRow(idx);
+        }
+    });
+}
+const backToInvoiceListBtn = document.getElementById("backToInvoiceListBtn");
+if(backToInvoiceListBtn){
+    backToInvoiceListBtn.addEventListener("click", () => {
+        window.location.href = "invoice-list.html";
     });
 }
 const invoiceDateInput = document.getElementById("invoiceDate");

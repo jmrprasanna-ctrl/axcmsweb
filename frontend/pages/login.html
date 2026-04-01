@@ -26,7 +26,6 @@
                 id="passwordToggle"
                 aria-label="Show password"
                 aria-pressed="false"
-                onclick="togglePassword()"
             >
                 <svg id="eyeIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M2 12C3.9 8 7.4 5.5 12 5.5C16.6 5.5 20.1 8 22 12C20.1 16 16.6 18.5 12 18.5C7.4 18.5 3.9 16 2 12Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
@@ -35,8 +34,8 @@
             </button>
         </div>
     </div>
-    <button class="login-btn" onclick="login()">Login</button>
-    <a href="#" class="forgot-password" onclick="forgotPassword()">Forgot password?</a>
+    <button class="login-btn" id="loginBtn" type="button">Login</button>
+    <a href="#" class="forgot-password" id="forgotPasswordLink">Forgot password?</a>
 </div>
 
 <script src="../assets/js/api.js"></script>
