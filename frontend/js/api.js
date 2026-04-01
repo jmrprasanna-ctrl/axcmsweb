@@ -943,6 +943,9 @@ async function request(endpoint, method="GET", data=null){
         }
         const isHtml = typeof result.message === "string" && /<\s*html|<!doctype/i.test(result.message);
         if(res.status === 404){
+            if(result && typeof result.message === "string" && result.message.trim()){
+                throw new Error(result.message.trim());
+            }
             throw new Error(`Endpoint not found: ${method} ${endpoint}`);
         }
         if(res.status === 502 || res.status === 503 || res.status === 504){
