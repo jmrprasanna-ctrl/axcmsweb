@@ -348,6 +348,14 @@ function formatAmountWithSeparators(value){
     });
 }
 
+function setCardValue(cardId, value){
+    const cardEl = document.getElementById(cardId);
+    if(!cardEl) return;
+    const valueEl = cardEl.querySelector("p");
+    if(!valueEl) return;
+    valueEl.innerText = value;
+}
+
                      
 function escapeHtml(value){
     return String(value ?? "")
@@ -392,38 +400,20 @@ async function fetchSummary(){
         const query = `?period=${encodeURIComponent(period)}&date=${encodeURIComponent(date)}`;
         const summary = await request(`/dashboard/summary${query}`,"GET");
 
-        const totalUsersEl = document.getElementById("totalUsers");
-        if(totalUsersEl){
-            totalUsersEl.querySelector("p").innerText = summary.totalUsers || 0;
-        }
-        const totalCasesEl = document.getElementById("totalCases");
-        if(totalCasesEl){
-            totalCasesEl.querySelector("p").innerText = summary.totalCases || 0;
-        }
-        document.getElementById("totalCustomers").querySelector("p").innerText = summary.totalCustomers || 0;
-        document.getElementById("totalVendors").querySelector("p").innerText = summary.totalVendors || 0;
+        setCardValue("totalUsers", summary.totalUsers || 0);
+        setCardValue("totalCases", summary.totalCases || 0);
+        setCardValue("totalCustomers", summary.totalCustomers || 0);
+        setCardValue("totalVendors", summary.totalVendors || 0);
                                             
         // Total Sales: invoice totals only.
         const salesVal = summary.totalSalesPeriod ?? summary.totalSales ?? 0;
         const receivedPaymentVal = summary.receivedPaymentPeriod ?? summary.receivedPayment ?? 0;
         const expenseVal = summary.totalExpensesPeriod ?? summary.totalExpenses ?? 0;
         const profitVal = summary.netProfitPeriod ?? summary.netProfit ?? (Number(receivedPaymentVal || 0) - Number(expenseVal || 0));
-        const totalSalesEl = document.getElementById("totalSales");
-        if(totalSalesEl){
-            totalSalesEl.querySelector("p").innerText = formatAmountWithSeparators(salesVal);
-        }
-        const receivedPaymentEl = document.getElementById("receivedPayment");
-        if(receivedPaymentEl){
-            receivedPaymentEl.querySelector("p").innerText = formatAmountWithSeparators(receivedPaymentVal);
-        }
-        const totalExpensesEl = document.getElementById("totalExpenses");
-        if(totalExpensesEl){
-            totalExpensesEl.querySelector("p").innerText = formatAmountWithSeparators(expenseVal);
-        }
-        const netProfitEl = document.getElementById("netProfit");
-        if(netProfitEl){
-            netProfitEl.querySelector("p").innerText = formatAmountWithSeparators(profitVal);
-        }
+        setCardValue("totalSales", formatAmountWithSeparators(salesVal));
+        setCardValue("receivedPayment", formatAmountWithSeparators(receivedPaymentVal));
+        setCardValue("totalExpenses", formatAmountWithSeparators(expenseVal));
+        setCardValue("netProfit", formatAmountWithSeparators(profitVal));
         const labelEl = document.getElementById("summaryRangeLabel");
         if(labelEl){
             const periodName = (summary.period || period || "day").toString().toLowerCase();
