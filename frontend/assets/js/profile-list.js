@@ -12,6 +12,21 @@
             .replace(/'/g, "&#39;");
     }
 
+    function resolveProfileAvatarUrl(rawUrl) {
+        const fallback = "../../assets/images/logo.png";
+        const value = String(rawUrl || "").trim();
+        if (!value) return fallback;
+        if (/^data:image\//i.test(value)) return value;
+        if (/^https?:\/\//i.test(value)) return value;
+        const apiOrigin = String(BASE_URL || "").replace(/\/api\/?$/i, "");
+        try {
+            const normalizedPath = value.startsWith("/") ? value : `/${value}`;
+            return new URL(normalizedPath, `${apiOrigin}/`).toString();
+        } catch (_err) {
+            return fallback;
+        }
+    }
+
     async function loadProfiles() {
         try {
             const rows = await request("/users/profiles", "GET");
@@ -22,15 +37,13 @@
             }
             const canEdit = typeof hasUserActionPermission === "function" && hasUserActionPermission(PROFILE_PATH, "edit");
             tableBody.innerHTML = list.map((p) => {
-                const avatar = p.profile_picture_url
-                    ? `${String(BASE_URL || "").replace(/\/api\/?$/i, "")}${String(p.profile_picture_url || "")}`
-                    : "../../assets/images/logo.png";
+                const avatar = resolveProfileAvatarUrl(p.profile_picture_url);
                 const profileId = Number(p.id || 0);
                 return `
                     <tr data-open-id="${profileId}" ${canEdit && profileId ? `style="cursor:pointer;"` : ""}>
                         <td>
                             <div class="profile-title-col">
-                                <img class="profile-table-avatar" src="${esc(avatar)}" alt="Profile">
+                                <img class="profile-table-avatar" src="${esc(avatar)}" alt="Profile" onerror="this.onerror=null;this.src='../../assets/images/logo.png';">
                                 <span>${esc(p.profile_name)}</span>
                             </div>
                         </td>

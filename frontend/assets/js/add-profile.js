@@ -31,6 +31,20 @@
         return String(BASE_URL || "").replace(/\/api\/?$/i, "");
     }
 
+    function resolveProfileAvatarUrl(rawUrl) {
+        const fallback = "../../assets/images/logo.png";
+        const value = String(rawUrl || "").trim();
+        if (!value) return fallback;
+        if (/^data:image\//i.test(value)) return value;
+        if (/^https?:\/\//i.test(value)) return value;
+        try {
+            const normalizedPath = value.startsWith("/") ? value : `/${value}`;
+            return new URL(normalizedPath, `${apiOrigin()}/`).toString();
+        } catch (_err) {
+            return fallback;
+        }
+    }
+
     function setForm(data) {
         els.profile_name.value = String(data.profile_name || "");
         els.email.value = String(data.email || "");
@@ -46,7 +60,9 @@
             els.login_user.value = String(selectedUserId);
         }
         if (data.profile_picture_url) {
-            els.avatar.src = `${apiOrigin()}${String(data.profile_picture_url)}`;
+            els.avatar.src = resolveProfileAvatarUrl(data.profile_picture_url);
+        } else {
+            els.avatar.src = "../../assets/images/logo.png";
         }
     }
 
@@ -256,6 +272,9 @@
                 }
             };
             reader.readAsDataURL(file);
+        });
+        els.avatar.addEventListener("error", () => {
+            els.avatar.src = "../../assets/images/logo.png";
         });
     }
 
