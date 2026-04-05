@@ -542,6 +542,10 @@ router.post("/profiles", withMainDb(async (req, res) => {
       return res.status(400).json({ message: "profile_name is required" });
     }
     const linkedUser = await resolveLinkedUser(payload, req);
+    const linkedUserEmail = normEmail(linkedUser?.user?.email || "");
+    if (email && linkedUserEmail && email === linkedUserEmail) {
+      return res.status(400).json({ message: "Profile email must be different from account email." });
+    }
     const syncResult = await syncLinkedUserFromProfile(linkedUser, payload, req);
     const profilePicturePath = saveProfilePicture(req, payload.profile_picture_base64, payload.profile_picture_name);
     const profilePictureDataUrl = profilePicturePath ? String(payload.profile_picture_base64 || "").trim() : "";
@@ -556,7 +560,7 @@ router.post("/profiles", withMainDb(async (req, res) => {
           profileName,
           email || null,
           norm(payload.login_user),
-          normEmail(linkedUser?.user?.email || ""),
+          linkedUserEmail,
           norm(payload.company_name),
           normCode(payload.company_code),
           norm(payload.department),
@@ -593,11 +597,13 @@ router.put("/profiles/:id", withMainDb(async (req, res) => {
     );
     if (!oldRows.length) return res.status(404).json({ message: "Profile not found" });
     const old = oldRows[0];
+    const hasEmailField = Object.prototype.hasOwnProperty.call(payload, "email");
+    const nextEmail = hasEmailField ? normEmail(payload.email) : normEmail(old.email);
     const merged = {
       ...old,
       ...payload,
       profile_name: norm(payload.profile_name || old.profile_name),
-      email: normEmail(payload.email || old.email),
+      email: nextEmail,
       login_user: norm(payload.login_user || old.login_user),
       company_name: norm(payload.company_name || old.company_name),
       company_code: normCode(payload.company_code || old.company_code),
@@ -613,6 +619,10 @@ router.put("/profiles/:id", withMainDb(async (req, res) => {
       return res.status(400).json({ message: "profile_name is required" });
     }
     const linkedUser = await resolveLinkedUser(merged, req);
+    const linkedUserEmail = normEmail(linkedUser?.user?.email || merged.linked_user_email || "");
+    if (merged.email && linkedUserEmail && merged.email === linkedUserEmail) {
+      return res.status(400).json({ message: "Profile email must be different from account email." });
+    }
     const syncResult = await syncLinkedUserFromProfile(linkedUser, merged, req);
     let nextProfilePicturePath = norm(old.profile_picture_path);
     let nextProfilePictureDataUrl = String(old.profile_picture_data_url || "").trim() || null;
@@ -652,7 +662,7 @@ router.put("/profiles/:id", withMainDb(async (req, res) => {
           merged.profile_name,
           merged.email || null,
           merged.login_user,
-          normEmail(linkedUser?.user?.email || merged.linked_user_email || ""),
+          linkedUserEmail,
           merged.company_name,
           merged.company_code,
           merged.department,

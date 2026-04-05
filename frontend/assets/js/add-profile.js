@@ -14,6 +14,7 @@
         del: document.getElementById("deleteProfileBtn"),
         profile_name: document.getElementById("profileName"),
         email: document.getElementById("profileEmail"),
+        account_email: document.getElementById("profileAccountEmail"),
         login_user: document.getElementById("profileLoginUser"),
         company_name: document.getElementById("profileCompanyName"),
         company_code: document.getElementById("profileCompanyCode"),
@@ -49,6 +50,9 @@
     function setForm(data) {
         els.profile_name.value = String(data.profile_name || "");
         els.email.value = String(data.email || "");
+        if (els.account_email) {
+            els.account_email.value = String(data.linked_user_email || "").trim().toLowerCase();
+        }
         els.company_name.value = String(data.company_name || "");
         els.company_code.value = String(data.company_code || "");
         els.department.value = String(data.department || "");
@@ -75,7 +79,13 @@
 
     async function autofillFromSelectedUser() {
         const selected = getSelectedProfileUser();
-        if (!selected) return;
+        if (!selected) {
+            if (els.account_email) els.account_email.value = "";
+            return;
+        }
+        if (els.account_email) {
+            els.account_email.value = String(selected.email || "").trim().toLowerCase();
+        }
         if (selected.username && !String(els.profile_name.value || "").trim()) {
             els.profile_name.value = String(selected.username);
         }
@@ -112,6 +122,15 @@
             profile_picture_base64: pictureBase64 || undefined,
             profile_picture_name: pictureName || undefined,
         };
+    }
+
+    function enforceManualProfileEmailForAdd() {
+        if (profileId) return;
+        const accountEmail = String((els.account_email && els.account_email.value) || "").trim().toLowerCase();
+        const profileEmail = String(els.email.value || "").trim().toLowerCase();
+        if (profileEmail && accountEmail && profileEmail === accountEmail) {
+            els.email.value = "";
+        }
     }
 
     function fileToDataUrl(file) {
@@ -206,6 +225,14 @@
             alert("Name is required.");
             return;
         }
+        if (
+            !profileId &&
+            payload.email &&
+            String(payload.email).toLowerCase() === String((els.account_email && els.account_email.value) || "").trim().toLowerCase()
+        ) {
+            alert("Profile Email must be personal email, not Account Email.");
+            return;
+        }
         try {
             await ensurePicturePayloadReady();
             const finalPayload = getPayload();
@@ -248,6 +275,7 @@
         });
         els.login_user.addEventListener("change", () => {
             autofillFromSelectedUser();
+            enforceManualProfileEmailForAdd();
         });
         els.save.addEventListener("click", save);
         if (els.del) {
@@ -277,6 +305,12 @@
         }
         bindEvents();
         await loadProfileUsers();
+        if (!profileId) {
+            els.email.value = "";
+            if (els.account_email) els.account_email.value = "";
+            setTimeout(enforceManualProfileEmailForAdd, 50);
+            setTimeout(enforceManualProfileEmailForAdd, 400);
+        }
         if (!String(els.company_code.value || "").trim()) {
             const mappedCode = String(localStorage.getItem("mappedCompanyCode") || "").trim();
             if (mappedCode) els.company_code.value = normalizeUpper(mappedCode);
