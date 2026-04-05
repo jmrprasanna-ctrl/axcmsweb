@@ -1497,10 +1497,15 @@ exports.getAccessUsers = async (_req, res) => {
     if (includeDemo) {
       sourceDbSet.add(DEMO_DB_NAME);
     }
-    const sourceDbs = Array.from(sourceDbSet).sort((a, b) => String(a || "").localeCompare(String(b || "")));
-
     const requesterId = Number(_req?.user?.id || _req?.user?.userId || 0);
     const requesterIsSuper = await isRequesterSuperAdmin(_req);
+    const requesterMappedDb = normalizeDatabaseName(_req?.databaseName || _req?.requestedDatabaseName || _req?.headers?.["x-database-name"]) || INVENTORY_DB_NAME;
+
+    if (!requesterIsSuper) {
+      sourceDbSet.clear();
+      sourceDbSet.add(requesterMappedDb);
+    }
+    const sourceDbs = Array.from(sourceDbSet).sort((a, b) => String(a || "").localeCompare(String(b || "")));
 
     for (const databaseName of sourceDbs) {
       let users = [];
@@ -2587,7 +2592,8 @@ exports.getMyCompanies = async (req, res) => {
     await ensureUserMappingTable(mainDbClient);
 
     let rs;
-    if (requesterRole === "admin") {
+    const requesterIsSuper = await isRequesterSuperAdmin(req);
+    if (requesterRole === "admin" && requesterIsSuper) {
       rs = await mainDbClient.query(
         `SELECT cp.id,
                 cp.company_name,

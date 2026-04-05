@@ -296,7 +296,6 @@ function buildCandidateDatabases(payload = {}, req = null) {
   };
   push(req?.databaseName);
   push(payload.linked_database_name);
-  push(MAIN_DB_NAME);
   return out;
 }
 
@@ -319,7 +318,7 @@ async function findLinkedUserInDatabase(databaseName, payload = {}) {
 }
 
 async function resolveLinkedUser(payload = {}, req = null) {
-  const candidates = [MAIN_DB_NAME];
+  const candidates = buildCandidateDatabases(payload, req);
   for (const dbName of candidates) {
     const found = await findLinkedUserInDatabase(dbName, payload).catch(() => null);
     if (found && found.user) return found;
@@ -384,7 +383,8 @@ async function listUsersFromDatabase(databaseName) {
 }
 
 async function listUsersAcrossDatabases(req) {
-  return listUsersFromDatabase(MAIN_DB_NAME).catch(() => []);
+  const targetDb = db.normalizeDatabaseName(req?.databaseName || req?.requestedDatabaseName || MAIN_DB_NAME) || MAIN_DB_NAME;
+  return listUsersFromDatabase(targetDb).catch(() => []);
 }
 
 // Profile endpoints (stored in user_profiles and synced to linked users account).
@@ -454,14 +454,16 @@ router.put("/profiles/:id/picture", withMainDb(async (req, res) => {
 router.get("/profiles", withMainDb(async (req, res) => {
   try {
     await ensureUserProfilesTable();
+    const targetDb = db.normalizeDatabaseName(req?.databaseName || MAIN_DB_NAME) || MAIN_DB_NAME;
     const rows = await db.query(
       `SELECT up.*,
               u.username AS linked_username,
               u.email AS linked_user_email_live
        FROM user_profiles up
        LEFT JOIN users u ON u.id = up.user_id
+       WHERE LOWER(COALESCE(up.linked_database_name, $1)) = LOWER($1)
        ORDER BY up."updatedAt" DESC NULLS LAST, up.id DESC`,
-      { type: QueryTypes.SELECT }
+      { bind: [targetDb], type: QueryTypes.SELECT }
     );
     res.json((rows || []).map(toProfileJson));
   } catch (err) {
@@ -518,6 +520,7 @@ router.get("/profiles/:id", withMainDb(async (req, res) => {
     await ensureUserProfilesTable();
     const id = Number(req.params.id || 0);
     if (!id) return res.status(400).json({ message: "Invalid profile id" });
+    const targetDb = db.normalizeDatabaseName(req?.databaseName || MAIN_DB_NAME) || MAIN_DB_NAME;
     const rows = await db.query(
       `SELECT up.*,
               u.username AS linked_username,
@@ -525,8 +528,9 @@ router.get("/profiles/:id", withMainDb(async (req, res) => {
        FROM user_profiles up
        LEFT JOIN users u ON u.id = up.user_id
        WHERE up.id = $1
+         AND LOWER(COALESCE(up.linked_database_name, $2)) = LOWER($2)
        LIMIT 1`,
-      { bind: [id], type: QueryTypes.SELECT }
+      { bind: [id, targetDb], type: QueryTypes.SELECT }
     );
     if (!rows.length) return res.status(404).json({ message: "Profile not found" });
     res.json(toProfileJson(rows[0]));
@@ -595,9 +599,14 @@ router.put("/profiles/:id", withMainDb(async (req, res) => {
     const id = Number(req.params.id || 0);
     if (!id) return res.status(400).json({ message: "Invalid profile id" });
     const payload = req.body || {};
+    const targetDb = db.normalizeDatabaseName(req?.databaseName || MAIN_DB_NAME) || MAIN_DB_NAME;
     const oldRows = await db.query(
-      `SELECT * FROM user_profiles WHERE id = $1 LIMIT 1`,
-      { bind: [id], type: QueryTypes.SELECT }
+      `SELECT *
+       FROM user_profiles
+       WHERE id = $1
+         AND LOWER(COALESCE(linked_database_name, $2)) = LOWER($2)
+       LIMIT 1`,
+      { bind: [id, targetDb], type: QueryTypes.SELECT }
     );
     if (!oldRows.length) return res.status(404).json({ message: "Profile not found" });
     const old = oldRows[0];
@@ -695,7 +704,13 @@ router.delete("/profiles/:id", withMainDb(async (req, res) => {
     await ensureUserProfilesTable();
     const id = Number(req.params.id || 0);
     if (!id) return res.status(400).json({ message: "Invalid profile id" });
-    await db.query(`DELETE FROM user_profiles WHERE id = $1`, { bind: [id] });
+    const targetDb = db.normalizeDatabaseName(req?.databaseName || MAIN_DB_NAME) || MAIN_DB_NAME;
+    await db.query(
+      `DELETE FROM user_profiles
+       WHERE id = $1
+         AND LOWER(COALESCE(linked_database_name, $2)) = LOWER($2)`,
+      { bind: [id, targetDb] }
+    );
     res.json({ message: "Profile deleted" });
   } catch (err) {
     console.error(err);

@@ -66,16 +66,6 @@ window.addEventListener("load", () => {
                         companySelect.appendChild(opt);
                     });
 
-                    if (!normalized.length && mappedCompanyName) {
-                        const opt = document.createElement("option");
-                        opt.value = mappedCompanyName;
-                        opt.textContent = mappedCompanyName;
-                        companySelect.appendChild(opt);
-                        companySelect.value = mappedCompanyName;
-                        setCompanyHint("No mapped company rows found. Using your mapped company fallback.");
-                        return;
-                    }
-
                     if (normalized.length === 1) {
                         companySelect.selectedIndex = 1;
                     } else if (mappedCompanyName) {
@@ -94,16 +84,7 @@ window.addEventListener("load", () => {
                     }
                 } catch (err) {
                     companySelect.innerHTML = '<option value="">Select company</option>';
-                    if (mappedCompanyName) {
-                        const opt = document.createElement("option");
-                        opt.value = mappedCompanyName;
-                        opt.textContent = mappedCompanyName;
-                        companySelect.appendChild(opt);
-                        companySelect.value = mappedCompanyName;
-                        setCompanyHint("Using mapped company fallback due to API load issue.");
-                    } else {
-                        setCompanyHint(err.message || "Failed to load company list.", true);
-                    }
+                    setCompanyHint(err.message || "Failed to load company list.", true);
                 }
             }
             loadMappedCompanies();
