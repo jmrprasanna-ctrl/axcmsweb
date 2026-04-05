@@ -1,5 +1,6 @@
 (function () {
     const PROFILE_PATH = "/users/profile-list.html";
+    const DEFAULT_AVATAR_PLACEHOLDER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'><rect width='96' height='96' rx='48' fill='%23e8eff7'/><circle cx='48' cy='38' r='16' fill='%2393a7bd'/><rect x='24' y='58' width='48' height='24' rx='12' fill='%2393a7bd'/></svg>";
     const tableBody = document.getElementById("profileTableBody");
     const addBtn = document.getElementById("addProfileBtn");
 
@@ -13,7 +14,7 @@
     }
 
     function resolveProfileAvatarUrl(rawUrl) {
-        const fallback = "../../assets/images/logo.png";
+        const fallback = DEFAULT_AVATAR_PLACEHOLDER;
         const value = String(rawUrl || "").trim();
         if (!value) return fallback;
         if (/^data:image\//i.test(value)) return value;
@@ -43,7 +44,7 @@
                     <tr data-open-id="${profileId}" ${canEdit && profileId ? `style="cursor:pointer;"` : ""}>
                         <td>
                             <div class="profile-title-col">
-                                <img class="profile-table-avatar" src="${esc(avatar)}" alt="Profile" onerror="this.onerror=null;this.src='../../assets/images/logo.png';">
+                                <img class="profile-table-avatar" src="${esc(avatar)}" alt="Profile" onerror="this.onerror=null;this.src='${DEFAULT_AVATAR_PLACEHOLDER}';">
                                 <span>${esc(p.profile_name)}</span>
                             </div>
                         </td>

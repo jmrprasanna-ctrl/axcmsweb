@@ -1,5 +1,6 @@
 (function () {
     const PROFILE_PATH = "/users/profile-list.html";
+    const DEFAULT_AVATAR_PLACEHOLDER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'><rect width='96' height='96' rx='48' fill='%23e8eff7'/><circle cx='48' cy='38' r='16' fill='%2393a7bd'/><rect x='24' y='58' width='48' height='24' rx='12' fill='%2393a7bd'/></svg>";
     const profileId = Number(new URLSearchParams(window.location.search).get("id") || 0);
     let pictureBase64 = "";
     let pictureName = "";
@@ -32,7 +33,7 @@
     }
 
     function resolveProfileAvatarUrl(rawUrl) {
-        const fallback = "../../assets/images/logo.png";
+        const fallback = DEFAULT_AVATAR_PLACEHOLDER;
         const value = String(rawUrl || "").trim();
         if (!value) return fallback;
         if (/^data:image\//i.test(value)) return value;
@@ -62,7 +63,7 @@
         if (data.profile_picture_api_url || data.profile_picture_url) {
             els.avatar.src = resolveProfileAvatarUrl(data.profile_picture_api_url || data.profile_picture_url);
         } else {
-            els.avatar.src = "../../assets/images/logo.png";
+            els.avatar.src = DEFAULT_AVATAR_PLACEHOLDER;
         }
     }
 
@@ -113,6 +114,28 @@
             profile_picture_base64: pictureBase64 || undefined,
             profile_picture_name: pictureName || undefined,
         };
+    }
+
+    function fileToDataUrl(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result || ""));
+            reader.onerror = () => reject(new Error("Failed to read profile image file."));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function ensurePicturePayloadReady() {
+        const file = els.picture.files && els.picture.files[0];
+        if (!file) return;
+        if (!pictureName) pictureName = String(file.name || "profile");
+        if (!pictureBase64) {
+            const encoded = await fileToDataUrl(file);
+            if (encoded) {
+                pictureBase64 = encoded;
+                els.avatar.src = pictureBase64;
+            }
+        }
     }
 
     async function fillFromEmail() {
@@ -215,11 +238,13 @@
             return;
         }
         try {
+            await ensurePicturePayloadReady();
+            const finalPayload = getPayload();
             if (profileId) {
-                await request(`/users/profiles/${profileId}`, "PUT", payload);
+                await request(`/users/profiles/${profileId}`, "PUT", finalPayload);
                 showMessageBox("Profile updated");
             } else {
-                await request("/users/profiles", "POST", payload);
+                await request("/users/profiles", "POST", finalPayload);
                 showMessageBox("Profile saved");
             }
             window.location.href = "profile-list.html";
@@ -274,7 +299,7 @@
             reader.readAsDataURL(file);
         });
         els.avatar.addEventListener("error", () => {
-            els.avatar.src = "../../assets/images/logo.png";
+            els.avatar.src = DEFAULT_AVATAR_PLACEHOLDER;
         });
     }
 
