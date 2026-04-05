@@ -17,6 +17,14 @@ function resolveBaseUrl(){
     const globalOrigin = typeof window !== "undefined" ? window.__API_ORIGIN__ : "";
     const storedOrigin = typeof window !== "undefined" ? localStorage.getItem("apiOrigin") : "";
     const browserOrigin = typeof window !== "undefined" ? window.location.origin : "";
+    const browserProtocol = typeof window !== "undefined" ? window.location.protocol : "";
+    const fileFallbackOrigin = typeof window !== "undefined"
+        ? String(
+            window.__FILE_API_ORIGIN__ ||
+            localStorage.getItem("fileApiOrigin") ||
+            "http://98.92.93.1"
+        ).trim()
+        : "";
 
     const candidateBase = String(globalBaseUrl || storedBaseUrl || "").trim();
     if(isHttpUrl(candidateBase)){
@@ -30,6 +38,10 @@ function resolveBaseUrl(){
 
     if(isHttpUrl(browserOrigin)){
         return normalizeApiBase(browserOrigin);
+    }
+
+    if(browserProtocol === "file:" && isHttpUrl(fileFallbackOrigin)){
+        return normalizeApiBase(fileFallbackOrigin);
     }
 
     return "http://localhost:5000/api";
