@@ -752,15 +752,10 @@ function applyUiSettingsToPage(settings){
         }
     }
     if(settings.logo_url){
-        const apiOrigin = BASE_URL.replace(/\/api$/,"");
         const logoPath = String(settings.logo_url || "").trim();
-        const absoluteLogoUrl = /^https?:\/\//i.test(logoPath)
-            ? logoPath
-            : `${apiOrigin}${logoPath.startsWith("/") ? "" : "/"}${logoPath}`;
         const logoVersion = settings.logo_updated_at ? `?v=${encodeURIComponent(String(settings.logo_updated_at))}` : "";
-        document.querySelectorAll(".sidebar .logo img").forEach((img) => {
-            img.src = `${absoluteLogoUrl}${logoVersion}`;
-        });
+        const resolved = resolveLogoUrl(logoPath, logoVersion);
+        setSidebarLogos(resolved);
     }
     const mappedCompanyName = String(localStorage.getItem(MAPPED_COMPANY_NAME_KEY) || "").trim();
     if(mappedCompanyName){
@@ -770,13 +765,7 @@ function applyUiSettingsToPage(settings){
     }
     const mappedLogoPath = String(localStorage.getItem(MAPPED_COMPANY_LOGO_URL_KEY) || "").trim();
     if(mappedLogoPath){
-        const apiOrigin = BASE_URL.replace(/\/api$/,"");
-        const absoluteMappedLogo = /^https?:\/\//i.test(mappedLogoPath)
-            ? mappedLogoPath
-            : `${apiOrigin}${mappedLogoPath.startsWith("/") ? "" : "/"}${mappedLogoPath}`;
-        document.querySelectorAll(".sidebar .logo img").forEach((img) => {
-            img.src = absoluteMappedLogo;
-        });
+        setSidebarLogos(resolveLogoUrl(mappedLogoPath));
     }
     if(settings.footer_text){
         const footer = document.getElementById("app-global-footer");
@@ -787,6 +776,43 @@ function applyUiSettingsToPage(settings){
     }
 }
 window.applyUiSettingsToPage = applyUiSettingsToPage;
+
+function resolveLogoUrl(rawPath, querySuffix = ""){
+    const source = String(rawPath || "").trim();
+    if(!source) return "";
+    const apiOrigin = BASE_URL.replace(/\/api$/,"").replace(/\/+$/, "");
+    const cleaned = source
+        .replace(/\\/g, "/")
+        .replace(/^(\.\.\/|\.\/)+/g, "")
+        .replace(/^backend\//i, "");
+    const absolute = /^data:image\//i.test(cleaned)
+        ? cleaned
+        : (/^https?:\/\//i.test(cleaned)
+            ? cleaned
+            : `${apiOrigin}${cleaned.startsWith("/") ? "" : "/"}${cleaned}`);
+    const suffix = String(querySuffix || "").trim();
+    if(!suffix) return absolute;
+    if(/^data:image\//i.test(absolute)) return absolute;
+    return `${absolute}${suffix}`;
+}
+
+function setSidebarLogos(absoluteLogoUrl){
+    const target = String(absoluteLogoUrl || "").trim();
+    if(!target) return;
+    document.querySelectorAll(".sidebar .logo img").forEach((img) => {
+        const fallbackLogo = img.getAttribute("data-fallback-logo") || img.getAttribute("src") || "";
+        if(fallbackLogo){
+            img.setAttribute("data-fallback-logo", fallbackLogo);
+        }
+        img.onerror = () => {
+            const safeFallback = String(img.getAttribute("data-fallback-logo") || "").trim();
+            if(safeFallback && img.src !== safeFallback){
+                img.src = safeFallback;
+            }
+        };
+        img.src = target;
+    });
+}
 
 function cacheUserUiSettings(settings){
     if(!settings || typeof settings !== "object") return;
@@ -845,29 +871,7 @@ function applyMappedBranding(){
     }
     const mappedLogoPath = String(localStorage.getItem(MAPPED_COMPANY_LOGO_URL_KEY) || "").trim();
     if(mappedLogoPath){
-        const apiOrigin = BASE_URL.replace(/\/api$/,"").replace(/\/+$/, "");
-        const cleanedMappedLogoPath = mappedLogoPath
-            .replace(/\\/g, "/")
-            .replace(/^(\.\.\/|\.\/)+/g, "")
-            .replace(/^backend\//i, "");
-        const absoluteMappedLogo = /^data:image\//i.test(cleanedMappedLogoPath)
-            ? cleanedMappedLogoPath
-            : (/^https?:\/\//i.test(cleanedMappedLogoPath)
-                ? cleanedMappedLogoPath
-                : `${apiOrigin}${cleanedMappedLogoPath.startsWith("/") ? "" : "/"}${cleanedMappedLogoPath}`);
-        document.querySelectorAll(".sidebar .logo img").forEach((img) => {
-            const fallbackLogo = img.getAttribute("data-fallback-logo") || img.getAttribute("src") || "";
-            if (fallbackLogo) {
-                img.setAttribute("data-fallback-logo", fallbackLogo);
-            }
-            img.onerror = () => {
-                const safeFallback = String(img.getAttribute("data-fallback-logo") || "").trim();
-                if (safeFallback && img.src !== safeFallback) {
-                    img.src = safeFallback;
-                }
-            };
-            img.src = absoluteMappedLogo;
-        });
+        setSidebarLogos(resolveLogoUrl(mappedLogoPath));
     }
 }
 
@@ -898,6 +902,7 @@ async function loadPublicUiSettings(){
                 const parsed = JSON.parse(cached);
                 if(parsed && typeof parsed === "object"){
                     applyUiSettingsToPage(parsed);
+                    applyMappedBranding();
                 }
             }
         }catch(_cacheErr){
@@ -912,6 +917,7 @@ async function loadPublicUiSettings(){
                 }catch(_cacheWriteErr){
                 }
                 applyUiSettingsToPage(data);
+                applyMappedBranding();
             }
         }catch(_err){
         }
@@ -923,6 +929,7 @@ async function loadPublicUiSettings(){
         const personal = await request("/preferences/my-ui-settings", "GET");
         if(personal && typeof personal === "object"){
             applyUiSettingsToPage(personal);
+            applyMappedBranding();
             cacheUserUiSettings(personal);
         }
     }catch(_err){

@@ -145,8 +145,13 @@ exports.login = async (req, res) => {
       mappedCompanyEmail = String(mappingRs.rows[0]?.mapped_email || "").trim().toLowerCase() || null;
       const logoPath = String(mappingRs.rows[0]?.logo_path || "").trim();
       if (logoPath) {
-        const clean = logoPath.replace(/\\/g, "/").replace(/^\/+/, "");
-        mappedCompanyLogoUrl = `/${clean}`;
+        const normalized = logoPath.replace(/\\/g, "/").replace(/^(\.\.\/|\.\/)+/g, "").replace(/^backend\//i, "");
+        if (/^https?:\/\//i.test(normalized) || /^data:image\//i.test(normalized)) {
+          mappedCompanyLogoUrl = normalized;
+        } else {
+          const clean = normalized.replace(/^\/+/, "");
+          mappedCompanyLogoUrl = `/${clean}`;
+        }
       }
     }
 
