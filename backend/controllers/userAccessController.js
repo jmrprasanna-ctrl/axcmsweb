@@ -1594,10 +1594,22 @@ exports.getCompanies = async (_req, res) => {
   try {
     await mainDbClient.connect();
     await ensureCompanyRegistryTable(mainDbClient);
+    await ensureUserMappingTable(mainDbClient);
     const rs = await mainDbClient.query(
-      `SELECT id, company_name, company_code, email, folder_name, logo_path, logo_file_name, "createdAt", "updatedAt"
-       FROM ${COMPANY_REGISTRY_TABLE}
-       ORDER BY LOWER(company_name) ASC, id ASC`
+      `SELECT cp.id,
+              cp.company_name,
+              cp.company_code,
+              cp.email,
+              cp.folder_name,
+              cp.logo_path,
+              cp.logo_file_name,
+              cp."createdAt",
+              cp."updatedAt",
+              COUNT(um.user_id)::int AS mapped_users_count
+       FROM ${COMPANY_REGISTRY_TABLE} cp
+       LEFT JOIN user_mappings um ON um.company_profile_id = cp.id
+       GROUP BY cp.id, cp.company_name, cp.company_code, cp.email, cp.folder_name, cp.logo_path, cp.logo_file_name, cp."createdAt", cp."updatedAt"
+       ORDER BY LOWER(cp.company_name) ASC, cp.id ASC`
     );
     const rows = (rs.rows || []).map((row) => ({
       id: Number(row.id || 0),
@@ -1609,6 +1621,8 @@ exports.getCompanies = async (_req, res) => {
       logo_path: String(row.logo_path || "").trim(),
       created_at: row.createdAt || null,
       updated_at: row.updatedAt || null,
+      mapped_users_count: Number(row.mapped_users_count || 0),
+      is_mapped: Number(row.mapped_users_count || 0) > 0,
     }));
     res.json({ companies: rows });
   } catch (err) {

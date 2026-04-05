@@ -48,12 +48,12 @@ const companyNameEl = document.getElementById("companyName");
         }
 
         async function loadCompanies(){
-            companyTableBodyEl.innerHTML = `<tr><td colspan="6">Loading...</td></tr>`;
+            companyTableBodyEl.innerHTML = `<tr><td colspan="7">Loading...</td></tr>`;
             try{
                 const res = await request("/users/companies", "GET");
                 const rows = Array.isArray(res.companies) ? res.companies : [];
                 if(!rows.length){
-                    companyTableBodyEl.innerHTML = `<tr><td colspan="6">No companies found.</td></tr>`;
+                    companyTableBodyEl.innerHTML = `<tr><td colspan="7">No companies found.</td></tr>`;
                     return;
                 }
                 companyTableBodyEl.innerHTML = "";
@@ -62,10 +62,13 @@ const companyNameEl = document.getElementById("companyName");
                     const deleteAction = canDeleteCompany
                         ? `<button class="btn btn-secondary" type="button" data-delete-company-id="${Number(row.id || 0)}" style="min-width:90px;">Delete</button>`
                         : `<span>-</span>`;
+                    const mappedCount = Number(row.mapped_users_count || 0);
+                    const mappedText = mappedCount > 0 ? `Yes (${mappedCount})` : "No";
                     tr.innerHTML = `
                         <td>${String(row.company_name || "")}</td>
                         <td>${String(row.company_code || "")}</td>
                         <td>${String(row.email || "")}</td>
+                        <td>${mappedText}</td>
                         <td>${String(row.logo_file_name || "")}</td>
                         <td>${formatDate(row.created_at)}</td>
                         <td class="actions">${deleteAction}</td>
@@ -73,7 +76,7 @@ const companyNameEl = document.getElementById("companyName");
                     companyTableBodyEl.appendChild(tr);
                 });
             }catch(err){
-                companyTableBodyEl.innerHTML = `<tr><td colspan="6">${String(err.message || "Failed to load companies")}</td></tr>`;
+                companyTableBodyEl.innerHTML = `<tr><td colspan="7">${String(err.message || "Failed to load companies")}</td></tr>`;
             }
         }
 
