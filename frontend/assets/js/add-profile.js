@@ -1,6 +1,6 @@
 (function () {
     const PROFILE_PATH = "/users/profile-list.html";
-    const DEFAULT_AVATAR_PLACEHOLDER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'><rect width='96' height='96' rx='48' fill='%23e8eff7'/><circle cx='48' cy='38' r='16' fill='%2393a7bd'/><rect x='24' y='58' width='48' height='24' rx='12' fill='%2393a7bd'/></svg>";
+    const DEFAULT_AVATAR_PLACEHOLDER = "../../assets/images/profile-placeholder.svg";
     const profileId = Number(new URLSearchParams(window.location.search).get("id") || 0);
     let pictureBase64 = "";
     let pictureName = "";
