@@ -10,6 +10,7 @@ const {
   getCreatedDatabases,
   deleteDatabase,
   getCompanies,
+  getCompanyLogo,
   createCompany,
   deleteCompany,
   getMappedMeta,
@@ -59,6 +60,7 @@ router.post("/databases/create", createDatabase);
 router.get("/databases/created", getCreatedDatabases);
 router.delete("/databases/:databaseName", deleteDatabase);
 router.get("/companies", getCompanies);
+router.get("/companies/:companyId/logo", getCompanyLogo);
 router.post("/companies/create", createCompany);
 router.delete("/companies/:companyId", deleteCompany);
 router.get("/mapped/meta", getMappedMeta);

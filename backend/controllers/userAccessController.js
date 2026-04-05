@@ -500,6 +500,19 @@ function buildCompanyLogoDataUrl(row) {
   }
 }
 
+function resolveCompanyLogoAbsolutePath(row) {
+  const resolvedPath = resolveCompanyLogoPathForResponse(row);
+  if (!resolvedPath || /^https?:\/\//i.test(resolvedPath) || /^data:image\//i.test(resolvedPath)) {
+    return "";
+  }
+  const clean = String(resolvedPath || "").replace(/^\/+/, "");
+  const abs = path.resolve(__dirname, "..", clean);
+  const root = path.resolve(__dirname, "..", "storage");
+  if (!abs.startsWith(root)) return "";
+  if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) return "";
+  return abs;
+}
+
 function parseBase64Payload(fileDataBase64) {
   const raw = String(fileDataBase64 || "").trim();
   if (!raw) {
@@ -1883,6 +1896,7 @@ exports.getCompanies = async (_req, res) => {
         logo_data_url: logoDataUrl || "",
         logo_exists: Boolean(logoDataUrl || logoPath),
         logo_url: logoPath ? `/${String(logoPath).replace(/^\/+/, "")}` : "",
+        logo_preview_url: `/api/users/companies/${Number(row.id || 0)}/logo${row.updatedAt ? `?v=${encodeURIComponent(String(new Date(row.updatedAt).getTime() || ""))}` : ""}`,
         created_at: row.createdAt || null,
         updated_at: row.updatedAt || null,
         mapped_users_count: Number(row.mapped_users_count || 0),
@@ -2461,6 +2475,46 @@ exports.saveMapping = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to save mapping." });
+  } finally {
+    await mainDbClient.end().catch(() => {});
+  }
+};
+
+exports.getCompanyLogo = async (req, res) => {
+  const companyId = Number(req.params.companyId || 0);
+  if (!Number.isFinite(companyId) || companyId <= 0) {
+    return res.status(400).json({ message: "Invalid company id." });
+  }
+
+  const cfg = getDbConfig();
+  const mainDbClient = new Client({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: cfg.database || INVENTORY_DB_NAME,
+  });
+
+  try {
+    await mainDbClient.connect();
+    await ensureCompanyRegistryTable(mainDbClient);
+    const rs = await mainDbClient.query(
+      `SELECT id, company_name, folder_name, logo_path, logo_file_name
+       FROM ${COMPANY_REGISTRY_TABLE}
+       WHERE id = $1
+       LIMIT 1`,
+      [companyId]
+    );
+    if (!rs.rowCount) {
+      return res.status(404).json({ message: "Company not found." });
+    }
+    const absPath = resolveCompanyLogoAbsolutePath(rs.rows[0] || {});
+    if (!absPath) {
+      return res.status(404).json({ message: "Company logo not found." });
+    }
+    return res.sendFile(absPath);
+  } catch (err) {
+    return res.status(500).json({ message: err.message || "Failed to load company logo." });
   } finally {
     await mainDbClient.end().catch(() => {});
   }
