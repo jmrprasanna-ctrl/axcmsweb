@@ -845,11 +845,27 @@ function applyMappedBranding(){
     }
     const mappedLogoPath = String(localStorage.getItem(MAPPED_COMPANY_LOGO_URL_KEY) || "").trim();
     if(mappedLogoPath){
-        const apiOrigin = BASE_URL.replace(/\/api$/,"");
-        const absoluteMappedLogo = /^https?:\/\//i.test(mappedLogoPath)
-            ? mappedLogoPath
-            : `${apiOrigin}${mappedLogoPath.startsWith("/") ? "" : "/"}${mappedLogoPath}`;
+        const apiOrigin = BASE_URL.replace(/\/api$/,"").replace(/\/+$/, "");
+        const cleanedMappedLogoPath = mappedLogoPath
+            .replace(/\\/g, "/")
+            .replace(/^(\.\.\/|\.\/)+/g, "")
+            .replace(/^backend\//i, "");
+        const absoluteMappedLogo = /^data:image\//i.test(cleanedMappedLogoPath)
+            ? cleanedMappedLogoPath
+            : (/^https?:\/\//i.test(cleanedMappedLogoPath)
+                ? cleanedMappedLogoPath
+                : `${apiOrigin}${cleanedMappedLogoPath.startsWith("/") ? "" : "/"}${cleanedMappedLogoPath}`);
         document.querySelectorAll(".sidebar .logo img").forEach((img) => {
+            const fallbackLogo = img.getAttribute("data-fallback-logo") || img.getAttribute("src") || "";
+            if (fallbackLogo) {
+                img.setAttribute("data-fallback-logo", fallbackLogo);
+            }
+            img.onerror = () => {
+                const safeFallback = String(img.getAttribute("data-fallback-logo") || "").trim();
+                if (safeFallback && img.src !== safeFallback) {
+                    img.src = safeFallback;
+                }
+            };
             img.src = absoluteMappedLogo;
         });
     }
