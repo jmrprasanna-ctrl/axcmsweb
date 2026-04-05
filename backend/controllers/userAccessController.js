@@ -1913,11 +1913,47 @@ exports.getMappedMeta = async (_req, res) => {
        FROM ${DATABASE_REGISTRY_TABLE}
        ORDER BY LOWER(database_name) ASC`
     );
+    let pgDbRs = { rows: [] };
+    try {
+      pgDbRs = await mainDbClient.query(
+        `SELECT datname
+         FROM pg_database
+         WHERE datistemplate = FALSE
+         ORDER BY datname ASC`
+      );
+    } catch (_err) {
+      pgDbRs = { rows: [] };
+    }
     const companiesRs = await mainDbClient.query(
       `SELECT id, company_name, company_code, email
        FROM ${COMPANY_REGISTRY_TABLE}
        ORDER BY LOWER(company_name) ASC`
     );
+
+    const databasesByName = new Map();
+    (dbRs.rows || []).forEach((row) => {
+      const name = normalizeDatabaseName(row.database_name);
+      if (!name || RESERVED_DATABASES.has(name)) return;
+      databasesByName.set(name, {
+        name,
+        company_name: normalizeCompanyName(row.company_name),
+      });
+    });
+    (pgDbRs.rows || []).forEach((row) => {
+      const name = normalizeDatabaseName(row.datname);
+      if (!name || RESERVED_DATABASES.has(name) || databasesByName.has(name)) return;
+      databasesByName.set(name, {
+        name,
+        company_name: "",
+      });
+    });
+    const databases = Array.from(databasesByName.values())
+      .sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")))
+      .map((row) => ({
+        name: row.name,
+        company_name: row.company_name,
+        label: row.company_name ? `${row.company_name} (${row.name})` : row.name,
+      }));
 
     res.json({
       users: (usersRs.rows || []).map((row) => ({
@@ -1926,11 +1962,7 @@ exports.getMappedMeta = async (_req, res) => {
         email: String(row.email || "").trim(),
         company_name: normalizeCompanyName(row.company),
       })),
-      databases: (dbRs.rows || []).map((row) => ({
-        name: normalizeDatabaseName(row.database_name),
-        company_name: normalizeCompanyName(row.company_name),
-        label: `${normalizeCompanyName(row.company_name)} (${normalizeDatabaseName(row.database_name)})`,
-      })).filter((x) => x.name),
+      databases,
       companies: (companiesRs.rows || []).map((row) => ({
         id: Number(row.id || 0),
         company_name: normalizeCompanyName(row.company_name),
