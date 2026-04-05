@@ -2207,6 +2207,7 @@ exports.getMyCompanies = async (req, res) => {
       logo_path: String(row.logo_path || "").trim(),
       database_name: normalizeDatabaseName(row.database_name),
       mapped_users_count: Number(row.mapped_users_count || 0),
+      mapped_users_count_in_selected_db: Number(row.mapped_users_count_in_selected_db || 0),
       is_mapped: Number(row.mapped_users_count || 0) > 0,
       label: normalizeCompanyCode(row.company_code)
         ? `${normalizeCompanyName(row.company_name)} [${normalizeCompanyCode(row.company_code)}]`
@@ -2227,28 +2228,22 @@ exports.getMyCompanies = async (req, res) => {
                 cp.email,
                 cp.logo_path,
                 MIN(LOWER(um.database_name)) AS database_name,
-                COUNT(DISTINCT um.user_id)::int AS mapped_users_count
+                COUNT(DISTINCT um.user_id)::int AS mapped_users_count,
+                COUNT(DISTINCT um.user_id) FILTER (
+                  WHERE $1::text IS NOT NULL AND LOWER(um.database_name) = LOWER($1)
+                )::int AS mapped_users_count_in_selected_db
          FROM ${COMPANY_REGISTRY_TABLE} cp
-         JOIN user_mappings um ON um.company_profile_id = cp.id
-         WHERE ($1::text IS NULL OR LOWER(um.database_name) = LOWER($1))
+         LEFT JOIN user_mappings um ON um.company_profile_id = cp.id
          GROUP BY cp.id, cp.company_name, cp.company_code, cp.email, cp.logo_path
-         ORDER BY LOWER(cp.company_name) ASC, cp.id ASC`,
+         ORDER BY
+           COUNT(DISTINCT um.user_id) FILTER (
+             WHERE $1::text IS NOT NULL AND LOWER(um.database_name) = LOWER($1)
+           ) DESC,
+           COUNT(DISTINCT um.user_id) DESC,
+           LOWER(cp.company_name) ASC,
+           cp.id ASC`,
         [selectedDb || null]
       );
-
-      if (!rs.rowCount) {
-        rs = await mainDbClient.query(
-          `SELECT cp.id,
-                  cp.company_name,
-                  cp.company_code,
-                  cp.email,
-                  cp.logo_path,
-                  NULL::text AS database_name,
-                  0::int AS mapped_users_count
-           FROM ${COMPANY_REGISTRY_TABLE} cp
-           ORDER BY LOWER(cp.company_name) ASC, cp.id ASC`
-        );
-      }
     } else {
       rs = await mainDbClient.query(
         `SELECT cp.id,
@@ -2257,7 +2252,8 @@ exports.getMyCompanies = async (req, res) => {
                 cp.email,
                 cp.logo_path,
                 LOWER(um.database_name) AS database_name,
-                1::int AS mapped_users_count
+                1::int AS mapped_users_count,
+                1::int AS mapped_users_count_in_selected_db
          FROM user_mappings um
          JOIN ${COMPANY_REGISTRY_TABLE} cp ON cp.id = um.company_profile_id
          WHERE um.user_id = $1

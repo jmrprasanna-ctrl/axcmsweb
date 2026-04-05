@@ -26,13 +26,24 @@ window.addEventListener("load", () => {
                             company_name: String(item?.company_name || "").trim(),
                             company_code: String(item?.company_code || "").trim().toUpperCase(),
                             is_mapped: Boolean(item?.is_mapped),
+                            mapped_users_count: Number(item?.mapped_users_count || 0),
+                            mapped_users_count_in_selected_db: Number(item?.mapped_users_count_in_selected_db || 0),
                         }))
                         .filter((item) => {
                             if (!item.company_name) return false;
-                            const key = item.company_name.toLowerCase();
+                            const key = item.id > 0 ? `id:${item.id}` : `name:${item.company_name.toLowerCase()}`;
                             if (seen.has(key)) return false;
                             seen.add(key);
                             return true;
+                        })
+                        .sort((a, b) => {
+                            if (b.mapped_users_count_in_selected_db !== a.mapped_users_count_in_selected_db) {
+                                return b.mapped_users_count_in_selected_db - a.mapped_users_count_in_selected_db;
+                            }
+                            if (b.mapped_users_count !== a.mapped_users_count) {
+                                return b.mapped_users_count - a.mapped_users_count;
+                            }
+                            return String(a.company_name).localeCompare(String(b.company_name));
                         });
 
                     companySelect.innerHTML = '<option value="">Select company</option>';
@@ -65,8 +76,11 @@ window.addEventListener("load", () => {
                     }
 
                     const mappedCount = normalized.filter((x) => x.is_mapped).length;
+                    const selectedDbMappedCount = normalized.filter((x) => x.mapped_users_count_in_selected_db > 0).length;
                     if (normalized.length) {
-                        setCompanyHint(`Loaded ${normalized.length} companies${mappedCount ? ` (${mappedCount} mapped)` : ""}.`);
+                        setCompanyHint(
+                            `Loaded ${normalized.length} companies${mappedCount ? ` (${mappedCount} mapped)` : ""}${selectedDbMappedCount ? `, ${selectedDbMappedCount} in current DB` : ""}.`
+                        );
                     } else {
                         setCompanyHint("No companies available. Please map company first.", true);
                     }
