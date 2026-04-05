@@ -47,6 +47,25 @@ function buildProfilePictureUrl(profileRow = {}) {
   return `/${clean}${ts > 0 ? `?v=${encodeURIComponent(String(ts))}` : ""}`;
 }
 
+function normalizeMappedLogoPath(logoPathRaw, folderNameRaw = "", logoFileNameRaw = "") {
+  const folderName = String(folderNameRaw || "").trim();
+  const logoFileName = String(logoFileNameRaw || "").trim();
+  let raw = String(logoPathRaw || "").trim();
+  if (!raw && folderName && logoFileName) {
+    raw = `storage/companies/${folderName}/${logoFileName}`;
+  }
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw) || /^data:image\//i.test(raw)) return raw;
+  raw = raw
+    .replace(/\\/g, "/")
+    .replace(/^(\.\.\/|\.\/)+/g, "")
+    .replace(/^backend\//i, "");
+  if (/^companies\//i.test(raw)) {
+    raw = `storage/${raw}`;
+  }
+  return raw.replace(/^\/+/, "");
+}
+
 async function resolveUserProfilePicture(client, userId) {
   const uid = Number(userId || 0);
   if (!uid) {
@@ -127,7 +146,7 @@ exports.login = async (req, res) => {
     let userProfilePictureDataUrl = null;
 
     const mappingRs = await client.query(
-      `SELECT um.database_name, cp.company_name, cp.company_code, COALESCE(NULLIF(TRIM(um.mapped_email), ''), cp.email) AS mapped_email, cp.logo_path
+      `SELECT um.database_name, cp.company_name, cp.company_code, COALESCE(NULLIF(TRIM(um.mapped_email), ''), cp.email) AS mapped_email, cp.logo_path, cp.folder_name, cp.logo_file_name
        FROM user_mappings um
        JOIN company_profiles cp ON cp.id = um.company_profile_id
        WHERE um.user_id = $1
@@ -143,13 +162,16 @@ exports.login = async (req, res) => {
       mappedCompanyName = String(mappingRs.rows[0]?.company_name || "").trim() || null;
       mappedCompanyCode = String(mappingRs.rows[0]?.company_code || "").trim().toUpperCase() || null;
       mappedCompanyEmail = String(mappingRs.rows[0]?.mapped_email || "").trim().toLowerCase() || null;
-      const logoPath = String(mappingRs.rows[0]?.logo_path || "").trim();
+      const logoPath = normalizeMappedLogoPath(
+        mappingRs.rows[0]?.logo_path,
+        mappingRs.rows[0]?.folder_name,
+        mappingRs.rows[0]?.logo_file_name
+      );
       if (logoPath) {
-        const normalized = logoPath.replace(/\\/g, "/").replace(/^(\.\.\/|\.\/)+/g, "").replace(/^backend\//i, "");
-        if (/^https?:\/\//i.test(normalized) || /^data:image\//i.test(normalized)) {
-          mappedCompanyLogoUrl = normalized;
+        if (/^https?:\/\//i.test(logoPath) || /^data:image\//i.test(logoPath)) {
+          mappedCompanyLogoUrl = logoPath;
         } else {
-          const clean = normalized.replace(/^\/+/, "");
+          const clean = String(logoPath).replace(/^\/+/, "");
           mappedCompanyLogoUrl = `/${clean}`;
         }
       }

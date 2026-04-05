@@ -1039,6 +1039,27 @@ async function loadUserAccessPermissions(){
         }else{
                                                                                                        
         }
+        if(data.mapped_company_name){
+            localStorage.setItem(MAPPED_COMPANY_NAME_KEY, String(data.mapped_company_name).trim());
+        }else{
+            localStorage.removeItem(MAPPED_COMPANY_NAME_KEY);
+        }
+        if(data.mapped_company_code){
+            localStorage.setItem(MAPPED_COMPANY_CODE_KEY, String(data.mapped_company_code).trim().toUpperCase());
+        }else{
+            localStorage.removeItem(MAPPED_COMPANY_CODE_KEY);
+        }
+        if(data.mapped_company_email){
+            localStorage.setItem(MAPPED_COMPANY_EMAIL_KEY, String(data.mapped_company_email).trim().toLowerCase());
+        }else{
+            localStorage.removeItem(MAPPED_COMPANY_EMAIL_KEY);
+        }
+        if(data.mapped_company_logo_url){
+            localStorage.setItem(MAPPED_COMPANY_LOGO_URL_KEY, String(data.mapped_company_logo_url).trim());
+        }else{
+            localStorage.removeItem(MAPPED_COMPANY_LOGO_URL_KEY);
+        }
+        applyMappedBranding();
     }catch(_err){
                                                      
     }

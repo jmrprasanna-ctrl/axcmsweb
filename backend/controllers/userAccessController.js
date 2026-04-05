@@ -362,6 +362,28 @@ function normalizeEmail(value) {
   return normalized.slice(0, 200);
 }
 
+function normalizeCompanyLogoPath(logoPathRaw, folderNameRaw = "", logoFileNameRaw = "") {
+  const folderName = String(folderNameRaw || "").trim();
+  const logoFileName = String(logoFileNameRaw || "").trim();
+  let raw = String(logoPathRaw || "").trim();
+
+  if (!raw && folderName && logoFileName) {
+    raw = `storage/companies/${folderName}/${logoFileName}`;
+  }
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw) || /^data:image\//i.test(raw)) return raw;
+
+  raw = raw
+    .replace(/\\/g, "/")
+    .replace(/^(\.\.\/|\.\/)+/g, "")
+    .replace(/^backend\//i, "");
+
+  if (/^companies\//i.test(raw)) {
+    raw = `storage/${raw}`;
+  }
+  return raw.replace(/^\/+/, "");
+}
+
 function parseBase64Payload(fileDataBase64) {
   const raw = String(fileDataBase64 || "").trim();
   if (!raw) {
@@ -703,7 +725,7 @@ async function findMappedUserProfile(userId) {
   try {
     await client.connect();
     const rs = await client.query(
-      `SELECT um.database_name, cp.company_name, cp.company_code, cp.email, cp.logo_path
+      `SELECT um.database_name, cp.company_name, cp.company_code, cp.email, cp.logo_path, cp.folder_name, cp.logo_file_name
        FROM user_mappings um
        JOIN ${COMPANY_REGISTRY_TABLE} cp ON cp.id = um.company_profile_id
        WHERE um.user_id = $1
@@ -716,7 +738,7 @@ async function findMappedUserProfile(userId) {
       company_name: normalizeCompanyName(rs.rows[0]?.company_name),
       company_code: normalizeCompanyCode(rs.rows[0]?.company_code),
       email: normalizeEmail(rs.rows[0]?.email),
-      logo_path: String(rs.rows[0]?.logo_path || "").trim(),
+      logo_path: normalizeCompanyLogoPath(rs.rows[0]?.logo_path, rs.rows[0]?.folder_name, rs.rows[0]?.logo_file_name),
     };
   } catch (_err) {
     return null;
@@ -3082,11 +3104,21 @@ exports.getMyAccess = async (req, res) => {
   const allowedPages = derivePagesFromActions(allowedActions, parseAllowedPages(row));
   const hasAccessConfig = Boolean(row) || allowedPages.length > 0 || allowedActions.length > 0;
   const mappedProfile = await findMappedUserProfile(userId);
+  const mappedLogoPath = String(mappedProfile?.logo_path || "").trim();
+  const mappedLogoUrl = mappedLogoPath
+    ? (/^https?:\/\//i.test(mappedLogoPath) || /^data:image\//i.test(mappedLogoPath)
+      ? mappedLogoPath
+      : `/${mappedLogoPath.replace(/^\/+/, "")}`)
+    : null;
 
   res.json({
     allowed_pages: allowedPages,
     allowed_actions: allowedActions,
     database_name: normalizeDatabaseName(mappedProfile?.database_name) || normalizeDatabaseName(row?.database_name),
+    mapped_company_name: normalizeCompanyName(mappedProfile?.company_name),
+    mapped_company_code: normalizeCompanyCode(mappedProfile?.company_code),
+    mapped_company_email: normalizeEmail(mappedProfile?.email),
+    mapped_company_logo_url: mappedLogoUrl,
     user_database: userDatabase,
     has_access_config: hasAccessConfig,
   });
