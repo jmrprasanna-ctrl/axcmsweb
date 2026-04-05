@@ -426,6 +426,45 @@ router.get("/profiles/:id/picture", async (req, res) => {
   }
 });
 
+router.put("/profiles/:id/picture", async (req, res) => {
+  try {
+    await ensureUserProfilesTable();
+    const id = Number(req.params.id || 0);
+    if (!id) return res.status(400).json({ message: "Invalid profile id" });
+    const payload = req.body || {};
+    const oldRows = await db.query(
+      `SELECT *
+       FROM user_profiles
+       WHERE id = $1
+       LIMIT 1`,
+      { bind: [id], type: QueryTypes.SELECT }
+    );
+    if (!oldRows.length) return res.status(404).json({ message: "Profile not found" });
+    const old = oldRows[0];
+    const nextPath = saveProfilePicture(req, payload.profile_picture_base64, payload.profile_picture_name);
+    if (!nextPath) {
+      return res.status(400).json({ message: "Valid profile picture is required." });
+    }
+    const oldPath = norm(old.profile_picture_path);
+    if (oldPath && oldPath !== nextPath) {
+      removeProfilePictureIfOwned(oldPath);
+    }
+    const rows = await db.query(
+      `UPDATE user_profiles
+       SET profile_picture_path = $2,
+           profile_picture_updated_at = NOW(),
+           "updatedAt" = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      { bind: [id, nextPath], type: QueryTypes.SELECT }
+    );
+    return res.json(toProfileJson(rows[0] || old));
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: err.message || "Failed to update profile picture." });
+  }
+});
+
 router.get("/profiles", async (req, res) => {
   try {
     await ensureUserProfilesTable();

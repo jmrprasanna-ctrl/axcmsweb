@@ -220,6 +220,22 @@
         if (els.title) els.title.textContent = "Edit Profile";
     }
 
+    async function uploadProfilePictureForEdit() {
+        if (!profileId || !pictureBase64) return;
+        try {
+            const res = await request(`/users/profiles/${profileId}/picture`, "PUT", {
+                profile_picture_base64: pictureBase64,
+                profile_picture_name: pictureName || "profile",
+            });
+            if (res && (res.profile_picture_api_url || res.profile_picture_url)) {
+                els.avatar.src = resolveProfileAvatarUrl(res.profile_picture_api_url || res.profile_picture_url);
+            }
+            showMessageBox("Profile picture updated");
+        } catch (err) {
+            showMessageBox(err.message || "Failed to upload profile picture", "error");
+        }
+    }
+
     async function save() {
         const canAdd = typeof hasUserActionPermission === "function" && hasUserActionPermission(PROFILE_PATH, "add");
         const canEdit = typeof hasUserActionPermission === "function" && hasUserActionPermission(PROFILE_PATH, "edit");
@@ -294,6 +310,9 @@
                 pictureBase64 = String(reader.result || "");
                 if (pictureBase64) {
                     els.avatar.src = pictureBase64;
+                    if (profileId) {
+                        uploadProfilePictureForEdit();
+                    }
                 }
             };
             reader.readAsDataURL(file);
