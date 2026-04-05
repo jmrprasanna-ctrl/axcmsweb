@@ -117,19 +117,49 @@
         }
     }
 
+    function normalizeUserOptions(source) {
+        const rows = Array.isArray(source)
+            ? source
+            : (Array.isArray(source?.users) ? source.users : []);
+        return rows
+            .map((u) => ({
+                id: Number(u?.id || 0),
+                username: String(u?.username || u?.login_user || "").trim(),
+                email: String(u?.email || "").trim(),
+                company: String(u?.company || u?.company_name || "").trim(),
+                department: String(u?.department || "").trim(),
+                telephone: String(u?.telephone || u?.mobile || "").trim(),
+            }))
+            .filter((u) => u.id > 0);
+    }
+
     async function loadProfileUsers() {
-        const res = await request("/users/profiles/user-options", "GET");
-        const list = Array.isArray(res?.users) ? res.users : [];
-        profileUsers = list;
-        els.login_user.innerHTML = `<option value="">Select Login User</option>`;
-        list.forEach((u) => {
-            const id = Number(u.id || 0);
-            if (!id) return;
-            const opt = document.createElement("option");
-            opt.value = String(id);
-            opt.textContent = String(u.label || u.username || `User ${id}`);
-            els.login_user.appendChild(opt);
-        });
+        els.login_user.innerHTML = `<option value="">Loading login users...</option>`;
+        try {
+            let list = [];
+            try {
+                const res = await request("/users/profiles/user-options", "GET");
+                list = normalizeUserOptions(res);
+            } catch (_firstErr) {
+                const fallback = await request("/users/assignable", "GET");
+                list = normalizeUserOptions(fallback);
+            }
+            profileUsers = list;
+            els.login_user.innerHTML = `<option value="">Select Login User</option>`;
+            list.forEach((u) => {
+                const opt = document.createElement("option");
+                opt.value = String(u.id);
+                opt.textContent = `${u.username || `User ${u.id}`}${u.email ? ` (${u.email})` : ""}`;
+                els.login_user.appendChild(opt);
+            });
+            if (!list.length) {
+                els.login_user.innerHTML = `<option value="">No login users found</option>`;
+            }
+        } catch (err) {
+            profileUsers = [];
+            els.login_user.innerHTML = `<option value="">Failed to load login users</option>`;
+            showMessageBox(err.message || "Failed to load login users", "error");
+        }
     }
 
     async function loadForEdit() {
