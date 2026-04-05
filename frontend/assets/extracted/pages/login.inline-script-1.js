@@ -3,6 +3,37 @@ const LOGIN_DEFAULT_LOGO_SRC = "../assets/images/logo.png";
 let companyBrandingDebounce = null;
 let companyBrandingRequestId = 0;
 
+async function loginPageRequest(endpoint, method = "GET", data = null){
+    if(typeof window.request === "function"){
+        return window.request(endpoint, method, data);
+    }
+    const baseUrl = String(window.BASE_URL || `${window.location.origin.replace(/\/+$/, "")}/api`).replace(/\/+$/, "");
+    const path = String(endpoint || "").startsWith("/") ? String(endpoint) : `/${String(endpoint || "")}`;
+    const headers = { "Content-Type": "application/json" };
+    const token = localStorage.getItem("token");
+    if(token){
+        headers.Authorization = `Bearer ${token}`;
+    }
+    const options = { method, headers };
+    if(data){
+        options.body = JSON.stringify(data);
+    }
+    const res = await fetch(`${baseUrl}${path}`, options);
+    const raw = await res.text();
+    let result = {};
+    if(raw){
+        try{
+            result = JSON.parse(raw);
+        }catch(_err){
+            result = { message: raw };
+        }
+    }
+    if(!res.ok){
+        throw new Error(result.message || `Request failed (${res.status})`);
+    }
+    return result;
+}
+
 function loadCompanyCodeCache(){
     try{
         const raw = localStorage.getItem(COMPANY_CODE_CACHE_KEY);
@@ -88,7 +119,7 @@ async function fetchCompanyBrandingByCode(companyCode){
     }
     const requestId = ++companyBrandingRequestId;
     try{
-        const res = await request(`/auth/company-branding?company_code=${encodeURIComponent(normalized)}`, "GET");
+        const res = await loginPageRequest(`/auth/company-branding?company_code=${encodeURIComponent(normalized)}`, "GET");
         if(requestId !== companyBrandingRequestId) return;
         const logoUrl = String(res?.logo_url || "").trim();
         if(logoUrl){
@@ -121,7 +152,7 @@ async function login(){
     if(!company_code || !email || !password){ alert("Please fill all fields"); return; }
 
     try{
-        const res = await request("/auth/login","POST",{ company_code, email, password });
+        const res = await loginPageRequest("/auth/login","POST",{ company_code, email, password });
         localStorage.setItem("token",res.token);
         localStorage.setItem("role",res.user.role);
         if (res.user && res.user.database_name) {
@@ -185,7 +216,7 @@ async function forgotPassword(){
         return;
     }
     try{
-        await request("/auth/forgot-password","POST",{email});
+        await loginPageRequest("/auth/forgot-password","POST",{email});
         alert("Email matched. Password details sent to your email.");
     }catch(err){
         alert(err.message || "Failed to send email");
