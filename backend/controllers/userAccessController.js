@@ -10,7 +10,7 @@ const EmailSetup = require("../models/EmailSetup");
 const Category = require("../models/Category");
 const CategoryModelOption = require("../models/CategoryModelOption");
 const DEMO_DB_NAME = "demo";
-const INVENTORY_DB_NAME = "inventory";
+const INVENTORY_DB_NAME = db.normalizeDatabaseName(process.env.DB_NAME || "axiscmsdb") || "axiscmsdb";
 const RESERVED_DATABASES = new Set(["postgres", "template0", "template1"]);
 const DATABASE_REGISTRY_TABLE = "company_databases";
 const DATABASE_STORAGE_ROOT = path.resolve(__dirname, "../storage/databases");
@@ -677,7 +677,7 @@ async function findAccessFromMainDb(userId, userDatabase = INVENTORY_DB_NAME) {
     const rs = await client.query(
       `SELECT id, allowed_pages_json, allowed_actions_json, database_name, user_database, "updatedAt", "createdAt"
        FROM user_accesses
-       WHERE user_id = $1 AND (LOWER(COALESCE(user_database, 'inventory')) = $2)
+       WHERE user_id = $1 AND (LOWER(COALESCE(user_database, '${INVENTORY_DB_NAME}')) = $2)
        ORDER BY "updatedAt" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
        LIMIT 1`,
       [userId, normalizeUserDatabase(userDatabase)]
@@ -1244,10 +1244,10 @@ exports.getAccessUsers = async (_req, res) => {
       await ensureUserMappingTable(mainDbClient);
 
       const accessRs = await mainDbClient.query(
-        `SELECT DISTINCT ON (user_id, LOWER(COALESCE(user_database, 'inventory')))
+        `SELECT DISTINCT ON (user_id, LOWER(COALESCE(user_database, '${INVENTORY_DB_NAME}')))
             user_id, user_database, database_name
          FROM user_accesses
-         ORDER BY user_id, LOWER(COALESCE(user_database, 'inventory')), "updatedAt" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC`
+         ORDER BY user_id, LOWER(COALESCE(user_database, '${INVENTORY_DB_NAME}')), "updatedAt" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC`
       );
       (accessRs.rows || []).forEach((row) => {
         const userId = Number(row?.user_id || 0);
@@ -1273,9 +1273,37 @@ exports.getAccessUsers = async (_req, res) => {
     }
 
     const includeDemo = String(_req?.query?.include_demo || "").trim().toLowerCase() === "true";
-    const sourceDbs = includeDemo
-      ? [INVENTORY_DB_NAME, DEMO_DB_NAME]
-      : [INVENTORY_DB_NAME];
+    const sourceDbSet = new Set([INVENTORY_DB_NAME]);
+    const registryClient = new Client({
+      host: cfg.host,
+      port: cfg.port,
+      user: cfg.user,
+      password: cfg.password,
+      database: cfg.database || INVENTORY_DB_NAME,
+    });
+    try {
+      await registryClient.connect();
+      const dbRs = await registryClient.query(
+        `SELECT LOWER(database_name) AS database_name
+         FROM ${DATABASE_REGISTRY_TABLE}
+         WHERE database_name IS NOT NULL`
+      );
+      (dbRs.rows || []).forEach((row) => {
+        const dbName = normalizeDatabaseName(row?.database_name);
+        if (dbName) sourceDbSet.add(dbName);
+      });
+    } catch (_err) {
+    } finally {
+      await registryClient.end().catch(() => {});
+    }
+    for (const linkedDb of mappedByUserId.values()) {
+      const dbName = normalizeDatabaseName(linkedDb);
+      if (dbName) sourceDbSet.add(dbName);
+    }
+    if (includeDemo) {
+      sourceDbSet.add(DEMO_DB_NAME);
+    }
+    const sourceDbs = Array.from(sourceDbSet).sort((a, b) => String(a || "").localeCompare(String(b || "")));
 
     const requesterId = Number(_req?.user?.id || _req?.user?.userId || 0);
     const requesterIsSuper = await isRequesterSuperAdmin(_req);

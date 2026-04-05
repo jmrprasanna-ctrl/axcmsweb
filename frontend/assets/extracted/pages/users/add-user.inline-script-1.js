@@ -2,10 +2,18 @@ window.addEventListener("load", () => {
             const form = document.getElementById('addUserForm');
             const companySelect = document.getElementById('company');
             const companyHint = document.getElementById('companyHint');
+            const targetDbHint = document.getElementById('targetDbHint');
             const togglePassword = document.getElementById('togglePassword');
             const passwordInput = document.getElementById('password');
             const eyeIcon = document.getElementById('eyeIcon');
             const mappedCompanyName = String(localStorage.getItem("mappedCompanyName") || "").trim();
+            const selectedDbName = String(localStorage.getItem("selectedDatabaseName") || "").trim().toLowerCase();
+
+            if (targetDbHint) {
+                targetDbHint.textContent = selectedDbName
+                    ? `New users will be created in database: ${selectedDbName}`
+                    : "New users will be created in your mapped database.";
+            }
 
             function setCompanyHint(message, isError = false) {
                 if (!companyHint) return;
@@ -114,6 +122,11 @@ window.addEventListener("load", () => {
                 try{
                     await request("/users","POST",user);
                     showMessageBox("User saved successfully!");
+                    if (targetDbHint) {
+                        targetDbHint.textContent = selectedDbName
+                            ? `User saved in database: ${selectedDbName}`
+                            : "User saved in mapped database.";
+                    }
                     form.reset();
                 }catch(err){
                     alert(err.message || "Failed to add user");
