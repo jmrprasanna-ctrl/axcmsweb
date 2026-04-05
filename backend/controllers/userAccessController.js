@@ -1806,8 +1806,22 @@ async function getMappingPieces(mainDbClient, userId, databaseName, companyId, m
      LIMIT 1`,
     [databaseName]
   );
-  if (!dbRs.rowCount) {
-    throw new Error("Database mapping entry not found.");
+  let dbRow = dbRs.rowCount ? dbRs.rows[0] : null;
+  if (!dbRow) {
+    const pgDbRs = await mainDbClient.query(
+      `SELECT datname
+       FROM pg_database
+       WHERE datistemplate = FALSE AND LOWER(datname) = LOWER($1)
+       LIMIT 1`,
+      [databaseName]
+    );
+    if (!pgDbRs.rowCount) {
+      throw new Error("Database not found.");
+    }
+    dbRow = {
+      database_name: normalizeDatabaseName(databaseName),
+      company_name: "",
+    };
   }
 
   const companyRs = await mainDbClient.query(
@@ -1822,7 +1836,6 @@ async function getMappingPieces(mainDbClient, userId, databaseName, companyId, m
   }
 
   const userRow = userRs.rows[0];
-  const dbRow = dbRs.rows[0];
   const companyRow = companyRs.rows[0];
   const companyEmail = normalizeEmail(companyRow.email);
   const mappedEmail = normalizeEmail(mappedEmailRaw);
@@ -1830,7 +1843,7 @@ async function getMappingPieces(mainDbClient, userId, databaseName, companyId, m
   const userCompany = normalizeNameCompare(userRow.company);
   const dbCompany = normalizeNameCompare(dbRow.company_name);
   const selectedCompany = normalizeNameCompare(companyRow.company_name);
-  const verified = userCompany && userCompany === dbCompany && userCompany === selectedCompany && emailVerified;
+  const verified = userCompany && userCompany === selectedCompany && (!dbCompany || userCompany === dbCompany) && emailVerified;
 
   return {
     verified: Boolean(verified),
@@ -1843,7 +1856,7 @@ async function getMappingPieces(mainDbClient, userId, databaseName, companyId, m
     },
     normalized: {
       user_id: Number(userRow.id || 0),
-      database_name: normalizeDatabaseName(dbRow.database_name),
+      database_name: normalizeDatabaseName(dbRow.database_name) || normalizeDatabaseName(databaseName),
       company_profile_id: Number(companyRow.id || 0),
       company_name: normalizeCompanyName(companyRow.company_name),
       company_code: normalizeCompanyCode(companyRow.company_code),
@@ -2095,6 +2108,14 @@ exports.saveMapping = async (req, res) => {
         names: result.names,
       });
     }
+    await mainDbClient.query(
+      `INSERT INTO ${DATABASE_REGISTRY_TABLE} (database_name, company_name, created_by, "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, NOW(), NOW())
+       ON CONFLICT (database_name)
+       DO UPDATE SET company_name = EXCLUDED.company_name,
+                     "updatedAt" = NOW()`,
+      [result.normalized.database_name, result.normalized.company_name, Number(req.user?.id || 0) || null]
+    );
 
     await mainDbClient.query(
       `INSERT INTO user_mappings
