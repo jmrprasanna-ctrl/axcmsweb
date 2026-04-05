@@ -1205,6 +1205,7 @@ async function request(endpoint, method="GET", data=null){
     }
     return result;
 }
+window.request = request;
 
                          
                        
