@@ -33,21 +33,12 @@ if(menuInitialEl){
 
 function applyUserAvatarImage() {
     const menuAvatarEl = document.getElementById("userMenuInitial");
-    const menuBtn = document.getElementById("userMenuBtn");
-    if(!menuAvatarEl || !menuBtn) return;
+    if(!menuAvatarEl) return;
     const raw = String(storedProfilePicturePath || "").trim();
-    const menuButtonDefaultIcon = `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 12.2a4.1 4.1 0 1 0 0-8.2 4.1 4.1 0 0 0 0 8.2Z" fill="none" stroke="currentColor" stroke-width="1.7"/>
-            <path d="M4.3 20.1a7.7 7.7 0 0 1 15.4 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
-        </svg>
-    `;
     if(!raw){
         menuAvatarEl.classList.remove("has-image");
         const initialSource = displayName.trim();
         menuAvatarEl.textContent = initialSource ? initialSource[0].toUpperCase() : "U";
-        menuBtn.classList.remove("has-image");
-        menuBtn.innerHTML = menuButtonDefaultIcon;
         return;
     }
     const apiOrigin = String(BASE_URL || "").replace(/\/api\/?$/i, "").replace(/\/+$/, "");
@@ -66,16 +57,6 @@ function applyUserAvatarImage() {
             menuAvatarEl.classList.remove("has-image");
             const initialSource = displayName.trim();
             menuAvatarEl.textContent = initialSource ? initialSource[0].toUpperCase() : "U";
-        };
-    }
-
-    menuBtn.classList.add("has-image");
-    menuBtn.innerHTML = `<img src="${safeAvatar}" alt="Profile" class="user-menu-btn-avatar-img">`;
-    const btnImg = menuBtn.querySelector("img");
-    if (btnImg) {
-        btnImg.onerror = () => {
-            menuBtn.classList.remove("has-image");
-            menuBtn.innerHTML = menuButtonDefaultIcon;
         };
     }
 }
