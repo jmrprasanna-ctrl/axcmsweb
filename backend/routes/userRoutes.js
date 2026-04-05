@@ -1,4 +1,6 @@
 const express = require("express");
+const fs = require("fs");
+const path = require("path");
 const { getUsers, getUserById, addUser, updateUser, deleteUser } = require("../controllers/userController");
 const {
   getAccessUsers,
@@ -34,6 +36,7 @@ const User = require("../models/User");
 const db = require("../config/database");
 const { QueryTypes } = require("sequelize");
 const INVENTORY_DB_NAME = db.normalizeDatabaseName(process.env.DB_NAME || "inventory") || "inventory";
+const PROFILE_STORAGE_ROOT = path.resolve(__dirname, "../storage/profiles");
 
 const router = express.Router();
 
@@ -118,6 +121,73 @@ function normEmail(v) {
 
 function normCode(v) {
   return norm(v).toUpperCase();
+}
+
+function ensureDir(targetDir) {
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
+  }
+}
+
+function safeNamePart(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 80);
+}
+
+function decodeProfilePictureInput(raw) {
+  const input = String(raw || "").trim();
+  if (!input) return null;
+  const match = input.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+  if (!match) return null;
+  const mime = String(match[1] || "").toLowerCase();
+  const payload = String(match[2] || "");
+  const extByMime = {
+    "image/jpeg": "jpg",
+    "image/jpg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/gif": "gif",
+  };
+  const ext = extByMime[mime];
+  if (!ext) return null;
+  let buffer;
+  try {
+    buffer = Buffer.from(payload, "base64");
+  } catch (_err) {
+    return null;
+  }
+  if (!buffer || !buffer.length) return null;
+  return { buffer, ext };
+}
+
+function saveProfilePicture(req, base64Input, fileNameHint) {
+  const decoded = decodeProfilePictureInput(base64Input);
+  if (!decoded) return "";
+  const dbName = db.normalizeDatabaseName(req?.databaseName || INVENTORY_DB_NAME) || INVENTORY_DB_NAME;
+  const dbDir = path.join(PROFILE_STORAGE_ROOT, safeNamePart(dbName) || "default");
+  ensureDir(dbDir);
+  const hint = safeNamePart(fileNameHint || "profile");
+  const fileName = `${hint || "profile"}_${Date.now()}.${decoded.ext}`;
+  const absPath = path.join(dbDir, fileName);
+  fs.writeFileSync(absPath, decoded.buffer);
+  const rel = path.relative(path.resolve(__dirname, ".."), absPath).replace(/\\/g, "/");
+  return rel.startsWith("storage/") ? rel : `storage/profiles/${fileName}`;
+}
+
+function removeProfilePictureIfOwned(relPath) {
+  const clean = String(relPath || "").trim().replace(/\\/g, "/").replace(/^\/+/, "");
+  if (!clean || !clean.startsWith("storage/profiles/")) return;
+  const abs = path.resolve(path.resolve(__dirname, ".."), clean);
+  const root = PROFILE_STORAGE_ROOT.replace(/\\/g, "/");
+  const target = abs.replace(/\\/g, "/");
+  if (!target.startsWith(root)) return;
+  if (fs.existsSync(abs)) {
+    fs.unlinkSync(abs);
+  }
 }
 
 function toProfileJson(row) {
@@ -405,6 +475,7 @@ router.post("/profiles", async (req, res) => {
     }
     const linkedUser = await resolveLinkedUser(payload, req);
     const syncResult = await syncLinkedUserFromProfile(linkedUser, payload, req);
+    const profilePicturePath = saveProfilePicture(req, payload.profile_picture_base64, payload.profile_picture_name);
     const rows = await db.query(
       `INSERT INTO user_profiles
        (user_id, profile_name, email, login_user, company_name, company_code, department, section, address, telephone, mobile, profile_picture_path, linked_database_name, user_sync_at, created_by, "createdAt", "updatedAt")
@@ -423,7 +494,7 @@ router.post("/profiles", async (req, res) => {
           norm(payload.address),
           norm(payload.telephone),
           norm(payload.mobile),
-          null,
+          profilePicturePath || null,
           syncResult.primary_db || db.normalizeDatabaseName(req.databaseName || ""),
           syncResult.synced ? new Date() : null,
           Number(req.user?.id || 0) || null,
@@ -471,6 +542,13 @@ router.put("/profiles/:id", async (req, res) => {
     }
     const linkedUser = await resolveLinkedUser(merged, req);
     const syncResult = await syncLinkedUserFromProfile(linkedUser, merged, req);
+    let nextProfilePicturePath = norm(old.profile_picture_path);
+    const uploadedProfilePicturePath = saveProfilePicture(req, payload.profile_picture_base64, payload.profile_picture_name);
+    if (uploadedProfilePicturePath) {
+      removeProfilePictureIfOwned(nextProfilePicturePath);
+      nextProfilePicturePath = uploadedProfilePicturePath;
+    }
+
     const rows = await db.query(
       `UPDATE user_profiles
        SET user_id = $2,
@@ -484,8 +562,9 @@ router.put("/profiles/:id", async (req, res) => {
            address = $10,
            telephone = $11,
            mobile = $12,
-           linked_database_name = $13,
-           user_sync_at = $14,
+           profile_picture_path = $13,
+           linked_database_name = $14,
+           user_sync_at = $15,
            "updatedAt" = NOW()
        WHERE id = $1
        RETURNING *`,
@@ -503,6 +582,7 @@ router.put("/profiles/:id", async (req, res) => {
           merged.address,
           merged.telephone,
           merged.mobile,
+          nextProfilePicturePath || null,
           syncResult.primary_db || merged.linked_database_name || db.normalizeDatabaseName(req.databaseName || ""),
           syncResult.synced ? new Date() : null,
         ],
