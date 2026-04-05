@@ -1944,16 +1944,21 @@ exports.createCompany = async (req, res) => {
     await mainDbClient.connect();
     await ensureCompanyRegistryTable(mainDbClient);
 
+    const normalizedLookupCode = normalizeCompanyCode(companyCode);
+    const normalizedLookupName = normalizeCompanyName(companyName);
     const existingRs = await mainDbClient.query(
       `SELECT id, company_name, company_code, email, folder_name, logo_path, logo_file_name
        FROM ${COMPANY_REGISTRY_TABLE}
-       WHERE UPPER(COALESCE(company_code, '')) = UPPER($1)
-          OR LOWER(company_name) = LOWER($2)
+       WHERE REGEXP_REPLACE(UPPER(COALESCE(company_code, '')), '[^A-Z0-9_-]+', '', 'g') = $1
+          OR UPPER(REGEXP_REPLACE(COALESCE(company_name, ''), '\s+', ' ', 'g')) = UPPER($2)
        ORDER BY
-         CASE WHEN UPPER(COALESCE(company_code, '')) = UPPER($1) THEN 0 ELSE 1 END ASC,
+         CASE
+           WHEN REGEXP_REPLACE(UPPER(COALESCE(company_code, '')), '[^A-Z0-9_-]+', '', 'g') = $1 THEN 0
+           ELSE 1
+         END ASC,
          id ASC
        LIMIT 1`,
-      [companyCode, companyName]
+      [normalizedLookupCode, normalizedLookupName]
     );
 
     ensureDir(COMPANY_STORAGE_ROOT);
