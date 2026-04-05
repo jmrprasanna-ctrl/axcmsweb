@@ -76,7 +76,9 @@
     async function autofillFromSelectedUser() {
         const selected = getSelectedProfileUser();
         if (!selected) return;
-        if (selected.email) els.email.value = String(selected.email);
+        if (selected.email && !String(els.email.value || "").trim()) {
+            els.email.value = String(selected.email);
+        }
         if (selected.username && !String(els.profile_name.value || "").trim()) {
             els.profile_name.value = String(selected.username);
         }
@@ -88,7 +90,6 @@
             const mappedRes = await request(`/users/mapped/${Number(selected.id || 0)}`, "GET");
             const mapped = mappedRes && mappedRes.mapping ? mappedRes.mapping : null;
             if (mapped) {
-                if (mapped.email) els.email.value = String(mapped.email).trim().toLowerCase();
                 if (mapped.company_name) els.company_name.value = String(mapped.company_name).trim();
                 if (mapped.company_code) els.company_code.value = normalizeUpper(mapped.company_code);
             }
@@ -135,35 +136,6 @@
                 pictureBase64 = encoded;
                 els.avatar.src = pictureBase64;
             }
-        }
-    }
-
-    async function fillFromEmail() {
-        const email = String(els.email.value || "").trim().toLowerCase();
-        if (!email) return;
-        const matched = profileUsers.find((u) => String(u.email || "").trim().toLowerCase() === email);
-        if (matched) {
-            els.login_user.value = String(Number(matched.id || 0));
-            await autofillFromSelectedUser();
-            return;
-        }
-        try {
-            const res = await request(`/users/profiles/user-by-email?email=${encodeURIComponent(email)}`, "GET");
-            const user = res && res.user ? res.user : null;
-            if (!user) return;
-            const byName = profileUsers.find((u) => String(u.username || "").trim().toLowerCase() === String(user.username || "").trim().toLowerCase());
-            if (byName && Number(byName.id || 0)) {
-                els.login_user.value = String(Number(byName.id || 0));
-            }
-            if (!String(els.company_name.value || "").trim()) els.company_name.value = String(user.company || "");
-            if (!String(els.department.value || "").trim()) els.department.value = String(user.department || "");
-            if (!String(els.telephone.value || "").trim()) els.telephone.value = String(user.telephone || "");
-            if (!String(els.profile_name.value || "").trim()) els.profile_name.value = String(user.username || "");
-            if (!String(els.company_code.value || "").trim()) {
-                const mappedCode = String(localStorage.getItem("mappedCompanyCode") || "").trim();
-                if (mappedCode) els.company_code.value = normalizeUpper(mappedCode);
-            }
-        } catch (_err) {
         }
     }
 
@@ -277,7 +249,6 @@
         els.company_code.addEventListener("input", () => {
             els.company_code.value = normalizeUpper(els.company_code.value);
         });
-        els.email.addEventListener("blur", fillFromEmail);
         els.login_user.addEventListener("change", () => {
             autofillFromSelectedUser();
         });

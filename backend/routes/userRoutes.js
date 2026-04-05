@@ -82,6 +82,7 @@ async function ensureUserProfilesTable() {
       profile_name VARCHAR(200) NOT NULL,
       email VARCHAR(200) NOT NULL,
       login_user VARCHAR(120),
+      linked_user_email VARCHAR(200),
       company_name VARCHAR(200),
       company_code VARCHAR(40),
       department VARCHAR(120),
@@ -102,6 +103,10 @@ async function ensureUserProfilesTable() {
   await db.query(`
     CREATE INDEX IF NOT EXISTS user_profiles_email_idx
     ON user_profiles (LOWER(email));
+  `);
+  await db.query(`
+    ALTER TABLE user_profiles
+    ADD COLUMN IF NOT EXISTS linked_user_email VARCHAR(200);
   `);
   await db.query(`
     ALTER TABLE user_profiles
@@ -224,6 +229,7 @@ function toProfileJson(row) {
     profile_name: norm(row.profile_name),
     email: normEmail(row.email),
     login_user: norm(row.login_user || row.linked_username),
+    linked_user_email: normEmail(row.linked_user_email || row.linked_user_email_live),
     company_name: norm(row.company_name),
     company_code: normCode(row.company_code),
     department: norm(row.department),
@@ -295,11 +301,6 @@ async function findLinkedUserInDatabase(databaseName, payload = {}) {
       const byId = await User.findByPk(pickedId);
       if (byId) return { user: byId, database_name: dbName };
     }
-    const email = normEmail(payload.email);
-    if (email) {
-      const byEmail = await User.findOne({ where: { email } });
-      if (byEmail) return { user: byEmail, database_name: dbName };
-    }
     const loginUser = norm(payload.login_user);
     if (loginUser) {
       const byName = await User.findOne({ where: { username: loginUser } });
@@ -310,9 +311,7 @@ async function findLinkedUserInDatabase(databaseName, payload = {}) {
 }
 
 async function resolveLinkedUser(payload = {}, req = null) {
-  const candidates = buildCandidateDatabases(payload, req);
-  const mappedDb = await resolveMappedDatabaseForUserId(payload.user_id);
-  if (mappedDb && !candidates.includes(mappedDb)) candidates.push(mappedDb);
+  const candidates = [MAIN_DB_NAME];
   for (const dbName of candidates) {
     const found = await findLinkedUserInDatabase(dbName, payload).catch(() => null);
     if (found && found.user) return found;
@@ -349,26 +348,10 @@ async function syncUserInDatabase(databaseName, userId, payload = {}) {
 }
 
 async function syncLinkedUserFromProfile(linked, payload = {}, req = null) {
-  if (!linked || !linked.user) return { synced: false, primary_db: "" };
-  const dbSet = new Set();
-  const addDb = (name) => {
-    const n = db.normalizeDatabaseName(name || "");
-    if (n) dbSet.add(n);
-  };
-  addDb(linked.database_name);
-  addDb(req?.databaseName);
-  addDb(MAIN_DB_NAME);
-  const mappedDb = await resolveMappedDatabaseForUserId(linked.user.id);
-  addDb(mappedDb);
-
-  let syncedAny = false;
-  for (const dbName of dbSet) {
-    const ok = await syncUserInDatabase(dbName, linked.user.id, payload).catch(() => false);
-    if (ok) syncedAny = true;
-  }
+  if (!linked || !linked.user) return { synced: false, primary_db: MAIN_DB_NAME };
   return {
-    synced: syncedAny,
-    primary_db: db.normalizeDatabaseName(linked.database_name || ""),
+    synced: false,
+    primary_db: db.normalizeDatabaseName(linked.database_name || MAIN_DB_NAME),
   };
 }
 
@@ -393,34 +376,7 @@ async function listUsersFromDatabase(databaseName) {
 }
 
 async function listUsersAcrossDatabases(req) {
-  const candidates = [];
-  const push = (name) => {
-    const n = db.normalizeDatabaseName(name || "");
-    if (!n || candidates.includes(n)) return;
-    candidates.push(n);
-  };
-  push(req?.databaseName);
-  push(MAIN_DB_NAME);
-
-  const merged = [];
-  for (const dbName of candidates) {
-    const rows = await listUsersFromDatabase(dbName).catch(() => []);
-    merged.push(...rows);
-  }
-  const byEmailOrUser = new Map();
-  merged.forEach((row) => {
-    const key = `${String(row.email || "").toLowerCase()}|${String(row.username || "").toLowerCase()}`;
-    if (!key || key === "|") return;
-    if (!byEmailOrUser.has(key)) {
-      byEmailOrUser.set(key, row);
-    } else {
-      const existing = byEmailOrUser.get(key);
-      if (existing && existing.source_database !== MAIN_DB_NAME && row.source_database === MAIN_DB_NAME) {
-        byEmailOrUser.set(key, row);
-      }
-    }
-  });
-  return Array.from(byEmailOrUser.values());
+  return listUsersFromDatabase(MAIN_DB_NAME).catch(() => []);
 }
 
 // Profile endpoints (stored in user_profiles and synced to linked users account).
@@ -492,7 +448,8 @@ router.get("/profiles", withMainDb(async (req, res) => {
     await ensureUserProfilesTable();
     const rows = await db.query(
       `SELECT up.*,
-              u.username AS linked_username
+              u.username AS linked_username,
+              u.email AS linked_user_email_live
        FROM user_profiles up
        LEFT JOIN users u ON u.id = up.user_id
        ORDER BY up."updatedAt" DESC NULLS LAST, up.id DESC`,
@@ -555,7 +512,8 @@ router.get("/profiles/:id", withMainDb(async (req, res) => {
     if (!id) return res.status(400).json({ message: "Invalid profile id" });
     const rows = await db.query(
       `SELECT up.*,
-              u.username AS linked_username
+              u.username AS linked_username,
+              u.email AS linked_user_email_live
        FROM user_profiles up
        LEFT JOIN users u ON u.id = up.user_id
        WHERE up.id = $1
@@ -585,8 +543,8 @@ router.post("/profiles", withMainDb(async (req, res) => {
     const profilePictureDataUrl = profilePicturePath ? String(payload.profile_picture_base64 || "").trim() : "";
     const rows = await db.query(
       `INSERT INTO user_profiles
-       (user_id, profile_name, email, login_user, company_name, company_code, department, section, address, telephone, mobile, profile_picture_path, profile_picture_data_url, profile_picture_updated_at, linked_database_name, user_sync_at, created_by, "createdAt", "updatedAt")
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,NOW(),NOW())
+       (user_id, profile_name, email, login_user, linked_user_email, company_name, company_code, department, section, address, telephone, mobile, profile_picture_path, profile_picture_data_url, profile_picture_updated_at, linked_database_name, user_sync_at, created_by, "createdAt", "updatedAt")
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,NOW(),NOW())
        RETURNING *`,
       {
         bind: [
@@ -594,6 +552,7 @@ router.post("/profiles", withMainDb(async (req, res) => {
           profileName,
           email,
           norm(payload.login_user),
+          normEmail(linkedUser?.user?.email || ""),
           norm(payload.company_name),
           normCode(payload.company_code),
           norm(payload.department),
@@ -666,18 +625,19 @@ router.put("/profiles/:id", withMainDb(async (req, res) => {
            profile_name = $3,
            email = $4,
            login_user = $5,
-           company_name = $6,
-           company_code = $7,
-           department = $8,
-           section = $9,
-           address = $10,
-           telephone = $11,
-           mobile = $12,
-           profile_picture_path = $13,
-           profile_picture_data_url = $14,
-           profile_picture_updated_at = $15,
-           linked_database_name = $16,
-           user_sync_at = $17,
+           linked_user_email = $6,
+           company_name = $7,
+           company_code = $8,
+           department = $9,
+           section = $10,
+           address = $11,
+           telephone = $12,
+           mobile = $13,
+           profile_picture_path = $14,
+           profile_picture_data_url = $15,
+           profile_picture_updated_at = $16,
+           linked_database_name = $17,
+           user_sync_at = $18,
            "updatedAt" = NOW()
        WHERE id = $1
        RETURNING *`,
@@ -688,6 +648,7 @@ router.put("/profiles/:id", withMainDb(async (req, res) => {
           merged.profile_name,
           merged.email,
           merged.login_user,
+          normEmail(linkedUser?.user?.email || merged.linked_user_email || ""),
           merged.company_name,
           merged.company_code,
           merged.department,
