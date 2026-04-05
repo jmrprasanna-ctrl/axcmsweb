@@ -6,10 +6,10 @@ const dotenv = require("dotenv");
 dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
 
 const MODEL_PROXY_SYMBOL = Symbol("ModelProxy");
-const dbKeys = ["axiscmsdb", "demo"];
+const dbKeys = ["inventory", "demo"];
 const asyncLocalStorage = new AsyncLocalStorage();
 
-const MAIN_DB_NAME = "axiscmsdb";
+const MAIN_DB_NAME = "inventory";
 const DEMO_DB_NAME = "demo";
 const modelsByDb = Object.create(null);
 const sequelizeByDb = Object.create(null);

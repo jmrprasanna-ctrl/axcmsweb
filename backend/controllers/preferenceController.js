@@ -6,7 +6,7 @@ const UiSetting = require("../models/UiSetting");
 const IMAGE_ALLOWED_EXTENSIONS = new Set([".jpg", ".jpeg", ".bmp", ".gif", ".png"]);
 const STORAGE_ROOT = path.resolve(__dirname, "../storage/preferences");
 const LOGO_FILE_NAME = "system-logo";
-const DEFAULT_DB_NAME = "axiscmsdb";
+const DEFAULT_DB_NAME = "inventory";
 const USER_PREF_TABLE = "user_preference_settings";
 
 const TEMPLATE_MAP = {
@@ -14,20 +14,68 @@ const TEMPLATE_MAP = {
     column: "invoice_template_pdf_path",
     baseName: "invoice-template",
   },
+  quotation: {
+    column: "quotation_template_pdf_path",
+    baseName: "quotation-template",
+  },
+  quotation2: {
+    column: "quotation2_template_pdf_path",
+    baseName: "quotation-2-template",
+  },
+  quotation3: {
+    column: "quotation3_template_pdf_path",
+    baseName: "quotation-3-template",
+  },
 };
 
 const BRAND_IMAGE_MAP = {
   sign_c: {
     column: "sign_c_path",
     env: "INVOICE_SIGN1_IMAGE",
-    defaultPath: path.resolve(__dirname, "../../frontend/assets/images/axis-sign-1.png"),
+    defaultPath: path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-1.png"),
     fallbackPath: "",
+  },
+  sign_v: {
+    column: "sign_v_path",
+    env: "INVOICE_SIGNV_IMAGE",
+    defaultPath: path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-v.png"),
+    fallbackPath: path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-1.png"),
   },
   seal_c: {
     column: "seal_c_path",
     env: "INVOICE_SEAL1_IMAGE",
-    defaultPath: path.resolve(__dirname, "../../frontend/assets/images/axis-seal-1.png"),
+    defaultPath: path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-1.png"),
     fallbackPath: "",
+  },
+  seal_v: {
+    column: "seal_v_path",
+    env: "INVOICE_SEALV_IMAGE",
+    defaultPath: path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-v.png"),
+    fallbackPath: path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-1.png"),
+  },
+  sign_q2: {
+    column: "sign_q2_path",
+    env: "INVOICE_SIGNQ2_IMAGE",
+    defaultPath: path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-1.png"),
+    fallbackPath: path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-1.png"),
+  },
+  seal_q2: {
+    column: "seal_q2_path",
+    env: "INVOICE_SEALQ2_IMAGE",
+    defaultPath: path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-1.png"),
+    fallbackPath: path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-1.png"),
+  },
+  sign_q3: {
+    column: "sign_q3_path",
+    env: "INVOICE_SIGNQ3_IMAGE",
+    defaultPath: path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-1.png"),
+    fallbackPath: path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-1.png"),
+  },
+  seal_q3: {
+    column: "seal_q3_path",
+    env: "INVOICE_SEALQ3_IMAGE",
+    defaultPath: path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-1.png"),
+    fallbackPath: path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-1.png"),
   },
 };
 
@@ -216,10 +264,28 @@ exports.getPreferences = async (_req, res) => {
       logo_file_name: currentFileNameFromPath(readPath("logo_path")),
       invoice_template_pdf_path: readPath("invoice_template_pdf_path"),
       invoice_template_pdf_file_name: currentFileNameFromPath(readPath("invoice_template_pdf_path")),
+      quotation_template_pdf_path: readPath("quotation_template_pdf_path"),
+      quotation_template_pdf_file_name: currentFileNameFromPath(readPath("quotation_template_pdf_path")),
+      quotation2_template_pdf_path: readPath("quotation2_template_pdf_path"),
+      quotation2_template_pdf_file_name: currentFileNameFromPath(readPath("quotation2_template_pdf_path")),
+      quotation3_template_pdf_path: readPath("quotation3_template_pdf_path"),
+      quotation3_template_pdf_file_name: currentFileNameFromPath(readPath("quotation3_template_pdf_path")),
       sign_c_path: readPath("sign_c_path"),
       sign_c_file_name: currentFileNameFromPath(readPath("sign_c_path")),
+      sign_v_path: readPath("sign_v_path"),
+      sign_v_file_name: currentFileNameFromPath(readPath("sign_v_path")),
       seal_c_path: readPath("seal_c_path"),
       seal_c_file_name: currentFileNameFromPath(readPath("seal_c_path")),
+      seal_v_path: readPath("seal_v_path"),
+      seal_v_file_name: currentFileNameFromPath(readPath("seal_v_path")),
+      sign_q2_path: readPath("sign_q2_path"),
+      sign_q2_file_name: currentFileNameFromPath(readPath("sign_q2_path")),
+      seal_q2_path: readPath("seal_q2_path"),
+      seal_q2_file_name: currentFileNameFromPath(readPath("seal_q2_path")),
+      sign_q3_path: readPath("sign_q3_path"),
+      sign_q3_file_name: currentFileNameFromPath(readPath("sign_q3_path")),
+      seal_q3_path: readPath("seal_q3_path"),
+      seal_q3_file_name: currentFileNameFromPath(readPath("seal_q3_path")),
       logo_url: "/api/preferences/logo-file",
       updated_at: row.updatedAt ? row.updatedAt.toISOString() : "",
     });

@@ -20,7 +20,7 @@ function normalizeDbName(value) {
 function getDatabases() {
   const fromArg = parseArg("databases");
   const fromEnv = String(process.env.DB_MIGRATION_DATABASES || "").trim();
-  const source = fromArg || fromEnv || "axiscmsdb,demo";
+  const source = fromArg || fromEnv || "inventory,demo";
   const dbs = source
     .split(",")
     .map((x) => normalizeDbName(x))
@@ -77,7 +77,7 @@ async function main() {
 
   const databases = getDatabases();
   if (!databases.length) {
-    throw new Error("No valid databases provided. Use --databases=axiscmsdb,demo");
+    throw new Error("No valid databases provided. Use --databases=inventory,demo");
   }
 
   console.log("==> Running baseline migration");
@@ -97,3 +97,4 @@ main().catch((err) => {
   console.error("Baseline migration failed:", err.message || err);
   process.exit(1);
 });
+

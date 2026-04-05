@@ -1,6 +1,7 @@
 const Invoice = require("../models/Invoice");
 const InvoiceItem = require("../models/InvoiceItem");
 const InvoiceImportant = require("../models/InvoiceImportant");
+const Product = require("../models/Product");
 const Customer = require("../models/Customer");
 const Sequelize = require("sequelize");
 const fs = require("fs");
@@ -13,7 +14,7 @@ const Op = Sequelize.Op;
 const ALLOWED_WARRANTY_PERIODS = new Set(["3 month", "6 month", "1 year", "2 year"]);
 const USER_PREF_TABLE = "user_preference_settings";
 const ensuredUserPrefTableByDb = new Set();
-const INVENTORY_DB_NAME = "axiscmsdb";
+const INVENTORY_DB_NAME = "inventory";
 
 function normalizeWarrantyPeriod(value){
     const raw = String(value || "").trim().toLowerCase();
@@ -127,8 +128,8 @@ function buildInvoicePdfBuffer(invoice, customer, items){
     ].filter(Boolean);
 
     (items || []).forEach((item, idx) => {
-        const itemCode = String(item.product_id || "").trim();
-        const description = String(item.description || item.model || itemCode || "").trim();
+        const product = item.Product || {};
+        const description = `${product.product_id || ""} ${product.description || product.model || ""}`.trim();
         const row = `${idx + 1}. ${description} | Qty: ${Number(item.qty || 0)} | Rate: ${Number(item.rate || 0).toFixed(2)} | VAT: ${Number(item.vat || 0).toFixed(2)} | Gross: ${Number(item.gross || 0).toFixed(2)}`;
         lines.push(row);
     });
@@ -145,7 +146,7 @@ function buildQuotation2AdjustedItems(items){
         const qty = Number(item.qty) || 0;
         const rate = Number(item.rate) || 0;
         const vat = Number(item.vat) || 0;
-        const productId = String(item?.product_id || "").trim().toUpperCase();
+        const productId = String(item?.Product?.product_id || "").trim().toUpperCase();
         const entryAddition = entryAdditions[index] || 0;
         const productAddition = productId === "SV0001" ? 500 : 0;
         const adjustedRate = rate + entryAddition + productAddition;
@@ -239,7 +240,7 @@ async function resolveImagePath(req, dbColumn, envVariableName, defaultPath, fal
 }
 
 async function ensureUserPreferenceTableForCurrentDb() {
-    const activeDb = String(db.getCurrentDatabase ? db.getCurrentDatabase() : "").trim().toLowerCase() || INVENTORY_DB_NAME;
+    const activeDb = String(db.getCurrentDatabase ? db.getCurrentDatabase() : "").trim().toLowerCase() || "inventory";
     if (ensuredUserPrefTableByDb.has(activeDb)) return;
     await db.query(`
         CREATE TABLE IF NOT EXISTS ${USER_PREF_TABLE} (
@@ -304,7 +305,7 @@ function buildSmtpPayload(setup){
     const smtpSecure = !!(setup?.smtp_secure || String(process.env.SMTP_SECURE || "").toLowerCase() === "true");
     const smtpUser = String(setup?.smtp_user || process.env.SMTP_USER || "").trim();
     const smtpPass = String(setup?.smtp_pass || process.env.SMTP_PASS || "").trim();
-    const fromName = String(setup?.from_name || "AXIS_CMS_WEB").trim();
+    const fromName = String(setup?.from_name || "PULMO TECHNOLOGIES").trim();
     const fromEmail = String(setup?.from_email || process.env.SMTP_FROM || smtpUser).trim();
     const from = fromEmail.includes("<") ? fromEmail : `"${fromName}" <${fromEmail}>`;
 
@@ -426,7 +427,7 @@ exports.getInvoice = async (req,res)=>{
         const invoice = await Invoice.findByPk(id,{
             include:[
                 { model: Customer, attributes:["id","name","address","tel","email"] },
-                { model: InvoiceItem },
+                { model: InvoiceItem, include:[{ model: Product, attributes:["id","product_id","description","model"] }] },
                 { model: InvoiceImportant, attributes:["id","line_no","note","warranty_period","warranty_expiry_date"] }
             ]
         });
@@ -461,10 +462,10 @@ exports.getInvoice = async (req,res)=>{
             quotation2_items: quotation2Items,
             InvoiceImportants: (raw.InvoiceImportants || []).sort((a, b) => (a.line_no || 0) - (b.line_no || 0)),
             print_meta: {
-                company_name: "AXIS_CMS_WEB",
+                company_name: "PULMO TECHNOLOGIES",
                 company_address: "No 30/1, Muddaragama, Veyangoda",
                 company_tel: "0770 3000 80",
-                company_email: "axiscmssystem@gmail.com",
+                company_email: "pulmotechnologies@gmail.com",
                 registration_no: "PV-52810",
                 copy_label: "ORIGINAL"
             },
@@ -490,6 +491,11 @@ exports.deleteInvoice = async (req,res)=>{
         if(!invoice) return res.status(404).json({ message: "Invoice not found" });
 
         for(const item of invoice.InvoiceItems || []){
+            const product = await Product.findByPk(item.product_id);
+            if(product){
+                product.count = (Number(product.count) || 0) + (Number(item.qty) || 0);
+                await product.save();
+            }
             await InvoiceItem.destroy({ where: { id: item.id } });
         }
         for(const important of invoice.InvoiceImportants || []){
@@ -584,7 +590,7 @@ exports.getSign1Image = async (req,res)=>{
             req,
             "sign_c_path",
             "INVOICE_SIGN1_IMAGE",
-            path.resolve(__dirname, "../../frontend/assets/images/axis-sign-1.png")
+            path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-1.png")
         );
         if(!fs.existsSync(signPath)){
             return res.status(404).json({ message: `Sign 1 image not found at ${signPath}` });
@@ -603,11 +609,11 @@ exports.getSignVImage = async (req,res)=>{
             req,
             "sign_v_path",
             "INVOICE_SIGNV_IMAGE",
-            path.resolve(__dirname, "../../frontend/assets/images/axis-sign-v.png"),
-            path.resolve(__dirname, "../../frontend/assets/images/axis-sign-1.png")
+            path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-v.png"),
+            path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-1.png")
         );
         if(!signPath){
-            return res.status(404).json({ message: "Sign V image not found. Expected frontend/assets/images/axis-sign-v.png" });
+            return res.status(404).json({ message: "Sign V image not found. Expected frontend/assets/images/pulmo-sign-v.png" });
         }
         res.setHeader("Content-Type", getImageMimeType(signPath));
         res.sendFile(signPath);
@@ -623,7 +629,7 @@ exports.getSeal1Image = async (req,res)=>{
             req,
             "seal_c_path",
             "INVOICE_SEAL1_IMAGE",
-            path.resolve(__dirname, "../../frontend/assets/images/axis-seal-1.png")
+            path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-1.png")
         );
         if(!fs.existsSync(sealPath)){
             return res.status(404).json({ message: `Seal 1 image not found at ${sealPath}` });
@@ -642,8 +648,8 @@ exports.getSignQ2Image = async (req,res)=>{
             req,
             "sign_q2_path",
             "INVOICE_SIGNQ2_IMAGE",
-            path.resolve(__dirname, "../../frontend/assets/images/axis-sign-1.png"),
-            path.resolve(__dirname, "../../frontend/assets/images/axis-sign-1.png")
+            path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-1.png"),
+            path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-1.png")
         );
         if(!fs.existsSync(signPath)){
             return res.status(404).json({ message: `Sign Q2 image not found at ${signPath}` });
@@ -662,8 +668,8 @@ exports.getSealQ2Image = async (req,res)=>{
             req,
             "seal_q2_path",
             "INVOICE_SEALQ2_IMAGE",
-            path.resolve(__dirname, "../../frontend/assets/images/axis-seal-1.png"),
-            path.resolve(__dirname, "../../frontend/assets/images/axis-seal-1.png")
+            path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-1.png"),
+            path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-1.png")
         );
         if(!fs.existsSync(sealPath)){
             return res.status(404).json({ message: `Seal Q2 image not found at ${sealPath}` });
@@ -682,8 +688,8 @@ exports.getSignQ3Image = async (req,res)=>{
             req,
             "sign_q3_path",
             "INVOICE_SIGNQ3_IMAGE",
-            path.resolve(__dirname, "../../frontend/assets/images/axis-sign-1.png"),
-            path.resolve(__dirname, "../../frontend/assets/images/axis-sign-1.png")
+            path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-1.png"),
+            path.resolve(__dirname, "../../frontend/assets/images/pulmo-sign-1.png")
         );
         if(!fs.existsSync(signPath)){
             return res.status(404).json({ message: `Sign Q3 image not found at ${signPath}` });
@@ -702,8 +708,8 @@ exports.getSealQ3Image = async (req,res)=>{
             req,
             "seal_q3_path",
             "INVOICE_SEALQ3_IMAGE",
-            path.resolve(__dirname, "../../frontend/assets/images/axis-seal-1.png"),
-            path.resolve(__dirname, "../../frontend/assets/images/axis-seal-1.png")
+            path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-1.png"),
+            path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-1.png")
         );
         if(!fs.existsSync(sealPath)){
             return res.status(404).json({ message: `Seal Q3 image not found at ${sealPath}` });
@@ -722,11 +728,11 @@ exports.getSealVImage = async (req,res)=>{
             req,
             "seal_v_path",
             "INVOICE_SEALV_IMAGE",
-            path.resolve(__dirname, "../../frontend/assets/images/axis-seal-v.png"),
-            path.resolve(__dirname, "../../frontend/assets/images/axis-seal-1.png")
+            path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-v.png"),
+            path.resolve(__dirname, "../../frontend/assets/images/pulmo-seal-1.png")
         );
         if(!sealPath){
-            return res.status(404).json({ message: "Seal V image not found. Expected frontend/assets/images/axis-seal-v.png" });
+            return res.status(404).json({ message: "Seal V image not found. Expected frontend/assets/images/pulmo-seal-v.png" });
         }
         res.setHeader("Content-Type", getImageMimeType(sealPath));
         res.sendFile(sealPath);
@@ -815,23 +821,23 @@ exports.createInvoice = async (req,res)=>{
         });
         for(const item of items){
             const productId = Number(item.productId);
+            if(!productId){
+                return res.status(400).json({ message: "Invalid product in invoice items" });
+            }
             await InvoiceItem.create({ 
                 invoice_id: invoice.id,
-                product_id: Number.isFinite(productId) && productId > 0 ? productId : null,
+                product_id: productId,
                 qty: Number(item.qty) || 0,
                 rate: Number(item.rate) || 0,
                 vat: Number(item.vat) || 0,
                 gross: Number(item.gross) || 0
             });
-<<<<<<< HEAD
                            
             const product = await Product.findByPk(productId);
             if(product) {
                 product.count = product.count - (Number(item.qty) || 0);
                 await product.save();
             }
-=======
->>>>>>> 046c6f3 (feat: apply AXIS web updates across backend and frontend)
         }
         if(Array.isArray(importants) && importants.length){
             let lineNo = 1;
@@ -1133,7 +1139,7 @@ exports.sendInvoiceEmail = async (req, res) => {
         const invoice = await Invoice.findByPk(id, {
             include: [
                 { model: Customer, attributes: ["id", "name", "address", "tel", "email"] },
-                { model: InvoiceItem }
+                { model: InvoiceItem, include: [{ model: Product, attributes: ["id", "product_id", "description", "model"] }] }
             ]
         });
         if(!invoice) return res.status(404).json({ message: "Invoice not found" });
@@ -1179,14 +1185,14 @@ exports.sendInvoiceEmail = async (req, res) => {
                     : (String(src.smtp_user || "").trim() || mappedCompanyEmail || null),
                 from_name: forceMappedBranding
                     ? mappedCompanyName
-                    : (String(src.from_name || "").trim() || mappedCompanyName || "AXIS_CMS_WEB"),
+                    : (String(src.from_name || "").trim() || mappedCompanyName || "PULMO TECHNOLOGIES"),
                 from_email: forceMappedBranding
                     ? (mappedCompanyEmail || String(src.from_email || "").trim() || null)
                     : (String(src.from_email || "").trim() || mappedCompanyEmail || null),
                 subject_template: forceMappedBranding
                     ? `Invoice {{invoice_no}} - ${mappedCompanyName}`
-                    : (String(src.subject_template || "").trim() || `Invoice {{invoice_no}} - ${mappedCompanyName || "AXIS_CMS_WEB"}`),
-                body_template: String(src.body_template || "").trim() || `Dear {{customer_name}},\n\nPlease find attached your invoice {{invoice_no}}.\n\nThank you.\n${mappedCompanyName || "AXIS_CMS_WEB"}`
+                    : (String(src.subject_template || "").trim() || `Invoice {{invoice_no}} - ${mappedCompanyName || "PULMO TECHNOLOGIES"}`),
+                body_template: String(src.body_template || "").trim() || `Dear {{customer_name}},\n\nPlease find attached your invoice {{invoice_no}}.\n\nThank you.\n${mappedCompanyName || "PULMO TECHNOLOGIES"}`
             };
         };
         const currentSetup = await EmailSetup.findOne({ order: [["id", "ASC"]] });
@@ -1282,15 +1288,15 @@ exports.sendInvoiceEmail = async (req, res) => {
 
         const templateSetup = currentSetupResolved || inventorySetupResolved || null;
         const defaultSubjectTemplate = isQuotation23Email
-            ? "Quotation 2/3 {{invoice_no}} - AXIS_CMS_WEB"
+            ? "Quotation 2/3 {{invoice_no}} - PULMO TECHNOLOGIES"
             : (isQuotationEmail
-                ? "Quotation {{invoice_no}} - AXIS_CMS_WEB"
-                : "Invoice {{invoice_no}} - AXIS_CMS_WEB");
+                ? "Quotation {{invoice_no}} - PULMO TECHNOLOGIES"
+                : "Invoice {{invoice_no}} - PULMO TECHNOLOGIES");
         const defaultBodyTemplate = isQuotation23Email
-            ? "Dear {{customer_name}},\n\nPlease find attached your Quotation 2 and Quotation 3 for reference {{invoice_no}}.\n\nThank you.\nAXIS_CMS_WEB"
+            ? "Dear {{customer_name}},\n\nPlease find attached your Quotation 2 and Quotation 3 for reference {{invoice_no}}.\n\nThank you.\nPULMO TECHNOLOGIES"
             : (isQuotationEmail
-                ? "Dear {{customer_name}},\n\nPlease find attached your Quotation for reference {{invoice_no}}.\n\nThank you.\nAXIS_CMS_WEB"
-                : "Dear {{customer_name}},\n\nPlease find attached your invoice {{invoice_no}}.\n\nThank you.\nAXIS_CMS_WEB");
+                ? "Dear {{customer_name}},\n\nPlease find attached your Quotation for reference {{invoice_no}}.\n\nThank you.\nPULMO TECHNOLOGIES"
+                : "Dear {{customer_name}},\n\nPlease find attached your invoice {{invoice_no}}.\n\nThank you.\nPULMO TECHNOLOGIES");
 
         const subjectTemplate = isAnyQuotationEmail
             ? defaultSubjectTemplate

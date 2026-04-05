@@ -349,7 +349,6 @@ function escapeHtml(value){
 }
 
 async function searchProducts(query){
-<<<<<<< HEAD
     const q = String(query || "").trim();
     if(q.length < 2) return [];
     try{
@@ -414,9 +413,7 @@ async function searchProducts(query){
     }catch(_err){
         return [];
     }
-=======
     return [];
->>>>>>> 046c6f3 (feat: apply AXIS web updates across backend and frontend)
 }
 
 function renderProductSearchOptions(listEl, rows){
@@ -655,11 +652,8 @@ document.getElementById("invoiceForm").addEventListener("submit", async function
     }
 
     try{
-<<<<<<< HEAD
                                         
-=======
         // Save invoice to AXIS backend
->>>>>>> 046c6f3 (feat: apply AXIS web updates across backend and frontend)
         await request("/invoices","POST",{
             customer_id:customerId,
             invoice_no:invoiceNo,
@@ -728,15 +722,12 @@ async function generatePDF(invoiceNo, customerName, machineRef, items){
     const pageW = 210;
     const pageH = 297;
 
-<<<<<<< HEAD
              
     if(PULMO_LOGO_DATA_URL && PULMO_LOGO_DATA_URL.startsWith("data:image")){
         doc.addImage(PULMO_LOGO_DATA_URL, "JPEG", 15, 10, 60, 20);
-=======
     // Header
     if(AXIS_LOGO_DATA_URL && AXIS_LOGO_DATA_URL.startsWith("data:image")){
         doc.addImage(AXIS_LOGO_DATA_URL, "JPEG", 15, 10, 60, 20);
->>>>>>> 046c6f3 (feat: apply AXIS web updates across backend and frontend)
     }
     doc.setFontSize(16);
     doc.text("AXIS_CMS_WEB", 120, 18);

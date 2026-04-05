@@ -1,4 +1,4 @@
-﻿const fs = require("fs");
+const fs = require("fs");
 const path = require("path");
 const { Client } = require("pg");
 const { spawn } = require("child_process");
@@ -7,9 +7,10 @@ const User = require("../models/User");
 const UserAccess = require("../models/UserAccess");
 const UiSetting = require("../models/UiSetting");
 const EmailSetup = require("../models/EmailSetup");
+const Category = require("../models/Category");
+const CategoryModelOption = require("../models/CategoryModelOption");
 const DEMO_DB_NAME = "demo";
-const INVENTORY_DB_NAME = "axiscmsdb";
-const LEGACY_MAIN_DB_NAME = "inventory";
+const INVENTORY_DB_NAME = "inventory";
 const RESERVED_DATABASES = new Set(["postgres", "template0", "template1"]);
 const DATABASE_REGISTRY_TABLE = "company_databases";
 const DATABASE_STORAGE_ROOT = path.resolve(__dirname, "../storage/databases");
@@ -71,34 +72,66 @@ const QUOTATION3_RENDER_KEYS = new Set([
   "sealV",
 ]);
 const ensuredUiSettingsDbSet = new Set();
+const DEFAULT_CATEGORIES = [
+  "Photocopier",
+  "Printer",
+  "Plotter",
+  "Computer",
+  "Laptop",
+  "Accessory",
+  "Consumable",
+  "Machine",
+  "CCTV",
+  "Duplo",
+  "Other",
+  "Service",
+];
+const DEFAULT_CATEGORY_MODELS = {
+  Accessory: ["CANON", "TOSHIBA", "RECOH", "SHARP", "KYOCERA", "SEROX", "SAMSUNG", "HP", "DELL"],
+  Consumable: ["CANON", "TOSHIBA", "RECOH", "SHARP", "KYOCERA", "SEROX", "SAMSUNG", "HP", "DELL"],
+  Machine: ["CANON", "TOSHIBA", "RECOH", "SHARP", "KYOCERA", "SEROX", "SAMSUNG", "HP", "DELL"],
+  Photocopier: ["CANON", "TOSHIBA", "RECOH", "SHARP", "KYOCERA", "SEROX", "SAMSUNG", "HP", "DELL"],
+  Printer: ["CANON", "HP", "EPSON", "BROTHER", "LEXMARK", "OTHER", "SEROX", "SAMSUNG"],
+  Computer: ["HP", "DELL", "ASUS", "SONY", "SINGER", "SAMSUNG", "SPARE PARTS", "OTHER"],
+  Laptop: ["HP", "DELL", "ASUS", "SONY", "SINGER", "SAMSUNG", "SPARE PARTS", "OTHER"],
+  Plotter: ["CANON", "HP", "EPSON", "OTHER"],
+  CCTV: ["HICKVISION", "DAHUA", "OTHER"],
+  Duplo: ["RONGDA", "RISO", "RECOH", "DUPLO"],
+  Other: ["OTHER"],
+  Service: ["OTHER"],
+};
 
 const ACCESS_MODULE_OPTIONS = [
   {
-    module: "Cases",
+    module: "Products",
     items: [
-      { path: "/cases/case-list.html", label: "Cases", actions: ["view", "add", "edit", "delete"] },
-      { path: "/cases/new-case.html", label: "New Case", actions: ["view", "add", "edit"] },
-      { path: "/cases/edit-case.html", label: "Edit Case", actions: ["view", "edit"] },
-      { path: "/cases/plaint.html", label: "Plaint", actions: ["view", "add", "edit", "delete"] },
-      { path: "/cases/plaint-create.html", label: "Plaint Create", actions: ["view", "add", "edit"] },
-      { path: "/cases/edit-plaint.html", label: "Edit Plaint", actions: ["view", "edit"] },
-      { path: "/cases/answer.html", label: "Answer", actions: ["view", "add", "edit", "delete"] },
-      { path: "/cases/answer-create.html", label: "Answer Create", actions: ["view", "add", "edit"] },
-      { path: "/cases/edit-answer.html", label: "Edit Answer", actions: ["view", "edit", "delete"] },
-      { path: "/cases/witness-list.html", label: "List of witnesses", actions: ["view", "add", "edit", "delete"] },
-      { path: "/cases/witness-create.html", label: "Create L/witnesses", actions: ["view", "add", "edit"] },
-      { path: "/cases/edit-witness.html", label: "Edit L/witnesses", actions: ["view", "edit", "delete"] },
-      { path: "/cases/judgment-list.html", label: "Dugement List", actions: ["view", "add", "edit", "delete"] },
-      { path: "/cases/judgment-create.html", label: "Create Dugement", actions: ["view", "add", "edit"] },
-      { path: "/cases/edit-judgment.html", label: "Edit Dugement", actions: ["view", "edit", "delete"] },
+      { path: "/products/product-list.html", label: "Products List", actions: ["view", "add", "edit", "delete"] },
+      { path: "/products/add-product.html", label: "Add Product", actions: ["view", "add"] },
+      { path: "/products/edit-product.html", label: "Edit Product", actions: ["view", "edit"] },
+      { path: "/products/general-machine.html", label: "General Machines", actions: ["view", "add", "edit", "delete"] },
+      { path: "/products/add-general-machine.html", label: "Add General Machine", actions: ["view", "add"] },
+      { path: "/products/edit-general-machine.html", label: "Edit General Machine", actions: ["view", "edit"] },
+      { path: "/products/machine.html", label: "Rental Machines", actions: ["view", "add", "edit", "delete"] },
+      { path: "/products/add-rental-machine.html", label: "Add Rental Machine", actions: ["view", "add"] },
+      { path: "/products/edit-rental-machine.html", label: "Edit Rental Machine", actions: ["view", "edit"] },
+      { path: "/products/add-rental-count.html", label: "Rental Count", actions: ["view", "add", "edit", "delete"] },
+      { path: "/products/add-rental-consumable.html", label: "Rental Consumables", actions: ["view", "add", "edit", "delete"] },
     ],
   },
   {
-    module: "Client",
+    module: "Customers",
     items: [
-      { path: "/customers/client-list.html", label: "Client List", actions: ["view", "add", "edit", "delete"] },
-      { path: "/customers/Add-Client.html", label: "Add Client", actions: ["view", "add"] },
-      { path: "/customers/edit-customer.html", label: "Edit Client", actions: ["view", "edit"] },
+      { path: "/customers/customer-list.html", label: "Customers List", actions: ["view", "add", "edit", "delete"] },
+      { path: "/customers/add-customer.html", label: "Add Customer", actions: ["view", "add"] },
+      { path: "/customers/edit-customer.html", label: "Edit Customer", actions: ["view", "edit"] },
+    ],
+  },
+  {
+    module: "Vendors",
+    items: [
+      { path: "/vendors/list-vendor.html", label: "Vendors List", actions: ["view", "add", "edit", "delete"] },
+      { path: "/vendors/add-vendor.html", label: "Add Vendor", actions: ["view", "add"] },
+      { path: "/vendors/edit-vendor.html", label: "Edit Vendor", actions: ["view", "edit"] },
     ],
   },
   {
@@ -112,7 +145,7 @@ const ACCESS_MODULE_OPTIONS = [
   {
     module: "Invoices",
     items: [
-      { path: "/invoices/invoice-list.html", label: "Payments list", actions: ["view", "add", "edit", "delete"] },
+      { path: "/invoices/invoice-list.html", label: "Invoice List", actions: ["view", "add", "edit", "delete"] },
       { path: "/invoices/create-invoice.html", label: "Create Invoice", actions: ["view", "add", "edit"] },
       { path: "/invoices/view-invoice.html", label: "View Invoice", actions: ["view"] },
       { path: "/invoices/view-quotation.html", label: "View Quotation", actions: ["view"] },
@@ -121,17 +154,14 @@ const ACCESS_MODULE_OPTIONS = [
     ],
   },
   {
-    module: "Finance",
+    module: "Reports & Analytics",
     items: [
+      { path: "/reports/sales-report.html", label: "Sales Report", actions: ["view"] },
+      { path: "/analytics/sales-chart.html", label: "Sales Chart", actions: ["view"] },
       { path: "/finance/finance.html", label: "Finance", actions: ["view"] },
-    ],
-  },
-  {
-    module: "Support",
-    items: [
-      { path: "/support/support.html", label: "Support", actions: ["view", "add", "delete"] },
-      { path: "/support/add-lawyer.html", label: "Add Lawyer", actions: ["view", "add"] },
-      { path: "/support/add-court.html", label: "Add Court", actions: ["view", "add"] },
+      { path: "/finance/payments.html", label: "Payments", actions: ["view"] },
+      { path: "/finance/pendings.html", label: "Pendings", actions: ["view"] },
+      { path: "/stock/stock.html", label: "Stock", actions: ["view", "edit"] },
     ],
   },
   {
@@ -139,6 +169,8 @@ const ACCESS_MODULE_OPTIONS = [
     items: [
       { path: "/messages/messages.html", label: "Messages", actions: ["view", "add", "delete"] },
       { path: "/notifications/notifications.html", label: "Notifications", actions: ["view"] },
+      { path: "/support/support.html", label: "Support", actions: ["view", "add", "edit", "delete"] },
+      { path: "/support/warrenty.html", label: "Warrenty", actions: ["view"] },
       { path: "/users/technician-list.html", label: "Support Technician", actions: ["view", "add", "edit", "delete"] },
     ],
   },
@@ -147,8 +179,6 @@ const ACCESS_MODULE_OPTIONS = [
     items: [
       { path: "/users/user-list.html", label: "User List", actions: ["view", "add", "edit", "delete"] },
       { path: "/users/add-user.html", label: "Add User", actions: ["view", "add"] },
-      { path: "/users/profile-list.html", label: "Profile", actions: ["view", "add", "edit", "delete"] },
-      { path: "/users/add-profile.html", label: "Add Profile", actions: ["view", "add", "edit"] },
       { path: "/users/edit-user.html", label: "Edit User", actions: ["view", "edit"] },
       { path: "/users/user-access.html", label: "User Access", actions: ["view", "edit"] },
       { path: "/users/db-create.html", label: "DB Create", actions: ["view", "add", "delete"] },
@@ -167,7 +197,6 @@ const ACCESS_MODULE_OPTIONS = [
     module: "Core",
     items: [
       { path: "/dashboard.html", label: "Dashboard", actions: ["view"] },
-      { path: "/calendar.html", label: "Calender", actions: ["view"] },
       { path: "/users/super-user-admin.html", label: "Super User Admin", actions: ["view"] },
     ],
   },
@@ -221,7 +250,6 @@ function expandImplicitActionDependencies(actionKeys) {
   const set = new Set((Array.isArray(actionKeys) ? actionKeys : []).map((x) => String(x || "").trim().toLowerCase()).filter(Boolean));
   const add = (path, action) => set.add(toActionKey(path, action));
 
-<<<<<<< HEAD
                                                                               
   if (set.has(toActionKey("/products/product-list.html", "edit"))) {
     add("/products/edit-product.html", "view");
@@ -236,12 +264,12 @@ function expandImplicitActionDependencies(actionKeys) {
     add("/products/edit-rental-machine.html", "edit");
   }
   if (set.has(toActionKey("/customers/customer-list.html", "edit"))) {
-=======
-  // If a list page has edit permission, allow opening its edit-form page too.
-  if (set.has(toActionKey("/customers/client-list.html", "edit"))) {
->>>>>>> 046c6f3 (feat: apply AXIS web updates across backend and frontend)
     add("/customers/edit-customer.html", "view");
     add("/customers/edit-customer.html", "edit");
+  }
+  if (set.has(toActionKey("/vendors/list-vendor.html", "edit"))) {
+    add("/vendors/edit-vendor.html", "view");
+    add("/vendors/edit-vendor.html", "edit");
   }
   if (set.has(toActionKey("/expenses/expense-list.html", "edit"))) {
     add("/expenses/edit-expense.html", "view");
@@ -250,21 +278,6 @@ function expandImplicitActionDependencies(actionKeys) {
   if (set.has(toActionKey("/users/technician-list.html", "edit"))) {
     add("/users/edit-technician.html", "view");
     add("/users/edit-technician.html", "edit");
-  }
-  if (set.has(toActionKey("/users/profile-list.html", "add"))) {
-    add("/users/add-profile.html", "view");
-    add("/users/add-profile.html", "add");
-  }
-  if (set.has(toActionKey("/users/profile-list.html", "edit"))) {
-    add("/users/add-profile.html", "view");
-    add("/users/add-profile.html", "edit");
-  }
-  if (
-    set.has(toActionKey("/users/profile-list.html", "add")) ||
-    set.has(toActionKey("/users/profile-list.html", "edit")) ||
-    set.has(toActionKey("/users/profile-list.html", "delete"))
-  ) {
-    add("/users/profile-list.html", "view");
   }
   if (set.has(toActionKey("/users/technician-list.html", "add"))) {
     add("/users/add-technician.html", "view");
@@ -276,114 +289,6 @@ function expandImplicitActionDependencies(actionKeys) {
     set.has(toActionKey("/users/technician-list.html", "delete"))
   ) {
     add("/users/technician-list.html", "view");
-  }
-  if (set.has(toActionKey("/cases/case-list.html", "add"))) {
-    add("/cases/new-case.html", "view");
-    add("/cases/new-case.html", "add");
-  }
-  if (set.has(toActionKey("/cases/case-list.html", "edit"))) {
-    add("/cases/new-case.html", "view");
-    add("/cases/new-case.html", "edit");
-    add("/cases/edit-case.html", "view");
-    add("/cases/edit-case.html", "edit");
-    add("/cases/plaint.html", "view");
-    add("/cases/plaint.html", "add");
-    add("/cases/plaint.html", "edit");
-    add("/cases/plaint-create.html", "view");
-    add("/cases/plaint-create.html", "add");
-    add("/cases/plaint-create.html", "edit");
-  }
-  if (set.has(toActionKey("/cases/case-list.html", "delete"))) {
-    add("/cases/plaint.html", "view");
-    add("/cases/plaint.html", "delete");
-  }
-  if (set.has(toActionKey("/cases/plaint.html", "add")) || set.has(toActionKey("/cases/plaint.html", "edit"))) {
-    add("/cases/plaint-create.html", "view");
-    add("/cases/plaint-create.html", "add");
-    add("/cases/plaint-create.html", "edit");
-    add("/cases/edit-plaint.html", "view");
-    add("/cases/edit-plaint.html", "edit");
-  }
-  if (set.has(toActionKey("/cases/answer.html", "add")) || set.has(toActionKey("/cases/answer.html", "edit"))) {
-    add("/cases/answer-create.html", "view");
-    add("/cases/answer-create.html", "add");
-    add("/cases/answer-create.html", "edit");
-    add("/cases/edit-answer.html", "view");
-    add("/cases/edit-answer.html", "edit");
-    add("/cases/witness-list.html", "view");
-    add("/cases/witness-list.html", "add");
-    add("/cases/witness-list.html", "edit");
-    add("/cases/witness-create.html", "view");
-    add("/cases/witness-create.html", "add");
-    add("/cases/witness-create.html", "edit");
-    add("/cases/edit-witness.html", "view");
-    add("/cases/edit-witness.html", "edit");
-  }
-  if (set.has(toActionKey("/cases/case-list.html", "edit"))) {
-    add("/cases/answer.html", "view");
-    add("/cases/answer.html", "add");
-    add("/cases/answer.html", "edit");
-    add("/cases/answer-create.html", "view");
-    add("/cases/answer-create.html", "add");
-    add("/cases/answer-create.html", "edit");
-    add("/cases/edit-answer.html", "view");
-    add("/cases/edit-answer.html", "edit");
-    add("/cases/witness-list.html", "view");
-    add("/cases/witness-list.html", "add");
-    add("/cases/witness-list.html", "edit");
-    add("/cases/witness-create.html", "view");
-    add("/cases/witness-create.html", "add");
-    add("/cases/witness-create.html", "edit");
-    add("/cases/edit-witness.html", "view");
-    add("/cases/edit-witness.html", "edit");
-    add("/cases/judgment-list.html", "view");
-    add("/cases/judgment-list.html", "add");
-    add("/cases/judgment-list.html", "edit");
-    add("/cases/judgment-create.html", "view");
-    add("/cases/judgment-create.html", "add");
-    add("/cases/judgment-create.html", "edit");
-    add("/cases/edit-judgment.html", "view");
-    add("/cases/edit-judgment.html", "edit");
-  }
-  if (set.has(toActionKey("/cases/case-list.html", "delete"))) {
-    add("/cases/answer.html", "view");
-    add("/cases/answer.html", "delete");
-    add("/cases/edit-answer.html", "view");
-    add("/cases/edit-answer.html", "delete");
-    add("/cases/witness-list.html", "view");
-    add("/cases/witness-list.html", "delete");
-    add("/cases/edit-witness.html", "view");
-    add("/cases/edit-witness.html", "delete");
-    add("/cases/judgment-list.html", "view");
-    add("/cases/judgment-list.html", "delete");
-    add("/cases/edit-judgment.html", "view");
-    add("/cases/edit-judgment.html", "delete");
-  }
-  if (set.has(toActionKey("/cases/answer.html", "delete"))) {
-    add("/cases/edit-answer.html", "view");
-    add("/cases/edit-answer.html", "delete");
-    add("/cases/witness-list.html", "view");
-    add("/cases/witness-list.html", "delete");
-    add("/cases/edit-witness.html", "view");
-    add("/cases/edit-witness.html", "delete");
-  }
-  if (set.has(toActionKey("/cases/judgment-list.html", "add")) || set.has(toActionKey("/cases/judgment-list.html", "edit"))) {
-    add("/cases/judgment-create.html", "view");
-    add("/cases/judgment-create.html", "add");
-    add("/cases/judgment-create.html", "edit");
-    add("/cases/edit-judgment.html", "view");
-    add("/cases/edit-judgment.html", "edit");
-  }
-  if (set.has(toActionKey("/cases/judgment-list.html", "delete"))) {
-    add("/cases/edit-judgment.html", "view");
-    add("/cases/edit-judgment.html", "delete");
-  }
-
-  if (set.has(toActionKey("/support/support.html", "add"))) {
-    add("/support/add-lawyer.html", "view");
-    add("/support/add-lawyer.html", "add");
-    add("/support/add-court.html", "view");
-    add("/support/add-court.html", "add");
   }
 
   return normalizeActions(Array.from(set));
@@ -772,11 +677,10 @@ async function findAccessFromMainDb(userId, userDatabase = INVENTORY_DB_NAME) {
     const rs = await client.query(
       `SELECT id, allowed_pages_json, allowed_actions_json, database_name, user_database, "updatedAt", "createdAt"
        FROM user_accesses
-       WHERE user_id = $1
-         AND LOWER(COALESCE(user_database, $2)) IN ($2, $3)
+       WHERE user_id = $1 AND (LOWER(COALESCE(user_database, 'inventory')) = $2)
        ORDER BY "updatedAt" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
        LIMIT 1`,
-      [userId, normalizeUserDatabase(userDatabase), LEGACY_MAIN_DB_NAME]
+      [userId, normalizeUserDatabase(userDatabase)]
     );
     if (!rs.rowCount) return null;
     return rs.rows[0];
@@ -831,9 +735,34 @@ function getDbConfig() {
   };
 }
 
-function runProcess(command, args = [], env = {}) {
+async function seedDefaultCategoryData(databaseName) {
+  await db.withDatabase(databaseName, async () => {
+    for (const name of DEFAULT_CATEGORIES) {
+      const exists = await Category.findOne({ where: { name } });
+      if (!exists) {
+        await Category.create({ name });
+      }
+    }
+
+    for (const [categoryName, models] of Object.entries(DEFAULT_CATEGORY_MODELS)) {
+      for (const modelName of models) {
+        const exists = await CategoryModelOption.findOne({
+          where: { category_name: categoryName, model_name: modelName },
+        });
+        if (!exists) {
+          await CategoryModelOption.create({
+            category_name: categoryName,
+            model_name: modelName,
+          });
+        }
+      }
+    }
+  });
+}
+
+function runBash(command, env = {}) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
+    const child = spawn("bash", ["-lc", command], {
       env: { ...process.env, ...env },
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -849,51 +778,9 @@ function runProcess(command, args = [], env = {}) {
         resolve({ stdout, stderr });
         return;
       }
-      reject(new Error(stderr || stdout || `${command} failed with code ${code}`));
+      reject(new Error(stderr || stdout || `Command failed with code ${code}`));
     });
   });
-}
-
-async function copySchemaWithPgTools(sourceDb, targetDb, cfg) {
-  const pgDumpPath = (process.env.PG_DUMP_PATH || "pg_dump").trim();
-  const psqlPath = (process.env.PSQL_PATH || "psql").trim();
-  const tempSchemaFile = path.join(
-    DATABASE_STORAGE_ROOT,
-    `__schema_clone_${sourceDb}_to_${targetDb}_${Date.now()}.sql`
-  );
-  ensureDir(DATABASE_STORAGE_ROOT);
-
-  const commonArgs = [
-    "-h", String(cfg.host),
-    "-p", String(cfg.port),
-    "-U", String(cfg.user),
-  ];
-  const env = { PGPASSWORD: cfg.password || "" };
-
-  try {
-    await runProcess(
-      pgDumpPath,
-      [...commonArgs, "-d", sourceDb, "--schema-only", "-f", tempSchemaFile],
-      env
-    );
-    await runProcess(
-      psqlPath,
-      [...commonArgs, "-d", targetDb, "-f", tempSchemaFile],
-      env
-    );
-  } catch (err) {
-    const msg = String(err?.message || "");
-    if (/ENOENT/i.test(msg)) {
-      throw new Error(
-        "PostgreSQL tools not found. Set PG_DUMP_PATH and PSQL_PATH in backend/.env (for example to pg_dump.exe and psql.exe full paths)."
-      );
-    }
-    throw err;
-  } finally {
-    if (fs.existsSync(tempSchemaFile)) {
-      fs.rmSync(tempSchemaFile, { force: true });
-    }
-  }
 }
 
 async function ensureDemoDatabaseSchema() {
@@ -925,14 +812,41 @@ async function ensureDemoDatabaseSchema() {
     return { demoExists: true, schemaCloned: false };
   }
 
+  const pgDumpPath = (process.env.PG_DUMP_PATH || "pg_dump").trim();
+  const psqlPath = (process.env.PSQL_PATH || "psql").trim();
   const sourceDb = String(cfg.database || "").trim();
   if (!sourceDb || sourceDb.toLowerCase() === DEMO_DB_NAME) return { demoExists: true, schemaCloned: false };
-  await copySchemaWithPgTools(sourceDb, DEMO_DB_NAME, cfg);
+
+  const escapedSource = `'${sourceDb.replace(/'/g, "'\\''")}'`;
+  const escapedDemo = `'${DEMO_DB_NAME}'`;
+  const escapedHost = `'${String(cfg.host).replace(/'/g, "'\\''")}'`;
+  const escapedPort = `'${String(cfg.port).replace(/'/g, "'\\''")}'`;
+  const escapedUser = `'${String(cfg.user).replace(/'/g, "'\\''")}'`;
+  const escapedDump = `'${pgDumpPath.replace(/'/g, "'\\''")}'`;
+  const escapedPsql = `'${psqlPath.replace(/'/g, "'\\''")}'`;
+
+  const cmd = [
+    `${escapedDump} --schema-only`,
+    `-h ${escapedHost}`,
+    `-p ${escapedPort}`,
+    `-U ${escapedUser}`,
+    `-d ${escapedSource}`,
+    `|`,
+    `${escapedPsql}`,
+    `-h ${escapedHost}`,
+    `-p ${escapedPort}`,
+    `-U ${escapedUser}`,
+    `-d ${escapedDemo}`
+  ].join(" ");
+
+  await runBash(cmd, { PGPASSWORD: cfg.password || "" });
   return { demoExists: true, schemaCloned: true };
 }
 
 async function cloneSchemaToDatabase(targetDatabaseName) {
   const cfg = getDbConfig();
+  const pgDumpPath = (process.env.PG_DUMP_PATH || "pg_dump").trim();
+  const psqlPath = (process.env.PSQL_PATH || "psql").trim();
   const sourceDb = String(cfg.database || "").trim();
   const targetDb = String(targetDatabaseName || "").trim();
   if (!sourceDb || !targetDb) {
@@ -941,7 +855,30 @@ async function cloneSchemaToDatabase(targetDatabaseName) {
   if (sourceDb.toLowerCase() === targetDb.toLowerCase()) {
     return;
   }
-  await copySchemaWithPgTools(sourceDb, targetDb, cfg);
+
+  const escapedSource = `'${sourceDb.replace(/'/g, "'\\''")}'`;
+  const escapedTarget = `'${targetDb.replace(/'/g, "'\\''")}'`;
+  const escapedHost = `'${String(cfg.host).replace(/'/g, "'\\''")}'`;
+  const escapedPort = `'${String(cfg.port).replace(/'/g, "'\\''")}'`;
+  const escapedUser = `'${String(cfg.user).replace(/'/g, "'\\''")}'`;
+  const escapedDump = `'${pgDumpPath.replace(/'/g, "'\\''")}'`;
+  const escapedPsql = `'${psqlPath.replace(/'/g, "'\\''")}'`;
+
+  const cmd = [
+    `${escapedDump} --schema-only`,
+    `-h ${escapedHost}`,
+    `-p ${escapedPort}`,
+    `-U ${escapedUser}`,
+    `-d ${escapedSource}`,
+    `|`,
+    `${escapedPsql}`,
+    `-h ${escapedHost}`,
+    `-p ${escapedPort}`,
+    `-U ${escapedUser}`,
+    `-d ${escapedTarget}`,
+  ].join(" ");
+
+  await runBash(cmd, { PGPASSWORD: cfg.password || "" });
 }
 
 async function fetchCompanyDatabaseMap(mainDbClient) {
@@ -1296,10 +1233,10 @@ exports.getAccessUsers = async (_req, res) => {
       await ensureUserMappingTable(mainDbClient);
 
       const accessRs = await mainDbClient.query(
-        `SELECT DISTINCT ON (user_id, LOWER(COALESCE(user_database, '${INVENTORY_DB_NAME}')))
-           user_id, user_database, database_name
+        `SELECT DISTINCT ON (user_id, LOWER(COALESCE(user_database, 'inventory')))
+            user_id, user_database, database_name
          FROM user_accesses
-         ORDER BY user_id, LOWER(COALESCE(user_database, '${INVENTORY_DB_NAME}')), "updatedAt" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC`
+         ORDER BY user_id, LOWER(COALESCE(user_database, 'inventory')), "updatedAt" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC`
       );
       (accessRs.rows || []).forEach((row) => {
         const userId = Number(row?.user_id || 0);
@@ -1497,64 +1434,12 @@ exports.createDatabase = async (req, res) => {
 
   try {
     await adminClient.connect();
-    await mainDbClient.connect();
-    await ensureDatabaseRegistryTable(mainDbClient);
-
-    const ensureFolderForRegistry = async () => {
-      const existingFolderRs = await mainDbClient.query(
-        `SELECT folder_name
-         FROM ${DATABASE_REGISTRY_TABLE}
-         WHERE LOWER(database_name) = LOWER($1)
-         LIMIT 1`,
-        [databaseName]
-      );
-      let folderName = String(existingFolderRs.rows?.[0]?.folder_name || "").trim();
-      ensureDir(DATABASE_STORAGE_ROOT);
-      if (!folderName) {
-        let dbFolderPath = path.join(DATABASE_STORAGE_ROOT, safeNamePart(companyName) || `db_${Date.now()}`);
-        let suffix = 1;
-        while (fs.existsSync(dbFolderPath)) {
-          dbFolderPath = path.join(DATABASE_STORAGE_ROOT, `${safeNamePart(companyName) || "db"}_${suffix++}`);
-        }
-        ensureDir(dbFolderPath);
-        folderName = path.basename(dbFolderPath);
-      } else {
-        ensureDir(path.join(DATABASE_STORAGE_ROOT, folderName));
-      }
-      return folderName;
-    };
-
     const existsRs = await adminClient.query(
       "SELECT 1 FROM pg_database WHERE datname = $1 LIMIT 1",
       [databaseName]
     );
     if (existsRs.rowCount > 0) {
-      await db.registerDatabase(databaseName).catch(() => {});
-      try {
-        const existingConnection = db.getConnection(databaseName);
-        await existingConnection.sync({ alter: true });
-      } catch (_syncErr) {
-      }
-
-      const folderName = await ensureFolderForRegistry();
-      await mainDbClient.query(
-        `INSERT INTO ${DATABASE_REGISTRY_TABLE} (database_name, company_name, folder_name, created_by, "createdAt", "updatedAt")
-         VALUES ($1, $2, $3, $4, NOW(), NOW())
-         ON CONFLICT (database_name)
-         DO UPDATE SET company_name = COALESCE(NULLIF(${DATABASE_REGISTRY_TABLE}.company_name, ''), EXCLUDED.company_name),
-                       folder_name = COALESCE(NULLIF(${DATABASE_REGISTRY_TABLE}.folder_name, ''), EXCLUDED.folder_name),
-                       "updatedAt" = NOW()`,
-        [databaseName, companyName, folderName, Number(req.user?.id || 0) || null]
-      );
-
-      return res.status(200).json({
-        message: "Database already exists. Registry entry has been synchronized.",
-        database: {
-          name: databaseName,
-          company_name: companyName,
-          label: `${companyName} (${databaseName})`,
-        },
-      });
+      return res.status(409).json({ message: "Database already exists." });
     }
 
     await adminClient.query(`CREATE DATABASE ${quoteIdentifier(databaseName)}`);
@@ -1563,8 +1448,18 @@ exports.createDatabase = async (req, res) => {
 
     const connection = db.getConnection(databaseName);
     await connection.sync({ alter: true });
+    await seedDefaultCategoryData(databaseName);
 
-    const folderName = await ensureFolderForRegistry();
+    await mainDbClient.connect();
+    await ensureDatabaseRegistryTable(mainDbClient);
+    ensureDir(DATABASE_STORAGE_ROOT);
+    let dbFolderPath = path.join(DATABASE_STORAGE_ROOT, safeNamePart(companyName) || `db_${Date.now()}`);
+    let suffix = 1;
+    while (fs.existsSync(dbFolderPath)) {
+      dbFolderPath = path.join(DATABASE_STORAGE_ROOT, `${safeNamePart(companyName) || "db"}_${suffix++}`);
+    }
+    ensureDir(dbFolderPath);
+    const folderName = path.basename(dbFolderPath);
     await mainDbClient.query(
       `INSERT INTO ${DATABASE_REGISTRY_TABLE} (database_name, company_name, folder_name, created_by, "createdAt", "updatedAt")
        VALUES ($1, $2, $3, $4, NOW(), NOW())
@@ -1591,13 +1486,6 @@ exports.createDatabase = async (req, res) => {
 
 exports.getCreatedDatabases = async (_req, res) => {
   const cfg = getDbConfig();
-  const adminClient = new Client({
-    host: cfg.host,
-    port: cfg.port,
-    user: cfg.user,
-    password: cfg.password,
-    database: "postgres",
-  });
   const mainDbClient = new Client({
     host: cfg.host,
     port: cfg.port,
@@ -1606,49 +1494,12 @@ exports.getCreatedDatabases = async (_req, res) => {
     database: cfg.database || INVENTORY_DB_NAME,
   });
   try {
-    await adminClient.connect();
     await mainDbClient.connect();
-
-    const registered = await fetchCreatedDatabases(mainDbClient);
-    const companyMap = await fetchCompanyDatabaseMap(mainDbClient);
-    const byName = new Map();
-
-    (registered || []).forEach((row) => {
-      const name = normalizeDatabaseName(row?.name);
-      if (!name || name === INVENTORY_DB_NAME || RESERVED_DATABASES.has(name)) return;
-      byName.set(name, {
-        name,
-        company_name: normalizeCompanyName(row?.company_name) || normalizeCompanyName(companyMap.get(name)),
-        created_by: Number(row?.created_by || 0) || null,
-        created_at: row?.created_at || null,
-        updated_at: row?.updated_at || null,
-      });
-    });
-
-    const pgDatabasesRs = await adminClient.query(
-      "SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname ASC"
-    );
-    (pgDatabasesRs.rows || []).forEach((row) => {
-      const name = normalizeDatabaseName(row?.datname);
-      if (!name || name === INVENTORY_DB_NAME || RESERVED_DATABASES.has(name)) return;
-      if (byName.has(name)) return;
-      byName.set(name, {
-        name,
-        company_name: normalizeCompanyName(companyMap.get(name) || ""),
-        created_by: null,
-        created_at: null,
-        updated_at: null,
-      });
-    });
-
-    const databases = Array.from(byName.values()).sort((a, b) =>
-      String(a.name || "").localeCompare(String(b.name || ""))
-    );
+    const databases = await fetchCreatedDatabases(mainDbClient);
     res.json({ databases });
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to load created databases." });
   } finally {
-    await adminClient.end().catch(() => {});
     await mainDbClient.end().catch(() => {});
   }
 };
@@ -1687,17 +1538,12 @@ exports.deleteDatabase = async (req, res) => {
       `SELECT folder_name FROM ${DATABASE_REGISTRY_TABLE} WHERE LOWER(database_name) = $1 LIMIT 1`,
       [databaseName]
     );
-    const folderName = String(exists.rows?.[0]?.folder_name || "").trim();
+    if (!exists.rowCount) {
+      return res.status(404).json({ message: "Database not found in created list." });
+    }
+    const folderName = String(exists.rows[0]?.folder_name || "").trim();
 
     await adminClient.connect();
-    const dbExists = await adminClient.query(
-      "SELECT 1 FROM pg_database WHERE LOWER(datname) = LOWER($1) LIMIT 1",
-      [databaseName]
-    );
-    if (!dbExists.rowCount && !exists.rowCount) {
-      return res.status(404).json({ message: "Database not found." });
-    }
-
     await adminClient.query(
       `SELECT pg_terminate_backend(pid)
        FROM pg_stat_activity
@@ -1705,9 +1551,7 @@ exports.deleteDatabase = async (req, res) => {
          AND pid <> pg_backend_pid()`,
       [databaseName]
     );
-    if (dbExists.rowCount) {
-      await adminClient.query(`DROP DATABASE IF EXISTS ${quoteIdentifier(databaseName)}`);
-    }
+    await adminClient.query(`DROP DATABASE IF EXISTS ${quoteIdentifier(databaseName)}`);
 
     await mainDbClient.query(
       `DELETE FROM ${DATABASE_REGISTRY_TABLE}
@@ -1941,6 +1785,17 @@ async function getMappingPieces(mainDbClient, userId, databaseName, companyId, m
     throw new Error("User not found.");
   }
 
+  const dbRs = await mainDbClient.query(
+    `SELECT database_name, company_name
+     FROM ${DATABASE_REGISTRY_TABLE}
+     WHERE LOWER(database_name) = LOWER($1)
+     LIMIT 1`,
+    [databaseName]
+  );
+  if (!dbRs.rowCount) {
+    throw new Error("Database mapping entry not found.");
+  }
+
   const companyRs = await mainDbClient.query(
     `SELECT id, company_name, company_code, email, logo_path
      FROM ${COMPANY_REGISTRY_TABLE}
@@ -1950,50 +1805,6 @@ async function getMappingPieces(mainDbClient, userId, databaseName, companyId, m
   );
   if (!companyRs.rowCount) {
     throw new Error("Company not found.");
-  }
-
-  let dbRs = await mainDbClient.query(
-    `SELECT database_name, company_name
-     FROM ${DATABASE_REGISTRY_TABLE}
-     WHERE LOWER(database_name) = LOWER($1)
-     LIMIT 1`,
-    [databaseName]
-  );
-  if (!dbRs.rowCount) {
-    const dbExistsRs = await mainDbClient.query(
-      "SELECT 1 FROM pg_database WHERE LOWER(datname) = LOWER($1) LIMIT 1",
-      [databaseName]
-    );
-    if (!dbExistsRs.rowCount) {
-      throw new Error("Database mapping entry not found.");
-    }
-
-    const userRowForDbName = userRs.rows[0] || {};
-    const companyRowForDbName = companyRs.rows[0] || {};
-    const fallbackCompanyName =
-      normalizeCompanyName(companyRowForDbName.company_name) ||
-      normalizeCompanyName(userRowForDbName.company) ||
-      databaseName;
-
-    await mainDbClient.query(
-      `INSERT INTO ${DATABASE_REGISTRY_TABLE} (database_name, company_name, created_by, "createdAt", "updatedAt")
-       VALUES ($1, $2, NULL, NOW(), NOW())
-       ON CONFLICT (database_name)
-       DO UPDATE SET company_name = COALESCE(NULLIF(${DATABASE_REGISTRY_TABLE}.company_name, ''), EXCLUDED.company_name),
-                     "updatedAt" = NOW()`,
-      [databaseName, fallbackCompanyName]
-    );
-
-    dbRs = await mainDbClient.query(
-      `SELECT database_name, company_name
-       FROM ${DATABASE_REGISTRY_TABLE}
-       WHERE LOWER(database_name) = LOWER($1)
-       LIMIT 1`,
-      [databaseName]
-    );
-    if (!dbRs.rowCount) {
-      throw new Error("Database mapping entry not found.");
-    }
   }
 
   const userRow = userRs.rows[0];
@@ -2088,58 +1899,11 @@ exports.getMappedMeta = async (_req, res) => {
        FROM ${DATABASE_REGISTRY_TABLE}
        ORDER BY LOWER(database_name) ASC`
     );
-    const mappingDbRs = await mainDbClient.query(
-      `SELECT DISTINCT database_name
-       FROM user_mappings
-       WHERE database_name IS NOT NULL AND TRIM(database_name) <> ''`
-    );
-    let systemDbRs = { rows: [] };
-    try {
-      systemDbRs = await mainDbClient.query(
-        `SELECT datname
-         FROM pg_database
-         WHERE datistemplate = false
-         ORDER BY LOWER(datname) ASC`
-      );
-    } catch (_err) {
-      // If this query is restricted in some environments, fall back to registry + mappings only.
-      systemDbRs = { rows: [] };
-    }
     const companiesRs = await mainDbClient.query(
       `SELECT id, company_name, company_code, email
        FROM ${COMPANY_REGISTRY_TABLE}
        ORDER BY LOWER(company_name) ASC`
     );
-
-    const companyByDb = new Map();
-    (dbRs.rows || []).forEach((row) => {
-      const dbName = normalizeDatabaseName(row?.database_name);
-      if (!dbName) return;
-      companyByDb.set(dbName, normalizeCompanyName(row?.company_name));
-    });
-
-    const databaseNameSet = new Set();
-    const addDbName = (value) => {
-      const normalized = normalizeDatabaseName(value);
-      if (!normalized) return;
-      if (RESERVED_DATABASES.has(normalized)) return;
-      databaseNameSet.add(normalized);
-    };
-    addDbName(cfg.database || INVENTORY_DB_NAME);
-    (dbRs.rows || []).forEach((row) => addDbName(row?.database_name));
-    (mappingDbRs.rows || []).forEach((row) => addDbName(row?.database_name));
-    (systemDbRs.rows || []).forEach((row) => addDbName(row?.datname));
-
-    const databases = Array.from(databaseNameSet)
-      .sort((a, b) => a.localeCompare(b))
-      .map((name) => {
-        const companyName = normalizeCompanyName(companyByDb.get(name) || "");
-        return {
-          name,
-          company_name: companyName,
-          label: companyName ? `${companyName} (${name})` : name,
-        };
-      });
 
     res.json({
       users: (usersRs.rows || []).map((row) => ({
@@ -2148,7 +1912,11 @@ exports.getMappedMeta = async (_req, res) => {
         email: String(row.email || "").trim(),
         company_name: normalizeCompanyName(row.company),
       })),
-      databases,
+      databases: (dbRs.rows || []).map((row) => ({
+        name: normalizeDatabaseName(row.database_name),
+        company_name: normalizeCompanyName(row.company_name),
+        label: `${normalizeCompanyName(row.company_name)} (${normalizeDatabaseName(row.database_name)})`,
+      })).filter((x) => x.name),
       companies: (companiesRs.rows || []).map((row) => ({
         id: Number(row.id || 0),
         company_name: normalizeCompanyName(row.company_name),
@@ -2900,12 +2668,6 @@ exports.getUserAccess = async (req, res) => {
     where: { user_id: ref.user_id, user_database: ref.user_database },
     order: [["updatedAt", "DESC"], ["id", "DESC"]],
   });
-  const mappedProfile = await findMappedUserProfile(ref.user_id);
-  const selectedDatabaseName =
-    normalizeDatabaseName(mappedProfile?.database_name) ||
-    normalizeDatabaseName(row?.database_name) ||
-    normalizeUserDatabase(ref.user_database);
-
   res.json({
     user: {
       ...(user.toJSON ? user.toJSON() : user),
@@ -2914,7 +2676,7 @@ exports.getUserAccess = async (req, res) => {
     },
     allowed_pages: parseAllowedPages(row),
     allowed_actions: parseAllowedActions(row),
-    database_name: selectedDatabaseName,
+    database_name: normalizeDatabaseName(row?.database_name),
     user_database: ref.user_database,
     super_user: Boolean(userPlain.is_super_user),
     can_edit_super_user: canEditSuperUser,
@@ -3006,44 +2768,7 @@ exports.getMyAccess = async (req, res) => {
     }
   }
   const allowedActions = parseAllowedActions(row);
-  const baselineLeftPanelPages = [
-    "/cases/case-list.html",
-    "/cases/new-case.html",
-    "/cases/edit-case.html",
-    "/cases/plaint.html",
-    "/cases/plaint-create.html",
-    "/cases/edit-plaint.html",
-    "/cases/answer.html",
-    "/cases/answer-create.html",
-    "/cases/edit-answer.html",
-    "/cases/witness-list.html",
-    "/cases/witness-create.html",
-    "/cases/edit-witness.html",
-    "/cases/judgment-list.html",
-    "/cases/judgment-create.html",
-    "/cases/edit-judgment.html",
-    "/dashboard.html",
-    "/calendar.html",
-    "/customers/client-list.html",
-    "/invoices/invoice-list.html",
-    "/expenses/expense-list.html",
-    "/finance/finance.html",
-    "/support/support.html",
-    "/support/add-lawyer.html",
-    "/support/add-court.html",
-    "/users/user-list.html",
-    "/users/profile-list.html",
-    "/users/add-profile.html",
-    "/users/user-access.html",
-    "/users/user-logged.html",
-    "/support/email-setup.html",
-  ];
-  const allowedPages = Array.from(
-    new Set([
-      ...baselineLeftPanelPages,
-      ...derivePagesFromActions(allowedActions, parseAllowedPages(row)),
-    ])
-  );
+  const allowedPages = derivePagesFromActions(allowedActions, parseAllowedPages(row));
   const hasAccessConfig = Boolean(row) || allowedPages.length > 0 || allowedActions.length > 0;
   const mappedProfile = await findMappedUserProfile(userId);
 
@@ -3055,7 +2780,3 @@ exports.getMyAccess = async (req, res) => {
     has_access_config: hasAccessConfig,
   });
 };
-
-
-
-

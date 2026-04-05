@@ -612,13 +612,10 @@ function applyAdminUsersNav(){
                                                                                                  
 }
 
-<<<<<<< HEAD
 function applyStockNav(){
                                                                                                  
 }
 
-=======
->>>>>>> 046c6f3 (feat: apply AXIS web updates across backend and frontend)
 function applyAccessGuards(){
     renderSidebarMenuByAccess();
     enforceUserAccess();

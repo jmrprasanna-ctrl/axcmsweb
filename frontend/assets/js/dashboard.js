@@ -348,9 +348,7 @@ function formatAmountWithSeparators(value){
     });
 }
 
-<<<<<<< HEAD
                      
-=======
 function escapeHtml(value){
     return String(value ?? "")
         .replace(/&/g, "&amp;")
@@ -385,7 +383,6 @@ function renderUpcomingCases(rows){
 }
 
 // Fetch summary data
->>>>>>> 046c6f3 (feat: apply AXIS web updates across backend and frontend)
 async function fetchSummary(){
     try{
         const periodEl = document.getElementById("summaryPeriod");
@@ -404,12 +401,9 @@ async function fetchSummary(){
             totalCasesEl.querySelector("p").innerText = summary.totalCases || 0;
         }
         document.getElementById("totalCustomers").querySelector("p").innerText = summary.totalCustomers || 0;
-<<<<<<< HEAD
         document.getElementById("totalVendors").querySelector("p").innerText = summary.totalVendors || 0;
                                             
-=======
         // Total Sales: invoice totals only.
->>>>>>> 046c6f3 (feat: apply AXIS web updates across backend and frontend)
         const salesVal = summary.totalSalesPeriod ?? summary.totalSales ?? 0;
         const receivedPaymentVal = summary.receivedPaymentPeriod ?? summary.receivedPayment ?? 0;
         const expenseVal = summary.totalExpensesPeriod ?? summary.totalExpenses ?? 0;

@@ -1,9 +1,18 @@
 const db = require("../config/database");
 
-const BUSINESS_DBS = ["axiscmsdb", "demo"];
+const BUSINESS_DBS = ["inventory", "demo"];
+
+const SAMPLE_CONDITIONS = [
+  "Payment within 30 days",
+  "Goods once sold cannot be returned",
+  "Warranty as per manufacturer terms",
+  "All disputes subject to local jurisdiction",
+];
 
 const SAMPLE_CUSTOMER_EMAILS = ["cust1@example.com", "cust2@example.com"];
 const SAMPLE_CUSTOMER_CODES = ["CS01", "CS02"];
+const SAMPLE_PRODUCT_IDS = ["PH0001", "PR0001", "LP0001"];
+const SAMPLE_VENDOR_NAMES = ["Vendor A", "Vendor B", "Vendor C"];
 
 async function deleteReturningCount(sql, replacements = {}) {
   const [rows] = await db.query(sql, { replacements });
@@ -12,15 +21,28 @@ async function deleteReturningCount(sql, replacements = {}) {
 
 async function cleanupOneDatabase(databaseName) {
   const report = {
+    conditions: 0,
     expenses: 0,
+    rentalMachineConsumables: 0,
+    rentalMachineCounts: 0,
+    rentalMachines: 0,
     invoiceItems: 0,
     invoices: 0,
     customers: 0,
+    products: 0,
+    vendors: 0,
     users: 0,
   };
 
   await db.withDatabase(databaseName, async () => {
     await db.transaction(async () => {
+      report.conditions += await deleteReturningCount(
+        `DELETE FROM conditions
+         WHERE condition IN (:conditions)
+         RETURNING id`,
+        { conditions: SAMPLE_CONDITIONS }
+      );
+
       report.expenses += await deleteReturningCount(
         `DELETE FROM expenses
          WHERE (title = 'Office Rent' AND amount = 50000)
@@ -57,6 +79,45 @@ async function cleanupOneDatabase(databaseName) {
         }
       );
 
+      report.rentalMachineConsumables += await deleteReturningCount(
+        `DELETE FROM rental_machine_consumables
+         WHERE customer_id IN (
+           SELECT id FROM customers
+           WHERE email IN (:emails) OR customer_id IN (:codes)
+         )
+         RETURNING id`,
+        {
+          emails: SAMPLE_CUSTOMER_EMAILS,
+          codes: SAMPLE_CUSTOMER_CODES,
+        }
+      );
+
+      report.rentalMachineCounts += await deleteReturningCount(
+        `DELETE FROM rental_machine_counts
+         WHERE customer_id IN (
+           SELECT id FROM customers
+           WHERE email IN (:emails) OR customer_id IN (:codes)
+         )
+         RETURNING id`,
+        {
+          emails: SAMPLE_CUSTOMER_EMAILS,
+          codes: SAMPLE_CUSTOMER_CODES,
+        }
+      );
+
+      report.rentalMachines += await deleteReturningCount(
+        `DELETE FROM rental_machines
+         WHERE customer_id IN (
+           SELECT id FROM customers
+           WHERE email IN (:emails) OR customer_id IN (:codes)
+         )
+         RETURNING id`,
+        {
+          emails: SAMPLE_CUSTOMER_EMAILS,
+          codes: SAMPLE_CUSTOMER_CODES,
+        }
+      );
+
       report.customers += await deleteReturningCount(
         `DELETE FROM customers
          WHERE email IN (:emails)
@@ -66,6 +127,29 @@ async function cleanupOneDatabase(databaseName) {
           emails: SAMPLE_CUSTOMER_EMAILS,
           codes: SAMPLE_CUSTOMER_CODES,
         }
+      );
+
+      report.rentalMachineConsumables += await deleteReturningCount(
+        `DELETE FROM rental_machine_consumables
+         WHERE product_id IN (
+           SELECT id FROM products WHERE product_id IN (:productIds)
+         )
+         RETURNING id`,
+        { productIds: SAMPLE_PRODUCT_IDS }
+      );
+
+      report.products += await deleteReturningCount(
+        `DELETE FROM products
+         WHERE product_id IN (:productIds)
+         RETURNING id`,
+        { productIds: SAMPLE_PRODUCT_IDS }
+      );
+
+      report.vendors += await deleteReturningCount(
+        `DELETE FROM vendors
+         WHERE name IN (:vendorNames)
+         RETURNING id`,
+        { vendorNames: SAMPLE_VENDOR_NAMES }
       );
 
       report.users += await deleteReturningCount(
