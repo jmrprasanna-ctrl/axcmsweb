@@ -90,6 +90,7 @@ async function ensureUserProfilesTable() {
       telephone VARCHAR(80),
       mobile VARCHAR(80),
       profile_picture_path VARCHAR(500),
+      profile_picture_updated_at TIMESTAMP NULL,
       linked_database_name VARCHAR(120),
       user_sync_at TIMESTAMP NULL,
       created_by INTEGER,
@@ -100,6 +101,10 @@ async function ensureUserProfilesTable() {
   await db.query(`
     CREATE INDEX IF NOT EXISTS user_profiles_email_idx
     ON user_profiles (LOWER(email));
+  `);
+  await db.query(`
+    ALTER TABLE user_profiles
+    ADD COLUMN IF NOT EXISTS profile_picture_updated_at TIMESTAMP NULL;
   `);
   await db.query(`
     ALTER TABLE user_profiles
@@ -190,10 +195,26 @@ function removeProfilePictureIfOwned(relPath) {
   }
 }
 
+function resolveProfilePictureAbsolutePath(relPath) {
+  const clean = String(relPath || "").trim().replace(/\\/g, "/").replace(/^\/+/, "");
+  if (!clean || !clean.startsWith("storage/profiles/")) return "";
+  const abs = path.resolve(path.resolve(__dirname, ".."), clean);
+  const root = PROFILE_STORAGE_ROOT.replace(/\\/g, "/");
+  const target = abs.replace(/\\/g, "/");
+  if (!target.startsWith(root)) return "";
+  if (!fs.existsSync(abs)) return "";
+  return abs;
+}
+
 function toProfileJson(row) {
   const pic = norm(row.profile_picture_path || "");
+  const profileId = Number(row.id || 0);
+  const pictureUpdatedAt = row.profile_picture_updated_at || null;
+  const pictureApiUrl = profileId && pic
+    ? `/api/users/profiles/${profileId}/picture${pictureUpdatedAt ? `?v=${encodeURIComponent(String(new Date(pictureUpdatedAt).getTime() || ""))}` : ""}`
+    : null;
   return {
-    id: Number(row.id || 0),
+    id: profileId,
     user_id: Number(row.user_id || 0) || null,
     profile_name: norm(row.profile_name),
     email: normEmail(row.email),
@@ -205,6 +226,8 @@ function toProfileJson(row) {
     address: norm(row.address),
     mobile: norm(row.mobile),
     telephone: norm(row.telephone),
+    profile_picture_updated_at: pictureUpdatedAt,
+    profile_picture_api_url: pictureApiUrl,
     linked_database_name: norm(row.linked_database_name),
     user_sync_at: row.user_sync_at || null,
     profile_picture_url: pic ? `/${pic.replace(/^\/+/, "")}` : null,
@@ -381,6 +404,28 @@ async function listUsersAcrossDatabases(req) {
 }
 
 // Profile endpoints (stored in user_profiles and synced to linked users account).
+router.get("/profiles/:id/picture", async (req, res) => {
+  try {
+    await ensureUserProfilesTable();
+    const id = Number(req.params.id || 0);
+    if (!id) return res.status(400).json({ message: "Invalid profile id" });
+    const rows = await db.query(
+      `SELECT profile_picture_path
+       FROM user_profiles
+       WHERE id = $1
+       LIMIT 1`,
+      { bind: [id], type: QueryTypes.SELECT }
+    );
+    if (!rows.length) return res.status(404).json({ message: "Profile not found" });
+    const absPath = resolveProfilePictureAbsolutePath(rows[0]?.profile_picture_path || "");
+    if (!absPath) return res.status(404).json({ message: "Profile picture not found" });
+    return res.sendFile(absPath);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
 router.get("/profiles", async (req, res) => {
   try {
     await ensureUserProfilesTable();
@@ -478,8 +523,8 @@ router.post("/profiles", async (req, res) => {
     const profilePicturePath = saveProfilePicture(req, payload.profile_picture_base64, payload.profile_picture_name);
     const rows = await db.query(
       `INSERT INTO user_profiles
-       (user_id, profile_name, email, login_user, company_name, company_code, department, section, address, telephone, mobile, profile_picture_path, linked_database_name, user_sync_at, created_by, "createdAt", "updatedAt")
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NOW(),NOW())
+       (user_id, profile_name, email, login_user, company_name, company_code, department, section, address, telephone, mobile, profile_picture_path, profile_picture_updated_at, linked_database_name, user_sync_at, created_by, "createdAt", "updatedAt")
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NOW(),NOW())
        RETURNING *`,
       {
         bind: [
@@ -495,6 +540,7 @@ router.post("/profiles", async (req, res) => {
           norm(payload.telephone),
           norm(payload.mobile),
           profilePicturePath || null,
+          profilePicturePath ? new Date() : null,
           syncResult.primary_db || db.normalizeDatabaseName(req.databaseName || ""),
           syncResult.synced ? new Date() : null,
           Number(req.user?.id || 0) || null,
@@ -563,8 +609,9 @@ router.put("/profiles/:id", async (req, res) => {
            telephone = $11,
            mobile = $12,
            profile_picture_path = $13,
-           linked_database_name = $14,
-           user_sync_at = $15,
+           profile_picture_updated_at = $14,
+           linked_database_name = $15,
+           user_sync_at = $16,
            "updatedAt" = NOW()
        WHERE id = $1
        RETURNING *`,
@@ -583,6 +630,7 @@ router.put("/profiles/:id", async (req, res) => {
           merged.telephone,
           merged.mobile,
           nextProfilePicturePath || null,
+          uploadedProfilePicturePath ? new Date() : (old.profile_picture_updated_at || null),
           syncResult.primary_db || merged.linked_database_name || db.normalizeDatabaseName(req.databaseName || ""),
           syncResult.synced ? new Date() : null,
         ],

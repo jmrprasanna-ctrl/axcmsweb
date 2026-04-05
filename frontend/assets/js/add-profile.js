@@ -59,8 +59,8 @@
         if (selectedUserId) {
             els.login_user.value = String(selectedUserId);
         }
-        if (data.profile_picture_url) {
-            els.avatar.src = resolveProfileAvatarUrl(data.profile_picture_url);
+        if (data.profile_picture_api_url || data.profile_picture_url) {
+            els.avatar.src = resolveProfileAvatarUrl(data.profile_picture_api_url || data.profile_picture_url);
         } else {
             els.avatar.src = "../../assets/images/logo.png";
         }

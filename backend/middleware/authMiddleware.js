@@ -255,6 +255,7 @@ const authMiddleware = async (req, res, next) => {
 
     req.user = decoded;
     req.databaseName = targetDb;
+    req.requestedDatabaseName = db.normalizeDatabaseName(req.headers["x-database-name"] || "");
     req.inventoryDatabaseName = DEFAULT_DB;
     req.mainDatabaseName = DEFAULT_DB;
     return db.runWithDatabase(targetDb, () => next());
