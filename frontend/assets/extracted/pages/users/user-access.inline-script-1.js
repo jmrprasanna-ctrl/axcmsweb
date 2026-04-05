@@ -99,7 +99,14 @@ const userSelectEl = document.getElementById("userSelect");
                 const res = await request("/users/access-users", "GET");
                 const users = Array.isArray(res.users) ? res.users : [];
                 userSelectEl.innerHTML = `<option value="">Select user</option>`;
+                const seenOptionKeys = new Set();
                 users.forEach((u) => {
+                    const dbName = String(u.database_name || "").trim().toLowerCase();
+                    const identity = String(u.email || u.username || "").trim().toLowerCase();
+                    const role = String(u.role || "").trim().toLowerCase();
+                    const optionKey = `${dbName}::${identity}::${role}`;
+                    if (seenOptionKeys.has(optionKey)) return;
+                    seenOptionKeys.add(optionKey);
                     const opt = document.createElement("option");
                     opt.value = u.selection_key;
                     opt.textContent = u.label || `${u.username} (${u.email})`;

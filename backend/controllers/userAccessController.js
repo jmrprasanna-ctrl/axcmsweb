@@ -1353,7 +1353,31 @@ exports.getAccessUsers = async (_req, res) => {
       });
     }
 
-    rows.sort((a, b) => {
+    const dedupedMap = new Map();
+    rows.forEach((row) => {
+      const dbKey = String(row.database_name || row.user_database || "").trim().toLowerCase();
+      const identity = String(row.email || row.username || "").trim().toLowerCase();
+      const roleKey = String(row.role || "").trim().toLowerCase();
+      if (!dbKey || !identity) return;
+      const key = `${dbKey}::${identity}::${roleKey}`;
+      const prev = dedupedMap.get(key);
+      if (!prev) {
+        dedupedMap.set(key, row);
+        return;
+      }
+      const prevId = Number(prev.id || 0);
+      const nextId = Number(row.id || 0);
+      if (nextId > prevId) {
+        dedupedMap.set(key, row);
+      }
+    });
+
+    const finalRows = Array.from(dedupedMap.values()).map((row) => ({
+      ...row,
+      label: `${row.username || row.email || `User ${row.id}`} [${row.role}] (${row.database_name})`,
+    }));
+
+    finalRows.sort((a, b) => {
       const dbCmp = String(a.database_name || "").localeCompare(String(b.database_name || ""));
       if (dbCmp !== 0) return dbCmp;
       const roleCmp = String(a.role || "").localeCompare(String(b.role || ""));
@@ -1361,7 +1385,7 @@ exports.getAccessUsers = async (_req, res) => {
       return String(a.username || a.email || "").localeCompare(String(b.username || b.email || ""));
     });
 
-    res.json({ users: rows });
+    res.json({ users: finalRows });
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to load access users." });
   }
