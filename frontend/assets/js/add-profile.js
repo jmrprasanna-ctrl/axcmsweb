@@ -93,6 +93,7 @@
             address: String(els.address.value || "").trim(),
             telephone: String(els.telephone.value || "").trim(),
             mobile: String(els.mobile.value || "").trim(),
+            linked_database_name: String(selected?.source_database || localStorage.getItem("selectedDatabaseName") || "").trim().toLowerCase() || undefined,
             profile_picture_base64: pictureBase64 || undefined,
             profile_picture_name: pictureName || undefined,
         };
@@ -139,6 +140,7 @@
                 company: String(u?.company || u?.company_name || "").trim(),
                 department: String(u?.department || "").trim(),
                 telephone: String(u?.telephone || u?.mobile || "").trim(),
+                source_database: String(u?.source_database || "").trim().toLowerCase(),
             }))
             .filter((u) => u.id > 0);
     }

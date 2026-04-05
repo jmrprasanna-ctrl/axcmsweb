@@ -255,6 +255,8 @@ const authMiddleware = async (req, res, next) => {
 
     req.user = decoded;
     req.databaseName = targetDb;
+    req.inventoryDatabaseName = DEFAULT_DB;
+    req.mainDatabaseName = DEFAULT_DB;
     return db.runWithDatabase(targetDb, () => next());
   } catch (err) {
     return res.status(401).json({ message: "Invalid token." });
