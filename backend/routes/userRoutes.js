@@ -35,7 +35,7 @@ const roleMiddleware = require("../middleware/roleMiddleware");
 const User = require("../models/User");
 const db = require("../config/database");
 const { QueryTypes } = require("sequelize");
-const INVENTORY_DB_NAME = db.normalizeDatabaseName(process.env.DB_NAME || "inventory") || "inventory";
+const MAIN_DB_NAME = db.normalizeDatabaseName(process.env.DB_NAME || "axiscmsdb") || "axiscmsdb";
 const PROFILE_STORAGE_ROOT = path.resolve(__dirname, "../storage/profiles");
 
 const router = express.Router();
@@ -234,11 +234,25 @@ function toProfileJson(row) {
   };
 }
 
+function withMainDb(handler) {
+  return async (req, res, next) => {
+    try {
+      return await db.runWithDatabase(MAIN_DB_NAME, () => handler(req, res, next));
+    } catch (err) {
+      console.error(err);
+      if (!res.headersSent) {
+        return res.status(500).json({ message: err.message || "Server error" });
+      }
+      return undefined;
+    }
+  };
+}
+
 async function resolveMappedDatabaseForUserId(userId) {
   const id = Number(userId || 0);
   if (!id) return "";
   try {
-    return await db.withDatabase(INVENTORY_DB_NAME, async () => {
+    return await db.withDatabase(MAIN_DB_NAME, async () => {
       const rows = await db.query(
         `SELECT database_name
          FROM user_mappings
@@ -262,7 +276,7 @@ function buildCandidateDatabases(payload = {}, req = null) {
   };
   push(req?.databaseName);
   push(payload.linked_database_name);
-  push(INVENTORY_DB_NAME);
+  push(MAIN_DB_NAME);
   return out;
 }
 
@@ -337,7 +351,7 @@ async function syncLinkedUserFromProfile(linked, payload = {}, req = null) {
   };
   addDb(linked.database_name);
   addDb(req?.databaseName);
-  addDb(INVENTORY_DB_NAME);
+  addDb(MAIN_DB_NAME);
   const mappedDb = await resolveMappedDatabaseForUserId(linked.user.id);
   addDb(mappedDb);
 
@@ -380,7 +394,7 @@ async function listUsersAcrossDatabases(req) {
     candidates.push(n);
   };
   push(req?.databaseName);
-  push(INVENTORY_DB_NAME);
+  push(MAIN_DB_NAME);
 
   const merged = [];
   for (const dbName of candidates) {
@@ -395,7 +409,7 @@ async function listUsersAcrossDatabases(req) {
       byEmailOrUser.set(key, row);
     } else {
       const existing = byEmailOrUser.get(key);
-      if (existing && existing.source_database !== INVENTORY_DB_NAME && row.source_database === INVENTORY_DB_NAME) {
+      if (existing && existing.source_database !== MAIN_DB_NAME && row.source_database === MAIN_DB_NAME) {
         byEmailOrUser.set(key, row);
       }
     }
@@ -404,7 +418,7 @@ async function listUsersAcrossDatabases(req) {
 }
 
 // Profile endpoints (stored in user_profiles and synced to linked users account).
-router.get("/profiles/:id/picture", async (req, res) => {
+router.get("/profiles/:id/picture", withMainDb(async (req, res) => {
   try {
     await ensureUserProfilesTable();
     const id = Number(req.params.id || 0);
@@ -424,9 +438,9 @@ router.get("/profiles/:id/picture", async (req, res) => {
     console.error(err);
     return res.status(500).json({ message: "Server error" });
   }
-});
+}));
 
-router.put("/profiles/:id/picture", async (req, res) => {
+router.put("/profiles/:id/picture", withMainDb(async (req, res) => {
   try {
     await ensureUserProfilesTable();
     const id = Number(req.params.id || 0);
@@ -463,9 +477,9 @@ router.put("/profiles/:id/picture", async (req, res) => {
     console.error(err);
     return res.status(500).json({ message: err.message || "Failed to update profile picture." });
   }
-});
+}));
 
-router.get("/profiles", async (req, res) => {
+router.get("/profiles", withMainDb(async (req, res) => {
   try {
     await ensureUserProfilesTable();
     const rows = await db.query(
@@ -481,9 +495,9 @@ router.get("/profiles", async (req, res) => {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
-});
+}));
 
-router.get("/profiles/user-options", async (req, res) => {
+router.get("/profiles/user-options", withMainDb(async (req, res) => {
   try {
     const users = await listUsersAcrossDatabases(req);
     const rows = (Array.isArray(users) ? users : []).map((u) => ({
@@ -500,9 +514,9 @@ router.get("/profiles/user-options", async (req, res) => {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
-});
+}));
 
-router.get("/profiles/user-by-email", async (req, res) => {
+router.get("/profiles/user-by-email", withMainDb(async (req, res) => {
   try {
     const email = String(req.query.email || "").trim();
     if (!email) return res.status(400).json({ message: "email is required" });
@@ -524,9 +538,9 @@ router.get("/profiles/user-by-email", async (req, res) => {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
-});
+}));
 
-router.get("/profiles/:id", async (req, res) => {
+router.get("/profiles/:id", withMainDb(async (req, res) => {
   try {
     await ensureUserProfilesTable();
     const id = Number(req.params.id || 0);
@@ -546,9 +560,9 @@ router.get("/profiles/:id", async (req, res) => {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
-});
+}));
 
-router.post("/profiles", async (req, res) => {
+router.post("/profiles", withMainDb(async (req, res) => {
   try {
     await ensureUserProfilesTable();
     const payload = req.body || {};
@@ -592,9 +606,9 @@ router.post("/profiles", async (req, res) => {
     console.error(err);
     res.status(500).json({ message: err.message || "Server error" });
   }
-});
+}));
 
-router.put("/profiles/:id", async (req, res) => {
+router.put("/profiles/:id", withMainDb(async (req, res) => {
   try {
     await ensureUserProfilesTable();
     const id = Number(req.params.id || 0);
@@ -681,9 +695,9 @@ router.put("/profiles/:id", async (req, res) => {
     console.error(err);
     res.status(500).json({ message: err.message || "Server error" });
   }
-});
+}));
 
-router.delete("/profiles/:id", async (req, res) => {
+router.delete("/profiles/:id", withMainDb(async (req, res) => {
   try {
     await ensureUserProfilesTable();
     const id = Number(req.params.id || 0);
@@ -694,7 +708,7 @@ router.delete("/profiles/:id", async (req, res) => {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
-});
+}));
 
 router.get("/", getUsers);
 router.get("/:id([0-9]+)", getUserById);
