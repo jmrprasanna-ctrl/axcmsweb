@@ -1720,19 +1720,23 @@ exports.getCompanies = async (_req, res) => {
        GROUP BY cp.id, cp.company_name, cp.company_code, cp.email, cp.folder_name, cp.logo_path, cp.logo_file_name, cp."createdAt", cp."updatedAt"
        ORDER BY LOWER(cp.company_name) ASC, cp.id ASC`
     );
-    const rows = (rs.rows || []).map((row) => ({
-      id: Number(row.id || 0),
-      company_name: normalizeCompanyName(row.company_name),
-      company_code: normalizeCompanyCode(row.company_code),
-      email: normalizeEmail(row.email),
-      folder_name: String(row.folder_name || "").trim(),
-      logo_file_name: String(row.logo_file_name || "").trim(),
-      logo_path: String(row.logo_path || "").trim(),
-      created_at: row.createdAt || null,
-      updated_at: row.updatedAt || null,
-      mapped_users_count: Number(row.mapped_users_count || 0),
-      is_mapped: Number(row.mapped_users_count || 0) > 0,
-    }));
+    const rows = (rs.rows || []).map((row) => {
+      const logoPath = normalizeCompanyLogoPath(row.logo_path, row.folder_name, row.logo_file_name);
+      return {
+        id: Number(row.id || 0),
+        company_name: normalizeCompanyName(row.company_name),
+        company_code: normalizeCompanyCode(row.company_code),
+        email: normalizeEmail(row.email),
+        folder_name: String(row.folder_name || "").trim(),
+        logo_file_name: String(row.logo_file_name || "").trim(),
+        logo_path: logoPath,
+        logo_url: logoPath ? `/${String(logoPath).replace(/^\/+/, "")}` : "",
+        created_at: row.createdAt || null,
+        updated_at: row.updatedAt || null,
+        mapped_users_count: Number(row.mapped_users_count || 0),
+        is_mapped: Number(row.mapped_users_count || 0) > 0,
+      };
+    });
     res.json({ companies: rows });
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to load companies." });
@@ -1825,6 +1829,7 @@ exports.createCompany = async (req, res) => {
     );
 
     const row = rs.rows[0];
+    const normalizedLogoPath = normalizeCompanyLogoPath(row.logo_path, row.folder_name, row.logo_file_name);
     res.status(201).json({
       message: "Company created successfully.",
       company: {
@@ -1834,7 +1839,8 @@ exports.createCompany = async (req, res) => {
         email: normalizeEmail(row.email),
         folder_name: String(row.folder_name || "").trim(),
         logo_file_name: String(row.logo_file_name || "").trim(),
-        logo_path: String(row.logo_path || "").trim(),
+        logo_path: normalizedLogoPath,
+        logo_url: normalizedLogoPath ? `/${String(normalizedLogoPath).replace(/^\/+/, "")}` : "",
         created_at: row.createdAt || null,
       },
     });

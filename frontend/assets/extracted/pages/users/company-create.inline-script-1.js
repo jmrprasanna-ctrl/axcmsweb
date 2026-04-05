@@ -27,6 +27,54 @@ const companyNameEl = document.getElementById("companyName");
                 .replace(/[^A-Z0-9_-]+/g, "");
         }
 
+        function escapeHtml(value){
+            return String(value || "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function resolveLogoUrl(rawPath){
+            const source = String(rawPath || "").trim();
+            if(!source) return "";
+            if(/^data:image\//i.test(source) || /^https?:\/\//i.test(source)){
+                return source;
+            }
+            const clean = source
+                .replace(/\\/g, "/")
+                .replace(/^(\.\.\/|\.\/)+/g, "")
+                .replace(/^backend\//i, "")
+                .replace(/^\/+/, "");
+            const apiBase = String(window.BASE_URL || "").trim().replace(/\/api$/i, "").replace(/\/+$/, "");
+            if(!apiBase) return `/${clean}`;
+            return `${apiBase}/${clean}`;
+        }
+
+        function buildLogoCellHtml(row){
+            const fileName = String(row.logo_file_name || "").trim();
+            const logoSource = String(row.logo_url || row.logo_path || "").trim();
+            const logoUrl = resolveLogoUrl(logoSource);
+            const fallback = "../../assets/images/logo.png";
+            if(!logoUrl){
+                return `<span class="company-logo-file">${escapeHtml(fileName || "-")}</span>`;
+            }
+            const versionTag = row.updated_at ? `?v=${encodeURIComponent(String(row.updated_at))}` : "";
+            return `
+                <div class="company-logo-cell">
+                    <img
+                        src="${escapeHtml(`${logoUrl}${versionTag}`)}"
+                        alt="${escapeHtml(fileName || "Company Logo")}"
+                        class="company-logo-thumb"
+                        loading="lazy"
+                        onerror="this.onerror=null;this.src='${fallback}'"
+                    >
+                    <span class="company-logo-file">${escapeHtml(fileName || "logo")}</span>
+                </div>
+            `;
+        }
+
         function readFileAsDataURL(file){
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -69,7 +117,7 @@ const companyNameEl = document.getElementById("companyName");
                         <td>${String(row.company_code || "")}</td>
                         <td>${String(row.email || "")}</td>
                         <td>${mappedText}</td>
-                        <td>${String(row.logo_file_name || "")}</td>
+                        <td>${buildLogoCellHtml(row)}</td>
                         <td>${formatDate(row.created_at)}</td>
                         <td class="actions">${deleteAction}</td>
                     `;
