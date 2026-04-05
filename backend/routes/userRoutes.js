@@ -138,9 +138,9 @@ router.put("/profiles/:id", updateUser);
 router.delete("/profiles/:id", deleteUser);
 
 router.get("/", getUsers);
-router.get("/:id", getUserById);
+router.get("/:id([0-9]+)", getUserById);
 router.post("/", addUser);
-router.put("/:id", updateUser);
-router.delete("/:id", deleteUser);
+router.put("/:id([0-9]+)", updateUser);
+router.delete("/:id([0-9]+)", deleteUser);
 
 module.exports = router;
