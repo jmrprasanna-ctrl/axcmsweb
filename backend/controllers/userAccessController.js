@@ -399,36 +399,70 @@ function resolveCompanyLogoPathForResponse(row) {
     }
   }
 
-  if (!folderName) return normalized;
-  const folderAbs = path.resolve(COMPANY_STORAGE_ROOT, folderName);
-  if (!folderAbs.startsWith(COMPANY_STORAGE_ROOT) || !fs.existsSync(folderAbs)) {
-    return normalized;
+  const candidateFolders = [];
+  const addFolder = (name) => {
+    const clean = String(name || "").trim();
+    if (!clean || candidateFolders.includes(clean)) return;
+    candidateFolders.push(clean);
+  };
+  addFolder(folderName);
+  addFolder(folderName.replace(/_\d+$/i, ""));
+
+  const logoPathRaw = String(row?.logo_path || "").trim().replace(/\\/g, "/");
+  if (logoPathRaw) {
+    const parts = logoPathRaw.split("/").filter(Boolean);
+    if (parts.length >= 3) addFolder(parts[parts.length - 2]);
+  }
+  addFolder(safeNamePart(row?.company_name));
+
+  let storageFolderNames = [];
+  try {
+    storageFolderNames = fs.readdirSync(COMPANY_STORAGE_ROOT).filter((entry) => {
+      const abs = path.join(COMPANY_STORAGE_ROOT, entry);
+      return fs.existsSync(abs) && fs.statSync(abs).isDirectory();
+    });
+  } catch (_err) {
+    storageFolderNames = [];
+  }
+  for (const known of storageFolderNames) {
+    const lower = known.toLowerCase();
+    for (const guess of [...candidateFolders]) {
+      const g = String(guess || "").toLowerCase();
+      if (!g) continue;
+      if (lower === g || lower === `${g}_1` || g === `${lower}_1`) {
+        addFolder(known);
+      }
+    }
   }
 
   const preferredNames = [];
   if (logoFileName) preferredNames.push(logoFileName);
   preferredNames.push("logo.png", "logo.jpg", "logo.jpeg", "logo.bmp", "logo.gif", "logo.tif", "logo.tiff");
 
-  for (const fileName of preferredNames) {
-    const abs = path.join(folderAbs, fileName);
-    if (!abs.startsWith(folderAbs)) continue;
-    if (fs.existsSync(abs) && fs.statSync(abs).isFile()) {
-      return `storage/companies/${folderName}/${fileName}`;
-    }
-  }
+  for (const folder of candidateFolders) {
+    const folderAbs = path.resolve(COMPANY_STORAGE_ROOT, folder);
+    if (!folderAbs.startsWith(COMPANY_STORAGE_ROOT) || !fs.existsSync(folderAbs)) continue;
 
-  try {
-    const files = fs.readdirSync(folderAbs);
-    for (const fileName of files) {
-      const lower = String(fileName || "").toLowerCase();
-      if (!/\.(png|jpg|jpeg|bmp|gif|tif|tiff)$/i.test(lower)) continue;
+    for (const fileName of preferredNames) {
       const abs = path.join(folderAbs, fileName);
+      if (!abs.startsWith(folderAbs)) continue;
       if (fs.existsSync(abs) && fs.statSync(abs).isFile()) {
-        return `storage/companies/${folderName}/${fileName}`;
+        return `storage/companies/${folder}/${fileName}`;
       }
     }
-  } catch (_err) {
-    return normalized;
+
+    try {
+      const files = fs.readdirSync(folderAbs);
+      for (const fileName of files) {
+        const lower = String(fileName || "").toLowerCase();
+        if (!/\.(png|jpg|jpeg|bmp|gif|tif|tiff)$/i.test(lower)) continue;
+        const abs = path.join(folderAbs, fileName);
+        if (fs.existsSync(abs) && fs.statSync(abs).isFile()) {
+          return `storage/companies/${folder}/${fileName}`;
+        }
+      }
+    } catch (_err) {
+    }
   }
 
   return normalized;
