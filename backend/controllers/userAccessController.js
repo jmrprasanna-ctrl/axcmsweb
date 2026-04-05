@@ -2151,6 +2151,100 @@ exports.saveMapping = async (req, res) => {
   }
 };
 
+exports.getMyCompanies = async (req, res) => {
+  const requesterId = Number(req?.user?.id || req?.user?.userId || 0);
+  if (!Number.isFinite(requesterId) || requesterId <= 0) {
+    return res.status(401).json({ message: "Invalid token user." });
+  }
+
+  const requesterRole = String(req?.user?.role || "").trim().toLowerCase();
+  const selectedDb = normalizeDatabaseName(req?.databaseName || req?.requestedDatabaseName || req?.headers?.["x-database-name"]);
+  const cfg = getDbConfig();
+  const mainDbClient = new Client({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: cfg.database || INVENTORY_DB_NAME,
+  });
+
+  const toJson = (rows) =>
+    (Array.isArray(rows) ? rows : []).map((row) => ({
+      id: Number(row.id || 0),
+      company_name: normalizeCompanyName(row.company_name),
+      company_code: normalizeCompanyCode(row.company_code),
+      email: normalizeEmail(row.email),
+      logo_path: String(row.logo_path || "").trim(),
+      database_name: normalizeDatabaseName(row.database_name),
+      mapped_users_count: Number(row.mapped_users_count || 0),
+      is_mapped: Number(row.mapped_users_count || 0) > 0,
+      label: normalizeCompanyCode(row.company_code)
+        ? `${normalizeCompanyName(row.company_name)} [${normalizeCompanyCode(row.company_code)}]`
+        : normalizeCompanyName(row.company_name),
+    })).filter((row) => row.id > 0 && row.company_name);
+
+  try {
+    await mainDbClient.connect();
+    await ensureCompanyRegistryTable(mainDbClient);
+    await ensureUserMappingTable(mainDbClient);
+
+    let rs;
+    if (requesterRole === "admin") {
+      rs = await mainDbClient.query(
+        `SELECT cp.id,
+                cp.company_name,
+                cp.company_code,
+                cp.email,
+                cp.logo_path,
+                MIN(LOWER(um.database_name)) AS database_name,
+                COUNT(DISTINCT um.user_id)::int AS mapped_users_count
+         FROM ${COMPANY_REGISTRY_TABLE} cp
+         JOIN user_mappings um ON um.company_profile_id = cp.id
+         WHERE ($1::text IS NULL OR LOWER(um.database_name) = LOWER($1))
+         GROUP BY cp.id, cp.company_name, cp.company_code, cp.email, cp.logo_path
+         ORDER BY LOWER(cp.company_name) ASC, cp.id ASC`,
+        [selectedDb || null]
+      );
+
+      if (!rs.rowCount) {
+        rs = await mainDbClient.query(
+          `SELECT cp.id,
+                  cp.company_name,
+                  cp.company_code,
+                  cp.email,
+                  cp.logo_path,
+                  NULL::text AS database_name,
+                  0::int AS mapped_users_count
+           FROM ${COMPANY_REGISTRY_TABLE} cp
+           ORDER BY LOWER(cp.company_name) ASC, cp.id ASC`
+        );
+      }
+    } else {
+      rs = await mainDbClient.query(
+        `SELECT cp.id,
+                cp.company_name,
+                cp.company_code,
+                cp.email,
+                cp.logo_path,
+                LOWER(um.database_name) AS database_name,
+                1::int AS mapped_users_count
+         FROM user_mappings um
+         JOIN ${COMPANY_REGISTRY_TABLE} cp ON cp.id = um.company_profile_id
+         WHERE um.user_id = $1
+           AND ($2::text IS NULL OR LOWER(um.database_name) = LOWER($2))
+         ORDER BY LOWER(cp.company_name) ASC, cp.id ASC`,
+        [requesterId, selectedDb || null]
+      );
+    }
+
+    return res.json({ companies: toJson(rs.rows) });
+  } catch (err) {
+    return res.status(500).json({ message: err.message || "Failed to load mapped companies." });
+  } finally {
+    await mainDbClient.end().catch(() => {});
+  }
+};
+
 exports.listMappedEntries = async (req, res) => {
   const canView = await hasMappedActionPermission(req, "view");
   if (!canView) {
