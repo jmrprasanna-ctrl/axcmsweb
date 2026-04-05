@@ -172,7 +172,7 @@ function decodeProfilePictureInput(raw) {
 function saveProfilePicture(req, base64Input, fileNameHint) {
   const decoded = decodeProfilePictureInput(base64Input);
   if (!decoded) return "";
-  const dbName = db.normalizeDatabaseName(req?.databaseName || INVENTORY_DB_NAME) || INVENTORY_DB_NAME;
+  const dbName = db.normalizeDatabaseName(req?.databaseName || MAIN_DB_NAME) || MAIN_DB_NAME;
   const dbDir = path.join(PROFILE_STORAGE_ROOT, safeNamePart(dbName) || "default");
   ensureDir(dbDir);
   const hint = safeNamePart(fileNameHint || "profile");
