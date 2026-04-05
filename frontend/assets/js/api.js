@@ -990,6 +990,10 @@ async function loadUserAccessPermissions(){
             headers: { "Authorization": `Bearer ${token}` }
         });
         if(!res.ok){
+            localStorage.removeItem(MAPPED_COMPANY_NAME_KEY);
+            localStorage.removeItem(MAPPED_COMPANY_CODE_KEY);
+            localStorage.removeItem(MAPPED_COMPANY_EMAIL_KEY);
+            localStorage.removeItem(MAPPED_COMPANY_LOGO_URL_KEY);
             return;
         }
         const data = await res.json();
@@ -1061,6 +1065,10 @@ async function loadUserAccessPermissions(){
         }
         applyMappedBranding();
     }catch(_err){
+        localStorage.removeItem(MAPPED_COMPANY_NAME_KEY);
+        localStorage.removeItem(MAPPED_COMPANY_CODE_KEY);
+        localStorage.removeItem(MAPPED_COMPANY_EMAIL_KEY);
+        localStorage.removeItem(MAPPED_COMPANY_LOGO_URL_KEY);
                                                      
     }
 }

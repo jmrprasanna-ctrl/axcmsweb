@@ -99,6 +99,24 @@ async function resolveUserProfilePicture(client, userId) {
   }
 }
 
+async function resolvePreferredDatabaseFromAccess(client, userId) {
+  const uid = Number(userId || 0);
+  if (!uid) return "";
+  try {
+    const rs = await client.query(
+      `SELECT database_name
+       FROM user_accesses
+       WHERE user_id = $1
+       ORDER BY "updatedAt" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
+       LIMIT 1`,
+      [uid]
+    );
+    return db.normalizeDatabaseName(rs.rows?.[0]?.database_name || "") || "";
+  } catch (_err) {
+    return "";
+  }
+}
+
 exports.login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -145,13 +163,22 @@ exports.login = async (req, res) => {
     let userProfilePictureUrl = null;
     let userProfilePictureDataUrl = null;
 
+    const preferredDatabaseName = await resolvePreferredDatabaseFromAccess(client, user.id);
     const mappingRs = await client.query(
       `SELECT um.database_name, cp.company_name, cp.company_code, COALESCE(NULLIF(TRIM(um.mapped_email), ''), cp.email) AS mapped_email, cp.logo_path, cp.folder_name, cp.logo_file_name
        FROM user_mappings um
        JOIN company_profiles cp ON cp.id = um.company_profile_id
        WHERE um.user_id = $1
+       ORDER BY
+         CASE
+           WHEN LOWER(COALESCE(um.database_name, '')) = LOWER(COALESCE($2, '')) THEN 0
+           ELSE 1
+         END ASC,
+         um."updatedAt" DESC NULLS LAST,
+         um."createdAt" DESC NULLS LAST,
+         um.id DESC
        LIMIT 1`,
-      [user.id]
+      [user.id, preferredDatabaseName || ""]
     );
     if (mappingRs.rowCount) {
       const mappedDb = db.normalizeDatabaseName(mappingRs.rows[0]?.database_name || "");

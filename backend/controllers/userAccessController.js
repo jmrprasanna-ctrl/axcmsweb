@@ -829,7 +829,7 @@ async function findAccessFromMainDb(userId, userDatabase = INVENTORY_DB_NAME) {
   }
 }
 
-async function findMappedUserProfile(userId) {
+async function findMappedUserProfile(userId, preferredDatabaseName = "") {
   const cfg = getDbConfig();
   const client = new Client({
     host: cfg.host,
@@ -840,13 +840,22 @@ async function findMappedUserProfile(userId) {
   });
   try {
     await client.connect();
+    const preferredDb = normalizeDatabaseName(preferredDatabaseName);
     const rs = await client.query(
       `SELECT um.database_name, cp.company_name, cp.company_code, cp.email, cp.logo_path, cp.folder_name, cp.logo_file_name
        FROM user_mappings um
        JOIN ${COMPANY_REGISTRY_TABLE} cp ON cp.id = um.company_profile_id
        WHERE um.user_id = $1
+       ORDER BY
+         CASE
+           WHEN LOWER(COALESCE(um.database_name, '')) = LOWER(COALESCE($2, '')) THEN 0
+           ELSE 1
+         END ASC,
+         um."updatedAt" DESC NULLS LAST,
+         um."createdAt" DESC NULLS LAST,
+         um.id DESC
        LIMIT 1`,
-      [userId]
+      [userId, preferredDb || ""]
     );
     if (!rs.rowCount) return null;
     return {
@@ -3228,7 +3237,8 @@ exports.getMyAccess = async (req, res) => {
   const allowedActions = parseAllowedActions(row);
   const allowedPages = derivePagesFromActions(allowedActions, parseAllowedPages(row));
   const hasAccessConfig = Boolean(row) || allowedPages.length > 0 || allowedActions.length > 0;
-  const mappedProfile = await findMappedUserProfile(userId);
+  const preferredMappedDb = normalizeDatabaseName(row?.database_name) || userDatabase;
+  const mappedProfile = await findMappedUserProfile(userId, preferredMappedDb);
   const mappedLogoPath = String(mappedProfile?.logo_path || "").trim();
   const mappedLogoUrl = mappedLogoPath
     ? (/^https?:\/\//i.test(mappedLogoPath) || /^data:image\//i.test(mappedLogoPath)
