@@ -469,6 +469,10 @@ function resolveCompanyLogoPathForResponse(row) {
 }
 
 function buildCompanyLogoDataUrl(row) {
+  const persisted = String(row?.logo_data_url || "").trim();
+  if (/^data:image\//i.test(persisted)) {
+    return persisted;
+  }
   const resolvedPath = resolveCompanyLogoPathForResponse(row);
   if (!resolvedPath || /^https?:\/\//i.test(resolvedPath) || /^data:image\//i.test(resolvedPath)) {
     return "";
@@ -600,6 +604,7 @@ async function ensureCompanyRegistryTable(client) {
       folder_name VARCHAR(120) NOT NULL,
       logo_path VARCHAR(500) NOT NULL,
       logo_file_name VARCHAR(255) NOT NULL,
+      logo_data_url TEXT,
       created_by INTEGER,
       "createdAt" TIMESTAMP DEFAULT NOW(),
       "updatedAt" TIMESTAMP DEFAULT NOW()
@@ -612,6 +617,10 @@ async function ensureCompanyRegistryTable(client) {
   await client.query(`
     ALTER TABLE ${COMPANY_REGISTRY_TABLE}
     ADD COLUMN IF NOT EXISTS email VARCHAR(200);
+  `);
+  await client.query(`
+    ALTER TABLE ${COMPANY_REGISTRY_TABLE}
+    ADD COLUMN IF NOT EXISTS logo_data_url TEXT;
   `);
   await client.query(`
     CREATE UNIQUE INDEX IF NOT EXISTS company_profiles_company_code_unique_idx
@@ -879,7 +888,7 @@ async function findMappedUserProfile(userId, preferredDatabaseName = "") {
     await client.connect();
     const preferredDb = normalizeDatabaseName(preferredDatabaseName);
     const rs = await client.query(
-      `SELECT um.database_name, cp.company_name, cp.company_code, cp.email, cp.logo_path, cp.folder_name, cp.logo_file_name
+      `SELECT um.database_name, cp.company_name, cp.company_code, cp.email, cp.logo_path, cp.logo_data_url, cp.folder_name, cp.logo_file_name
        FROM user_mappings um
        JOIN ${COMPANY_REGISTRY_TABLE} cp ON cp.id = um.company_profile_id
        WHERE um.user_id = $1
@@ -900,6 +909,7 @@ async function findMappedUserProfile(userId, preferredDatabaseName = "") {
       company_name: normalizeCompanyName(rs.rows[0]?.company_name),
       company_code: normalizeCompanyCode(rs.rows[0]?.company_code),
       email: normalizeEmail(rs.rows[0]?.email),
+      logo_data_url: String(rs.rows[0]?.logo_data_url || "").trim(),
       logo_path: normalizeCompanyLogoPath(rs.rows[0]?.logo_path, rs.rows[0]?.folder_name, rs.rows[0]?.logo_file_name),
     };
   } catch (_err) {
@@ -1874,12 +1884,13 @@ exports.getCompanies = async (_req, res) => {
               cp.folder_name,
               cp.logo_path,
               cp.logo_file_name,
+              cp.logo_data_url,
               cp."createdAt",
               cp."updatedAt",
               COUNT(um.user_id)::int AS mapped_users_count
        FROM ${COMPANY_REGISTRY_TABLE} cp
        LEFT JOIN user_mappings um ON um.company_profile_id = cp.id
-       GROUP BY cp.id, cp.company_name, cp.company_code, cp.email, cp.folder_name, cp.logo_path, cp.logo_file_name, cp."createdAt", cp."updatedAt"
+       GROUP BY cp.id, cp.company_name, cp.company_code, cp.email, cp.folder_name, cp.logo_path, cp.logo_file_name, cp.logo_data_url, cp."createdAt", cp."updatedAt"
        ORDER BY LOWER(cp.company_name) ASC, cp.id ASC`
     );
     const rows = (rs.rows || []).map((row) => {
@@ -1935,12 +1946,13 @@ exports.createCompany = async (req, res) => {
     return res.status(400).json({ message: "Invalid logo format. Allowed: .jpg, .jpeg, .bmp, .gif, .tiff, .png" });
   }
 
-  let logoBuffer;
-  try {
-    logoBuffer = parseBase64Payload(req.body?.logo_file_data_base64);
-  } catch (_err) {
-    return res.status(400).json({ message: "Invalid logo data." });
-  }
+    const logoDataUrlInput = String(req.body?.logo_file_data_base64 || "").trim();
+    let logoBuffer;
+    try {
+    logoBuffer = parseBase64Payload(logoDataUrlInput);
+    } catch (_err) {
+      return res.status(400).json({ message: "Invalid logo data." });
+    }
   if (!logoBuffer || !logoBuffer.length) {
     return res.status(400).json({ message: "Uploaded logo is empty." });
   }
@@ -1961,7 +1973,7 @@ exports.createCompany = async (req, res) => {
     const normalizedLookupCode = normalizeCompanyCode(companyCode);
     const normalizedLookupName = normalizeCompanyName(companyName);
     const existingRs = await mainDbClient.query(
-      `SELECT id, company_name, company_code, email, folder_name, logo_path, logo_file_name
+      `SELECT id, company_name, company_code, email, folder_name, logo_path, logo_file_name, logo_data_url
        FROM ${COMPANY_REGISTRY_TABLE}
        WHERE REGEXP_REPLACE(UPPER(COALESCE(company_code, '')), '[^A-Z0-9_-]+', '', 'g') = $1
           OR UPPER(REGEXP_REPLACE(COALESCE(company_name, ''), '\s+', ' ', 'g')) = UPPER($2)
@@ -2018,9 +2030,10 @@ exports.createCompany = async (req, res) => {
              folder_name = $4,
              logo_path = $5,
              logo_file_name = $6,
+             logo_data_url = $7,
              "updatedAt" = NOW()
-         WHERE id = $7
-         RETURNING id, company_name, company_code, email, folder_name, logo_path, logo_file_name, "createdAt", "updatedAt"`,
+         WHERE id = $8
+         RETURNING id, company_name, company_code, email, folder_name, logo_path, logo_file_name, logo_data_url, "createdAt", "updatedAt"`,
         [
           companyName,
           companyCode,
@@ -2028,6 +2041,7 @@ exports.createCompany = async (req, res) => {
           folderName,
           relativeLogoPath,
           storedLogoFileName,
+          logoDataUrlInput || null,
           Number(existingRs.rows[0]?.id || 0),
         ]
       );
@@ -2035,15 +2049,18 @@ exports.createCompany = async (req, res) => {
     } else {
       rs = await mainDbClient.query(
         `INSERT INTO ${COMPANY_REGISTRY_TABLE}
-         (company_name, company_code, email, folder_name, logo_path, logo_file_name, created_by, "createdAt", "updatedAt")
-         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-         RETURNING id, company_name, company_code, email, folder_name, logo_path, logo_file_name, "createdAt", "updatedAt"`,
-        [companyName, companyCode, companyEmail, folderName, relativeLogoPath, storedLogoFileName, Number(req.user?.id || 0) || null]
+         (company_name, company_code, email, folder_name, logo_path, logo_file_name, logo_data_url, created_by, "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+         RETURNING id, company_name, company_code, email, folder_name, logo_path, logo_file_name, logo_data_url, "createdAt", "updatedAt"`,
+        [companyName, companyCode, companyEmail, folderName, relativeLogoPath, storedLogoFileName, logoDataUrlInput || null, Number(req.user?.id || 0) || null]
       );
     }
 
     const row = rs.rows[0];
     const normalizedLogoPath = normalizeCompanyLogoPath(row.logo_path, row.folder_name, row.logo_file_name);
+    const savedLogoDataUrl = /^data:image\//i.test(String(row.logo_data_url || "").trim())
+      ? String(row.logo_data_url || "").trim()
+      : "";
     res.status(201).json({
       message,
       company: {
@@ -2054,6 +2071,7 @@ exports.createCompany = async (req, res) => {
         folder_name: String(row.folder_name || "").trim(),
         logo_file_name: String(row.logo_file_name || "").trim(),
         logo_path: normalizedLogoPath,
+        logo_data_url: savedLogoDataUrl,
         logo_url: normalizedLogoPath ? `/${String(normalizedLogoPath).replace(/^\/+/, "")}` : "",
         created_at: row.createdAt || null,
       },
@@ -3365,12 +3383,15 @@ exports.getMyAccess = async (req, res) => {
   const hasAccessConfig = Boolean(row) || allowedPages.length > 0 || allowedActions.length > 0;
   const preferredMappedDb = normalizeDatabaseName(row?.database_name) || userDatabase;
   const mappedProfile = await findMappedUserProfile(userId, preferredMappedDb);
+  const mappedLogoDataUrl = String(mappedProfile?.logo_data_url || "").trim();
   const mappedLogoPath = String(mappedProfile?.logo_path || "").trim();
-  const mappedLogoUrl = mappedLogoPath
-    ? (/^https?:\/\//i.test(mappedLogoPath) || /^data:image\//i.test(mappedLogoPath)
-      ? mappedLogoPath
-      : `/${mappedLogoPath.replace(/^\/+/, "")}`)
-    : null;
+  const mappedLogoUrl = /^data:image\//i.test(mappedLogoDataUrl)
+    ? mappedLogoDataUrl
+    : (mappedLogoPath
+      ? (/^https?:\/\//i.test(mappedLogoPath) || /^data:image\//i.test(mappedLogoPath)
+        ? mappedLogoPath
+        : `/${mappedLogoPath.replace(/^\/+/, "")}`)
+      : null);
 
   res.json({
     allowed_pages: allowedPages,

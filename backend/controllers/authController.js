@@ -165,7 +165,7 @@ exports.login = async (req, res) => {
 
     const preferredDatabaseName = await resolvePreferredDatabaseFromAccess(client, user.id);
     const mappingRs = await client.query(
-      `SELECT um.database_name, cp.company_name, cp.company_code, COALESCE(NULLIF(TRIM(um.mapped_email), ''), cp.email) AS mapped_email, cp.logo_path, cp.folder_name, cp.logo_file_name
+      `SELECT um.database_name, cp.company_name, cp.company_code, COALESCE(NULLIF(TRIM(um.mapped_email), ''), cp.email) AS mapped_email, cp.logo_path, cp.logo_data_url, cp.folder_name, cp.logo_file_name
        FROM user_mappings um
        JOIN company_profiles cp ON cp.id = um.company_profile_id
        WHERE um.user_id = $1
@@ -189,12 +189,15 @@ exports.login = async (req, res) => {
       mappedCompanyName = String(mappingRs.rows[0]?.company_name || "").trim() || null;
       mappedCompanyCode = String(mappingRs.rows[0]?.company_code || "").trim().toUpperCase() || null;
       mappedCompanyEmail = String(mappingRs.rows[0]?.mapped_email || "").trim().toLowerCase() || null;
+      const mappedLogoDataUrl = String(mappingRs.rows[0]?.logo_data_url || "").trim();
       const logoPath = normalizeMappedLogoPath(
         mappingRs.rows[0]?.logo_path,
         mappingRs.rows[0]?.folder_name,
         mappingRs.rows[0]?.logo_file_name
       );
-      if (logoPath) {
+      if (/^data:image\//i.test(mappedLogoDataUrl)) {
+        mappedCompanyLogoUrl = mappedLogoDataUrl;
+      } else if (logoPath) {
         if (/^https?:\/\//i.test(logoPath) || /^data:image\//i.test(logoPath)) {
           mappedCompanyLogoUrl = logoPath;
         } else {
