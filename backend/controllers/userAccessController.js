@@ -576,6 +576,69 @@ function deleteCompanyLogoFiles(folderPath) {
   }
 }
 
+async function updateCompanyLogoFromPayload(mainDbClient, companyId, logoFileNameRaw, logoDataUrlRaw) {
+  const fileName = String(logoFileNameRaw || "").trim();
+  const dataUrl = String(logoDataUrlRaw || "").trim();
+  if (!fileName && !dataUrl) {
+    return null;
+  }
+  if (!fileName || !dataUrl) {
+    throw new Error("Both logo file name and logo data are required.");
+  }
+  const ext = path.extname(fileName).toLowerCase();
+  if (!COMPANY_LOGO_EXTENSIONS.has(ext)) {
+    throw new Error("Invalid logo format. Allowed: .jpg, .jpeg, .bmp, .gif, .tiff, .png");
+  }
+  const logoBuffer = parseBase64Payload(dataUrl);
+  if (!logoBuffer || !logoBuffer.length) {
+    throw new Error("Uploaded logo is empty.");
+  }
+
+  const companyRs = await mainDbClient.query(
+    `SELECT id, company_name, folder_name
+     FROM ${COMPANY_REGISTRY_TABLE}
+     WHERE id = $1
+     LIMIT 1`,
+    [Number(companyId || 0)]
+  );
+  if (!companyRs.rowCount) {
+    throw new Error("Selected company not found.");
+  }
+
+  let folderName = String(companyRs.rows[0]?.folder_name || "").trim();
+  let folderPath = "";
+  if (!folderName) {
+    folderPath = resolveCompanyFolder(companyRs.rows[0]?.company_name || "company");
+    let suffix = 1;
+    while (fs.existsSync(folderPath)) {
+      folderPath = path.join(COMPANY_STORAGE_ROOT, `${safeNamePart(companyRs.rows[0]?.company_name || "company")}_${suffix++}`);
+    }
+    folderName = path.basename(folderPath);
+  } else {
+    folderPath = path.resolve(COMPANY_STORAGE_ROOT, folderName);
+  }
+  ensureDir(folderPath);
+  deleteCompanyLogoFiles(folderPath);
+
+  const storedLogoFileName = sanitizeLogoFileName(fileName, ext);
+  const logoPathAbs = path.join(folderPath, storedLogoFileName);
+  fs.writeFileSync(logoPathAbs, logoBuffer);
+  const relativeLogoPath = toRelativeStoragePath(logoPathAbs);
+
+  const updatedRs = await mainDbClient.query(
+    `UPDATE ${COMPANY_REGISTRY_TABLE}
+     SET folder_name = $2,
+         logo_path = $3,
+         logo_file_name = $4,
+         logo_data_url = $5,
+         "updatedAt" = NOW()
+     WHERE id = $1
+     RETURNING id, folder_name, logo_path, logo_file_name, logo_data_url`,
+    [Number(companyId || 0), folderName, relativeLogoPath, storedLogoFileName, dataUrl]
+  );
+  return updatedRs.rowCount ? updatedRs.rows[0] : null;
+}
+
 async function ensureDatabaseRegistryTable(client) {
   await client.query(`
     CREATE TABLE IF NOT EXISTS ${DATABASE_REGISTRY_TABLE} (
@@ -2285,7 +2348,7 @@ exports.getMappedMeta = async (_req, res) => {
       pgDbRs = { rows: [] };
     }
     const companiesRs = await mainDbClient.query(
-      `SELECT id, company_name, company_code, email
+      `SELECT id, company_name, company_code, email, logo_path, logo_file_name, logo_data_url, folder_name
        FROM ${COMPANY_REGISTRY_TABLE}
        ORDER BY LOWER(company_name) ASC`
     );
@@ -2328,6 +2391,9 @@ exports.getMappedMeta = async (_req, res) => {
         company_name: normalizeCompanyName(row.company_name),
         company_code: normalizeCompanyCode(row.company_code),
         email: normalizeEmail(row.email),
+        logo_file_name: String(row.logo_file_name || "").trim(),
+        logo_path: normalizeCompanyLogoPath(row.logo_path, row.folder_name, row.logo_file_name),
+        logo_data_url: buildCompanyLogoDataUrl(row),
       })),
     });
   } catch (err) {
@@ -2354,7 +2420,8 @@ exports.getMappedByUser = async (req, res) => {
     await mainDbClient.connect();
     await ensureUserMappingTable(mainDbClient);
     const rs = await mainDbClient.query(
-      `SELECT um.user_id, um.database_name, um.company_profile_id, um.mapped_email, um.is_verified, cp.company_name, cp.company_code, cp.email
+      `SELECT um.user_id, um.database_name, um.company_profile_id, um.mapped_email, um.is_verified, cp.company_name, cp.company_code, cp.email,
+              cp.logo_path, cp.logo_file_name, cp.logo_data_url, cp.folder_name
        FROM user_mappings um
        JOIN ${COMPANY_REGISTRY_TABLE} cp ON cp.id = um.company_profile_id
        WHERE um.user_id = $1
@@ -2374,6 +2441,12 @@ exports.getMappedByUser = async (req, res) => {
         company_code: normalizeCompanyCode(row.company_code),
         email: normalizeEmail(row.email),
         mapped_email: normalizeEmail(row.mapped_email || row.email),
+        logo_file_name: String(row.logo_file_name || "").trim(),
+        logo_data_url: buildCompanyLogoDataUrl(row),
+        logo_path: normalizeCompanyLogoPath(row.logo_path, row.folder_name, row.logo_file_name),
+        logo_url: normalizeCompanyLogoPath(row.logo_path, row.folder_name, row.logo_file_name)
+          ? `/${normalizeCompanyLogoPath(row.logo_path, row.folder_name, row.logo_file_name).replace(/^\/+/, "")}`
+          : "",
         is_verified: Boolean(row.is_verified),
       },
     });
@@ -2431,6 +2504,8 @@ exports.saveMapping = async (req, res) => {
   const databaseName = normalizeDatabaseName(req.body?.database_name);
   const companyId = Number(req.body?.company_profile_id || 0);
   const mappedEmail = normalizeEmail(req.body?.email || req.body?.mapped_email);
+  const logoFileName = String(req.body?.logo_file_name || "").trim();
+  const logoData = String(req.body?.logo_file_data_base64 || "").trim();
   if (!Number.isFinite(userId) || userId <= 0 || !databaseName || !Number.isFinite(companyId) || companyId <= 0 || !mappedEmail) {
     return res.status(400).json({ message: "User, database, company and email are required." });
   }
@@ -2448,6 +2523,9 @@ exports.saveMapping = async (req, res) => {
     await ensureDatabaseRegistryTable(mainDbClient);
     await ensureCompanyRegistryTable(mainDbClient);
     await ensureUserMappingTable(mainDbClient);
+    if (logoFileName || logoData) {
+      await updateCompanyLogoFromPayload(mainDbClient, companyId, logoFileName, logoData);
+    }
     const result = await getMappingPieces(mainDbClient, userId, databaseName, companyId, mappedEmail);
     if (!result.verified) {
       return res.status(400).json({

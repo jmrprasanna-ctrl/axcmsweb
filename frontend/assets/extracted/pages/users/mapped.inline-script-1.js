@@ -2,11 +2,14 @@ const userSelectEl = document.getElementById("userSelect");
         const databaseSelectEl = document.getElementById("databaseSelect");
         const companySelectEl = document.getElementById("companySelect");
         const mappingEmailEl = document.getElementById("mappingEmail");
+        const mappingLogoFileEl = document.getElementById("mappingLogoFile");
         const userCompanyNameEl = document.getElementById("userCompanyName");
         const databaseCompanyNameEl = document.getElementById("databaseCompanyName");
         const selectedCompanyNameEl = document.getElementById("selectedCompanyName");
         const selectedCompanyCodeEl = document.getElementById("selectedCompanyCode");
         const selectedCompanyEmailEl = document.getElementById("selectedCompanyEmail");
+        const selectedCompanyLogoImgEl = document.getElementById("selectedCompanyLogoImg");
+        const selectedCompanyLogoFileEl = document.getElementById("selectedCompanyLogoFile");
         const verifyStatusEl = document.getElementById("verifyStatus");
         const verifyBtnEl = document.getElementById("verifyBtn");
         const mappedBtnEl = document.getElementById("mappedBtn");
@@ -19,6 +22,28 @@ const userSelectEl = document.getElementById("userSelect");
         let databases = [];
         let companies = [];
         let mappedEntriesCache = [];
+        const ALLOWED_EXT = new Set([".jpg", ".jpeg", ".bmp", ".gif", ".tiff", ".tif", ".png"]);
+        const DEFAULT_COMPANY_LOGO = "../../assets/images/logo.png";
+
+        function readFileAsDataURL(file){
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(String(reader.result || ""));
+                reader.onerror = () => reject(new Error("Failed to read file."));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function validateLogoFile(file){
+            if(!file) return "";
+            const name = String(file.name || "").trim();
+            const dot = name.lastIndexOf(".");
+            const ext = dot >= 0 ? name.slice(dot).toLowerCase() : "";
+            if(!ALLOWED_EXT.has(ext)){
+                return "Invalid logo format. Allowed: .jpg, .jpeg, .bmp, .gif, .tiff, .png";
+            }
+            return "";
+        }
 
         function findUser(userId){
             return users.find((u) => Number(u.id) === Number(userId)) || null;
@@ -33,6 +58,39 @@ const userSelectEl = document.getElementById("userSelect");
             return companies.find((c) => Number(c.id) === Number(companyId)) || null;
         }
 
+        function resolveLogoUrl(rawPath){
+            const source = String(rawPath || "").trim();
+            if(!source) return "";
+            if(/^data:image\//i.test(source) || /^https?:\/\//i.test(source)){
+                return source;
+            }
+            const clean = source
+                .replace(/\\/g, "/")
+                .replace(/^(\.\.\/|\.\/)+/g, "")
+                .replace(/^backend\//i, "")
+                .replace(/^\/+/, "");
+            const apiBase = String(window.BASE_URL || "").trim().replace(/\/api$/i, "").replace(/\/+$/, "");
+            if(!apiBase) return `/${clean}`;
+            return `${apiBase}/${clean}`;
+        }
+
+        function setCompanyLogoPreview(company){
+            if(!selectedCompanyLogoImgEl || !selectedCompanyLogoFileEl) return;
+            if(!company){
+                selectedCompanyLogoImgEl.src = DEFAULT_COMPANY_LOGO;
+                selectedCompanyLogoFileEl.textContent = "-";
+                return;
+            }
+            const logoSource = String(company.logo_data_url || company.logo_url || company.logo_path || "").trim();
+            const logoUrl = resolveLogoUrl(logoSource);
+            selectedCompanyLogoFileEl.textContent = String(company.logo_file_name || "-");
+            selectedCompanyLogoImgEl.onerror = () => {
+                selectedCompanyLogoImgEl.onerror = null;
+                selectedCompanyLogoImgEl.src = DEFAULT_COMPANY_LOGO;
+            };
+            selectedCompanyLogoImgEl.src = logoUrl || DEFAULT_COMPANY_LOGO;
+        }
+
         function updateNameViews(){
             const user = findUser(userSelectEl.value);
             const db = findDb(databaseSelectEl.value);
@@ -42,6 +100,7 @@ const userSelectEl = document.getElementById("userSelect");
             selectedCompanyNameEl.textContent = company ? String(company.company_name || "-") : "-";
             selectedCompanyCodeEl.textContent = company ? String(company.company_code || "-") : "-";
             selectedCompanyEmailEl.textContent = company ? String(company.email || "-") : "-";
+            setCompanyLogoPreview(company);
             if(company){
                 mappingEmailEl.value = String(company.email || "").trim().toLowerCase();
             }
@@ -123,6 +182,12 @@ const userSelectEl = document.getElementById("userSelect");
                 }else if(m.email){
                     mappingEmailEl.value = String(m.email || "").trim().toLowerCase();
                 }
+                setCompanyLogoPreview({
+                    logo_data_url: m.logo_data_url,
+                    logo_url: m.logo_url,
+                    logo_path: m.logo_path,
+                    logo_file_name: m.logo_file_name,
+                });
             }catch(_err){
             }
         }
@@ -169,8 +234,21 @@ const userSelectEl = document.getElementById("userSelect");
                 return;
             }
             try{
+                const file = mappingLogoFileEl && mappingLogoFileEl.files ? mappingLogoFileEl.files[0] : null;
+                const logoValidationError = validateLogoFile(file);
+                if(logoValidationError){
+                    alert(logoValidationError);
+                    return;
+                }
+                if(file){
+                    payload.logo_file_name = String(file.name || "").trim();
+                    payload.logo_file_data_base64 = await readFileAsDataURL(file);
+                }
                 const res = await request("/users/mapped/save", "POST", payload);
                 showMessageBox(res.message || "Mapped successfully");
+                if(mappingLogoFileEl){
+                    mappingLogoFileEl.value = "";
+                }
                 upsertMappedEntryFromSave(res && res.mapping ? res.mapping : null);
                 await loadMappedEntries();
             }catch(err){

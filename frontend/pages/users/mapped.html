@@ -43,6 +43,11 @@
                     <label for="mappingEmail">Email</label>
                     <input id="mappingEmail" type="email" placeholder="Mapped email">
                 </div>
+                <div>
+                    <label for="mappingLogoFile">Mapped Company Logo (Optional)</label>
+                    <input id="mappingLogoFile" type="file" accept=".jpg,.jpeg,.bmp,.gif,.tiff,.tif,.png">
+                    <div class="path-hint">If selected, logo updates for the mapped company and database.</div>
+                </div>
             </div>
 
             <div class="mapped-info">
@@ -52,6 +57,13 @@
                 <div class="mapped-row"><strong>Company Code</strong><span id="selectedCompanyCode">-</span></div>
                 <div class="mapped-row"><strong>Company Email</strong><span id="selectedCompanyEmail">-</span></div>
                 <div class="mapped-row"><strong>Verify Status</strong><span id="verifyStatus">Not verified</span></div>
+                <div class="mapped-row">
+                    <strong>Company Logo</strong>
+                    <span style="display:flex;align-items:center;gap:10px;">
+                        <img id="selectedCompanyLogoImg" src="../../assets/images/logo.png" alt="Company logo" style="width:36px;height:36px;border-radius:8px;object-fit:cover;border:1px solid #d8e8f8;background:#fff;">
+                        <span id="selectedCompanyLogoFile">-</span>
+                    </span>
+                </div>
             </div>
 
             <div class="access-actions" style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
@@ -89,7 +101,7 @@
     </div>
 
     <script src="../../assets/js/api.js"></script>
-    <script src="../../assets/extracted/pages/users/mapped.inline-script-1.js"></script>
+    <script src="../../assets/extracted/pages/users/mapped.inline-script-1.js?v=20260406c"></script>
 </body>
 </html>
 
