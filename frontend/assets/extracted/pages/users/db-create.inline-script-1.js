@@ -2,9 +2,16 @@ const databaseNameEl = document.getElementById("databaseName");
         const companyNameEl = document.getElementById("companyName");
         const createdDbTableBodyEl = document.getElementById("createdDbTableBody");
         const saveDbBtnEl = document.getElementById("saveDbBtn");
+        const dbCreateStatusEl = document.getElementById("dbCreateStatus");
         const DB_CREATE_PATH = "/users/db-create.html";
         let canAddDb = false;
         let canDeleteDb = false;
+
+        function setDbCreateStatus(message, isError = false){
+            if(!dbCreateStatusEl) return;
+            dbCreateStatusEl.textContent = String(message || "").trim();
+            dbCreateStatusEl.style.color = isError ? "#b4232f" : "#5a7086";
+        }
 
         function sanitizeDbNameForInput(value){
             return String(value || "")
@@ -49,12 +56,15 @@ const databaseNameEl = document.getElementById("databaseName");
                     company_name: companyName
                 });
                 showMessageBox(res.message || "Database created");
+                setDbCreateStatus(res.message || "Database created successfully.");
                 await loadCreatedDatabases();
                 setTimeout(() => {
                     window.location.href = "user-access.html";
                 }, 500);
             }catch(err){
-                alert(err.message || "Failed to create database");
+                const msg = String(err.message || "Failed to create database");
+                setDbCreateStatus(msg, true);
+                alert(msg);
             }
         }
 
@@ -107,9 +117,12 @@ const databaseNameEl = document.getElementById("databaseName");
             try{
                 await request(`/users/databases/${encodeURIComponent(name)}`, "DELETE");
                 showMessageBox("Database deleted");
+                setDbCreateStatus("Database deleted successfully.");
                 await loadCreatedDatabases();
             }catch(err){
-                alert(err.message || "Failed to delete database");
+                const msg = String(err.message || "Failed to delete database");
+                setDbCreateStatus(msg, true);
+                alert(msg);
             }
         }
 
@@ -158,5 +171,6 @@ const databaseNameEl = document.getElementById("databaseName");
                 return;
             }
             await applyPermissionState();
+            setDbCreateStatus("Ready. Use lowercase database name and mapped company name.");
             await loadCreatedDatabases();
         })();

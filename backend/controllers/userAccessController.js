@@ -735,6 +735,17 @@ function getDbConfig() {
   };
 }
 
+function getDbAdminConfig() {
+  const base = getDbConfig();
+  return {
+    host: process.env.DB_ADMIN_HOST || base.host,
+    port: Number(process.env.DB_ADMIN_PORT || base.port || 5432),
+    user: process.env.DB_ADMIN_USER || base.user,
+    password: process.env.DB_ADMIN_PASSWORD || base.password,
+    database: process.env.DB_ADMIN_DATABASE || "postgres",
+  };
+}
+
 async function seedDefaultCategoryData(databaseName) {
   await db.withDatabase(databaseName, async () => {
     for (const name of DEFAULT_CATEGORIES) {
@@ -1345,12 +1356,13 @@ exports.getAccessPages = async (_req, res) => {
 
 exports.getDatabases = async (_req, res) => {
   const cfg = getDbConfig();
+  const adminCfg = getDbAdminConfig();
   const adminClient = new Client({
-    host: cfg.host,
-    port: cfg.port,
-    user: cfg.user,
-    password: cfg.password,
-    database: "postgres",
+    host: adminCfg.host,
+    port: adminCfg.port,
+    user: adminCfg.user,
+    password: adminCfg.password,
+    database: adminCfg.database,
   });
   const mainDbClient = new Client({
     host: cfg.host,
@@ -1417,12 +1429,13 @@ exports.createDatabase = async (req, res) => {
   }
 
   const cfg = getDbConfig();
+  const adminCfg = getDbAdminConfig();
   const adminClient = new Client({
-    host: cfg.host,
-    port: cfg.port,
-    user: cfg.user,
-    password: cfg.password,
-    database: "postgres",
+    host: adminCfg.host,
+    port: adminCfg.port,
+    user: adminCfg.user,
+    password: adminCfg.password,
+    database: adminCfg.database,
   });
   const mainDbClient = new Client({
     host: cfg.host,
@@ -1477,6 +1490,14 @@ exports.createDatabase = async (req, res) => {
       },
     });
   } catch (err) {
+    const code = String(err?.code || "").trim();
+    if (code === "42501" || /permission denied/i.test(String(err?.message || ""))) {
+      const adminUser = String(adminCfg.user || cfg.user || "postgres").trim() || "postgres";
+      return res.status(403).json({
+        message: `Permission denied to create database. Run: ALTER ROLE ${adminUser} CREATEDB;`,
+        hint_sql: `ALTER ROLE ${adminUser} CREATEDB;`,
+      });
+    }
     res.status(500).json({ message: err.message || "Failed to create database." });
   } finally {
     await adminClient.end().catch(() => {});
@@ -1516,12 +1537,13 @@ exports.deleteDatabase = async (req, res) => {
   }
 
   const cfg = getDbConfig();
+  const adminCfg = getDbAdminConfig();
   const adminClient = new Client({
-    host: cfg.host,
-    port: cfg.port,
-    user: cfg.user,
-    password: cfg.password,
-    database: "postgres",
+    host: adminCfg.host,
+    port: adminCfg.port,
+    user: adminCfg.user,
+    password: adminCfg.password,
+    database: adminCfg.database,
   });
   const mainDbClient = new Client({
     host: cfg.host,
@@ -1575,6 +1597,14 @@ exports.deleteDatabase = async (req, res) => {
 
     res.json({ message: "Database deleted successfully." });
   } catch (err) {
+    const code = String(err?.code || "").trim();
+    if (code === "42501" || /permission denied/i.test(String(err?.message || ""))) {
+      const adminUser = String(adminCfg.user || cfg.user || "postgres").trim() || "postgres";
+      return res.status(403).json({
+        message: `Permission denied to drop database. Run: ALTER ROLE ${adminUser} CREATEDB;`,
+        hint_sql: `ALTER ROLE ${adminUser} CREATEDB;`,
+      });
+    }
     res.status(500).json({ message: err.message || "Failed to delete database." });
   } finally {
     await adminClient.end().catch(() => {});
