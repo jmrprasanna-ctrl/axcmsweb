@@ -434,6 +434,38 @@ function resolveCompanyLogoPathForResponse(row) {
   return normalized;
 }
 
+function buildCompanyLogoDataUrl(row) {
+  const resolvedPath = resolveCompanyLogoPathForResponse(row);
+  if (!resolvedPath || /^https?:\/\//i.test(resolvedPath) || /^data:image\//i.test(resolvedPath)) {
+    return "";
+  }
+  const clean = String(resolvedPath || "").replace(/^\/+/, "");
+  const abs = path.resolve(__dirname, "..", clean);
+  const root = path.resolve(__dirname, "..", "storage");
+  if (!abs.startsWith(root)) return "";
+  if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) return "";
+  const ext = path.extname(abs).toLowerCase();
+  const mimeByExt = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".bmp": "image/bmp",
+    ".gif": "image/gif",
+    ".tif": "image/tiff",
+    ".tiff": "image/tiff",
+    ".webp": "image/webp",
+  };
+  const mime = mimeByExt[ext];
+  if (!mime) return "";
+  try {
+    const buf = fs.readFileSync(abs);
+    if (!buf || !buf.length) return "";
+    return `data:${mime};base64,${buf.toString("base64")}`;
+  } catch (_err) {
+    return "";
+  }
+}
+
 function parseBase64Payload(fileDataBase64) {
   const raw = String(fileDataBase64 || "").trim();
   if (!raw) {
@@ -1772,6 +1804,7 @@ exports.getCompanies = async (_req, res) => {
     );
     const rows = (rs.rows || []).map((row) => {
       const logoPath = resolveCompanyLogoPathForResponse(row);
+      const logoDataUrl = buildCompanyLogoDataUrl(row);
       return {
         id: Number(row.id || 0),
         company_name: normalizeCompanyName(row.company_name),
@@ -1780,6 +1813,8 @@ exports.getCompanies = async (_req, res) => {
         folder_name: String(row.folder_name || "").trim(),
         logo_file_name: String(row.logo_file_name || "").trim(),
         logo_path: logoPath,
+        logo_data_url: logoDataUrl || "",
+        logo_exists: Boolean(logoDataUrl || logoPath),
         logo_url: logoPath ? `/${String(logoPath).replace(/^\/+/, "")}` : "",
         created_at: row.createdAt || null,
         updated_at: row.updatedAt || null,

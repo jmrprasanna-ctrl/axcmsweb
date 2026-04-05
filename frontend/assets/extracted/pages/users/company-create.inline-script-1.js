@@ -54,7 +54,8 @@ const companyNameEl = document.getElementById("companyName");
 
         function buildLogoCellHtml(row){
             const fileName = String(row.logo_file_name || "").trim();
-            const logoSource = String(row.logo_url || row.logo_path || "").trim();
+            const logoDataUrl = String(row.logo_data_url || "").trim();
+            const logoSource = logoDataUrl || String(row.logo_url || row.logo_path || "").trim();
             const logoUrl = resolveLogoUrl(logoSource);
             const fallback = "../../assets/images/logo.png";
             if(!logoUrl){
