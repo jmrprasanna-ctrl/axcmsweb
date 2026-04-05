@@ -1,12 +1,17 @@
+<!--
+  System: AXIS WEB SYSTEM
+  Owner : CRONIT SOLLUTIONS 
+  Author: JMR Prasanna
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard - PULMO TECHNOLOGIES</title>
-<link rel="stylesheet" href="../assets/css/style.css">
-<link rel="stylesheet" href="../assets/css/dashboard.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta name='author' content='JMR Prasanna'>
+<title>Dashboard - AXIS_CMS_WEB</title>
+<link rel="stylesheet" href="../assets/css/style.css?v=20260404p08">
+<link rel="stylesheet" href="../assets/css/dashboard.css?v=20260404p08">
 </head>
 <body>
 
@@ -14,18 +19,18 @@
 <div class="sidebar">
     <div class="logo">
         <img src="../assets/images/logo.png" alt="Company Logo">
-        <span>PULMO TECHNOLOGIES</span>
+        <span>AXIS_CMS_WEB</span>
     </div>
     <ul class="nav-links" style="visibility:hidden;">
         <li><a href="dashboard.html">Dashboard</a></li>
-        <li><a href="products/product-list.html">Products</a></li>
-        <li><a href="products/general-machine.html">Machines</a></li>
-        <li><a href="customers/customer-list.html">Customers</a></li>
-        <li><a href="invoices/invoice-list.html">Invoices</a></li>
-        <li><a href="vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="calendar.html">Calender</a></li>
+        <li><a href="customers/client-list.html">Client</a></li>
+        <li><a href="cases/case-list.html">Cases</a></li>
+        <li><a href="cases/finished.html">Finished</a></li>
+        <li><a href="invoices/Payments-list.html">Payments</a></li>
         <li><a href="expenses/expense-list.html">Expenses</a></li>
-        <li><a href="reports/sales-report.html">Reports</a></li>
-        <li><a href="analytics/sales-chart.html">Analytics</a></li>
+        <li><a href="finance/finance.html">Finance</a></li>
+        <li><a href="users/user-list.html">Users</a></li>
     </ul>
 </div>
 
@@ -38,45 +43,90 @@
                 <p>Welcome, <span id="userRole"></span></p>
             </div>
             <div class="topbar-right">
-                <div class="user-chip">
-                    <div class="user-avatar" id="userInitial">U</div>
-                    <div class="user-meta">
-                        <span class="user-label">Logged in</span>
-                        <span class="user-name" id="userName">User</span>
+                <div class="datetime-chip" aria-label="Local date and time">
+                    <div class="datetime-row">
+                        <span class="datetime-label">Date</span>
+                        <span class="datetime-value" id="currentDateText">-</span>
+                    </div>
+                    <div class="datetime-row">
+                        <span class="datetime-label">Time</span>
+                        <span class="datetime-value" id="currentTimeText">-</span>
                     </div>
                 </div>
-                <span class="icon-btn health-indicator unknown" id="healthIconBtn" aria-label="System health status" title="System health">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M12 20.5c-.3 0-.6-.1-.8-.3-2.9-2.4-5.1-4.5-6.5-6.2C2.9 11.9 2 10.1 2 8.2 2 5.4 4.3 3 7.1 3c1.8 0 3.5.9 4.5 2.3C12.6 3.9 14.3 3 16.1 3 18.9 3 21.2 5.4 21.2 8.2c0 1.9-.9 3.7-2.7 5.8-1.4 1.7-3.6 3.8-6.5 6.2-.2.2-.5.3-.8.3Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-                    </svg>
-                </span>
-                <a class="icon-btn" id="messagesBtn" href="messages/messages.html" aria-label="Internal messages">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M4 5.5h16a1.5 1.5 0 0 1 1.5 1.5v8.5A1.5 1.5 0 0 1 20 17H8l-4 3v-3.5A1.5 1.5 0 0 1 2.5 15.5V7A1.5 1.5 0 0 1 4 5.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-                        <path d="M7 9.5h10M7 12.5h7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-                    </svg>
-                    <span class="badge-count hidden" id="messagesBadgeCount" aria-hidden="true">0</span>
-                </a>
-                <a class="icon-btn" id="noticeBtn" href="notifications/notifications.html" aria-label="Notices">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M12 3.5c-3.6 0-6.5 2.9-6.5 6.5v3.2l-1.6 2.8a1 1 0 0 0 .9 1.5h14.4a1 1 0 0 0 .9-1.5l-1.6-2.8V10c0-3.6-2.9-6.5-6.5-6.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-                        <path d="M9.5 19a2.5 2.5 0 0 0 5 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-                    </svg>
-                    <span class="badge-count hidden" id="noticeBadgeCount" aria-hidden="true">0</span>
-                </a>
-                <a class="icon-btn" id="todoBtn" href="#todoSection" aria-label="To-do list">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M4.5 6.5h10M4.5 12h10M4.5 17.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-                        <path d="M18 7l1.5 1.5L22 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M18 12.5l1.5 1.5L22 11.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <span class="badge-count hidden" id="todoBadgeCount" aria-hidden="true">0</span>
-                </a>
-                <a class="btn btn-secondary" href="#" onclick="logout()">Logout</a>
+                <div class="topbar-actions">
+                    <span class="icon-btn health-indicator unknown" id="healthIconBtn" aria-label="System health status" title="System health">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M12 20.5c-.3 0-.6-.1-.8-.3-2.9-2.4-5.1-4.5-6.5-6.2C2.9 11.9 2 10.1 2 8.2 2 5.4 4.3 3 7.1 3c1.8 0 3.5.9 4.5 2.3C12.6 3.9 14.3 3 16.1 3 18.9 3 21.2 5.4 21.2 8.2c0 1.9-.9 3.7-2.7 5.8-1.4 1.7-3.6 3.8-6.5 6.2-.2.2-.5.3-.8.3Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <a class="icon-btn" id="messagesBtn" href="messages/messages.html" aria-label="Internal messages">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4 5.5h16a1.5 1.5 0 0 1 1.5 1.5v8.5A1.5 1.5 0 0 1 20 17H8l-4 3v-3.5A1.5 1.5 0 0 1 2.5 15.5V7A1.5 1.5 0 0 1 4 5.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+                            <path d="M7 9.5h10M7 12.5h7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                        </svg>
+                        <span class="badge-count hidden" id="messagesBadgeCount" aria-hidden="true">0</span>
+                    </a>
+                    <a class="icon-btn" id="noticeBtn" href="notifications/notifications.html" aria-label="Notices">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M12 3.5c-3.6 0-6.5 2.9-6.5 6.5v3.2l-1.6 2.8a1 1 0 0 0 .9 1.5h14.4a1 1 0 0 0 .9-1.5l-1.6-2.8V10c0-3.6-2.9-6.5-6.5-6.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+                            <path d="M9.5 19a2.5 2.5 0 0 0 5 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                        </svg>
+                        <span class="badge-count hidden" id="noticeBadgeCount" aria-hidden="true">0</span>
+                    </a>
+                    <a class="icon-btn" id="todoBtn" href="calendar.html" aria-label="To-do list">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4.5 6.5h10M4.5 12h10M4.5 17.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                            <path d="M18 7l1.5 1.5L22 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M18 12.5l1.5 1.5L22 11.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span class="badge-count hidden" id="todoBadgeCount" aria-hidden="true">0</span>
+                    </a>
+                </div>
+                <div class="user-menu-wrap">
+                    <button class="icon-btn user-menu-btn" id="userMenuBtn" type="button" aria-label="Account menu" aria-expanded="false" aria-haspopup="true">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M12 12.2a4.1 4.1 0 1 0 0-8.2 4.1 4.1 0 0 0 0 8.2Z" fill="none" stroke="currentColor" stroke-width="1.7"/>
+                            <path d="M4.3 20.1a7.7 7.7 0 0 1 15.4 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                    <div class="user-menu hidden" id="userMenu" role="menu" aria-label="User menu">
+                        <div class="user-menu-head">
+                            <div class="user-menu-head-avatar" id="userMenuInitial">U</div>
+                            <div class="user-menu-head-text">
+                                <span class="user-menu-head-name" id="userMenuName">User</span>
+                                <span class="user-menu-head-role" id="userMenuRole">Role</span>
+                            </div>
+                        </div>
+                        <div class="user-menu-divider"></div>
+                        <button type="button" class="user-menu-item" id="profileMenuItem" role="menuitem">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M12 12.2a4.1 4.1 0 1 0 0-8.2 4.1 4.1 0 0 0 0 8.2Z" fill="none" stroke="currentColor" stroke-width="1.7"/>
+                                <path d="M4.3 20.1a7.7 7.7 0 0 1 15.4 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                            </svg>
+                            <span>Profile</span>
+                        </button>
+                        <button type="button" class="user-menu-item" id="preferenceMenuItem" role="menuitem">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z" fill="none" stroke="currentColor" stroke-width="1.7"/>
+                                <path d="M3.8 13.3V10.7l2.1-.6c.2-.6.4-1.1.7-1.6L5.5 6.6l1.8-1.8 1.9 1.1c.5-.3 1-.5 1.6-.7l.6-2.1h2.6l.6 2.1c.6.2 1.1.4 1.6.7l1.9-1.1 1.8 1.8-1.1 1.9c.3.5.5 1 .7 1.6l2.1.6v2.6l-2.1.6c-.2.6-.4 1.1-.7 1.6l1.1 1.9-1.8 1.8-1.9-1.1c-.5.3-1 .5-1.6.7l-.6 2.1h-2.6l-.6-2.1a6.8 6.8 0 0 1-1.6-.7l-1.9 1.1-1.8-1.8 1.1-1.9c-.3-.5-.5-1-.7-1.6l-2.1-.6Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+                            </svg>
+                            <span>Preference</span>
+                        </button>
+                        <button type="button" class="user-menu-item danger" id="logoutMenuItem" role="menuitem">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M10 17.5H7.8A2.8 2.8 0 0 1 5 14.7V9.3a2.8 2.8 0 0 1 2.8-2.8H10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                                <path d="M14.5 8.5 19 12l-4.5 3.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M10.5 12H19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                            </svg>
+                            <span>Log out</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
 
+<<<<<<< HEAD
                           
     <div class="summary-filters">
         <div>
@@ -94,61 +144,21 @@
             <input type="date" id="summaryDate">
         </div>
     </div>
+=======
+    <!-- Summary Cards -->
+>>>>>>> 046c6f3 (feat: apply AXIS web updates across backend and frontend)
     <div class="cards">
-        <div class="card" id="totalMchine">
-            <h3>Total Machines</h3>
-            <p>0</p>
-        </div>
-        <div class="card" id="totalRentalMachines">
-            <h3>Total Rental Machines</h3>
+        <div class="card" id="totalCases">
+            <h3>Total Cases</h3>
             <p>0</p>
         </div>
         <div class="card" id="totalCustomers">
             <h3>Total Customers</h3>
             <p>0</p>
         </div>
-        <div class="card" id="totalVendors">
-            <h3>Total Vendors</h3>
-            <p>0</p>
-        </div>
-        <div class="card" id="totalProducts">
-            <h3>Total Products</h3>
-            <p>0</p>
-        </div>
-        <div class="card" id="totalSales">
-            <h3>Total Sales</h3>
-            <p>0</p>
-        </div>
-        <div class="card" id="receivedPayment">
-            <h3>Recieved Payment</h3>
-            <p>0</p>
-        </div>
-        <div class="card" id="rentalMachinesCountsPrice">
-            <h3>Rental Machines Counts</h3>
-            <p>0</p>
-        </div>
-        <div class="card" id="rentalConsumablesPrice">
-            <h3>Rental Consumables</h3>
-            <p>0</p>
-        </div>
-        <div class="card" id="totalExpenses">
-            <h3>Total Expenses</h3>
-            <p>0</p>
-        </div>
-        <div class="card" id="technicianPaid">
-            <h3>Support Technician Pay (on Balance)</h3>
-            <p>0</p>
-        </div>
-        <div class="card" id="vendorPaid">
-            <h3>Vender Paid</h3>
-            <p>0</p>
-        </div>
-        <div class="card" id="netProfit">
-            <h3>Net Profit</h3>
-            <p>0</p>
-        </div>
     </div>
 
+<<<<<<< HEAD
                    
     <div class="charts">
         <div class="chart-container">
@@ -163,25 +173,44 @@
 
     <section class="todo-section" id="todoSection">
         <div class="todo-header">
+=======
+    <section class="upcoming-cases-section" id="upcomingCasesSection">
+        <div class="upcoming-cases-header">
+>>>>>>> 046c6f3 (feat: apply AXIS web updates across backend and frontend)
             <div>
-                <h3>To-Do List</h3>
-                <p class="muted">Shared tasks for all users.</p>
+                <h3>Onway Cases</h3>
+                <p class="muted">Cases by next date in the coming 3 days.</p>
             </div>
-            <form id="todoForm" class="todo-form">
-                <input type="text" id="todoInput" placeholder="Add a new to-do" maxlength="200">
-                <select id="todoAssign">
-                    <option value="">Assign to me</option>
-                </select>
-                <button class="btn btn-primary" type="submit">Add</button>
-            </form>
         </div>
-        <ul id="todoList" class="todo-list"></ul>
+        <div class="upcoming-cases-table-wrap">
+            <table class="upcoming-cases-table">
+                <thead>
+                    <tr>
+                        <th>Next Date</th>
+                        <th>Case No</th>
+                        <th>Customer Name</th>
+                        <th>Court</th>
+                        <th>Step</th>
+                        <th>Lawyer</th>
+                    </tr>
+                </thead>
+                <tbody id="upcomingCasesBody"></tbody>
+            </table>
+        </div>
     </section>
+
 </div>
 
-<script src="../assets/js/api.js?v=20260330p02"></script>
-<script src="../assets/js/dashboard.js?v=20260330p02"></script>
+<script src="../assets/js/api.js?v=20260404p12"></script>
+<script src="../assets/js/dashboard.js?v=20260404p08"></script>
 <script src="../assets/extracted/pages/dashboard.inline-script-1.js"></script>
 </body>
 </html>
+
+
+
+
+
+
+
 

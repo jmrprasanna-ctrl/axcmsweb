@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Client - AXIS_CMS_WEB</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<link rel="stylesheet" href="../../assets/css/add-product.css">
+<link rel="stylesheet" href="../../assets/extracted/pages/customers/add-client.inline-style-1.css">
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>AXIS_CMS_WEB</span>
+    </div>
+    <ul class="nav-links" style="visibility:hidden;">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../calendar.html">Calender</a></li>
+        <li><a href="../customers/client-list.html">Client</a></li>
+        <li><a href="../cases/case-list.html">Cases</a></li>
+        <li><a href="../cases/finished.html">Finished</a></li>
+        <li><a href="../invoices/Payments-list.html">Payments</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../finance/finance.html">Finance</a></li>
+        <li><a href="../users/user-list.html">Users</a></li>
+    </ul>
+</div>
+
+<!-- Main Content -->
+<div class="main-content add-product-main">
+    <div class="add-product-shell">
+        <div class="add-product-header">
+            <div>
+                <h2 class="add-product-title">Add Client</h2>
+            </div>
+            <div class="add-product-badge">Client Setup</div>
+        </div>
+
+        <form id="customerForm">
+            <div class="add-product-grid">
+                <div class="field">
+                    <label for="name">Client Name</label>
+                    <input type="text" id="name" class="uppercase-input" placeholder="Client Name" required>
+                </div>
+
+                <div class="field">
+                    <label for="address">Address</label>
+                    <input type="text" id="address" class="uppercase-input" placeholder="Address" required>
+                </div>
+
+                <div class="field">
+                    <label for="tel">Tel</label>
+                    <input type="text" id="tel" placeholder="Telephone">
+                </div>
+
+                <div class="field">
+                    <label for="mobile">Mobile</label>
+                    <input type="text" id="mobile" placeholder="Mobile number">
+                </div>
+
+                <div class="field">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="Email">
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="comment">Comment</label>
+                <textarea
+                    id="comment"
+                    class="uppercase-input"
+                    placeholder="Comment (supports at least 1000 words)"
+                    rows="10"
+                ></textarea>
+                <small class="muted">You can write long comments (1000+ words supported).</small>
+            </div>
+
+            <div class="add-product-actions">
+                <button type="submit">Save Client</button>
+                <button class="icon-btn back-icon-btn" type="button" onclick="window.location.href='client-list.html'" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js?v=20260404p12"></script>
+<script src="../../assets/extracted/pages/customers/add-client.inline-script-1.js"></script>
+</body>
+</html>
+
+
+
+

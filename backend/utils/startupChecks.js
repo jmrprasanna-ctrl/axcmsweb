@@ -87,13 +87,14 @@ function summarizeStatus(checks, dbConnected) {
   const toolOk = checks.tools.pg_dump.available && checks.tools.psql.available;
   const templatesOk =
     checks.templateFiles.invoice.exists &&
-    checks.templateFiles.quotation.exists &&
-    checks.templateFiles.quotation2.exists &&
     checks.templateFiles.quotation3.exists;
 
   return {
-    ok: Boolean(dbConnected) && toolOk && templatesOk,
+    // Keep runtime service health focused on API/DB/tool readiness.
+    // Template files are still reported, but treated as non-fatal warnings.
+    ok: Boolean(dbConnected) && toolOk,
     dbConnected: Boolean(dbConnected),
+    templateWarnings: !templatesOk,
     checks,
   };
 }

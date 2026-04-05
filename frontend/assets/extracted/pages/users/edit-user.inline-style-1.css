@@ -1,8 +1,57 @@
-.form-actions{
+.edit-user-page-header{
             display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .edit-user-page-header header{
+            margin: 0;
+        }
+        .edit-user-page-header .muted{
+            margin-top: 4px;
+            color: #5f7388;
+            font-size: 0.95rem;
+        }
+        .edit-user-page-header .back-icon-btn{
+            margin-left: auto;
+            flex: 0 0 auto;
+        }
+        .form-actions{
+            display: flex;
+            align-items: center;
             gap: 12px;
             flex-wrap: wrap;
             margin-top: 12px;
+        }
+        .form-actions .icon-btn{
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            min-height: 44px;
+            margin-top: 0;
+        }
+        .form-actions .icon-btn svg{
+            width: 21px;
+            height: 21px;
+        }
+        .save-icon-btn{
+            background: #eef8ff;
+            color: #0a67b2;
+            border-color: #c7e2f8;
+        }
+        .save-icon-btn:hover{
+            border-color: #9ac8ec;
+            box-shadow: 0 10px 20px rgba(15, 106, 191, 0.16);
+        }
+        .delete-icon-btn{
+            background: #fff3f4;
+            color: #b4232f;
+            border-color: #f2c6cb;
+        }
+        .delete-icon-btn:hover{
+            border-color: #e59aa3;
+            box-shadow: 0 10px 20px rgba(180, 35, 47, 0.14);
         }
         .btn-secondary{
             background: #e9f3fc;
@@ -55,4 +104,9 @@
             margin: 4px 0 12px;
             color: #5d7082;
             font-size: 14px;
+        }
+        @media (max-width: 700px){
+            .edit-user-page-header{
+                align-items: center;
+            }
         }

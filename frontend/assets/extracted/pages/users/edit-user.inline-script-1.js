@@ -30,6 +30,7 @@ function getUserId(){
             const togglePassword = document.getElementById('togglePassword');
             const passwordInput = document.getElementById('password');
             const eyeIcon = document.getElementById('eyeIcon');
+            const deleteBtn = document.getElementById('deleteUserBtn');
 
             companyInput.style.textTransform = "uppercase";
             companyInput.addEventListener("input", () => {
@@ -61,6 +62,27 @@ function getUserId(){
                     alert(err.message || "Failed to update user");
                 }
             });
+
+            if (deleteBtn) {
+                const canDeleteUser = typeof hasUserActionPermission === "function"
+                    && hasUserActionPermission("/users/user-list.html", "delete");
+                if (!canDeleteUser) {
+                    deleteBtn.style.display = "none";
+                } else {
+                    deleteBtn.addEventListener("click", async () => {
+                        const id = getUserId();
+                        if (!id) return;
+                        if (!confirm("Delete this user?")) return;
+                        try {
+                            await request(`/users/${id}`, "DELETE");
+                            showMessageBox("User deleted");
+                            window.location.href = "user-list.html";
+                        } catch (err) {
+                            alert(err.message || "Failed to delete user");
+                        }
+                    });
+                }
+            }
 
             togglePassword.addEventListener("click", () => {
                 const isPassword = passwordInput.type === "password";

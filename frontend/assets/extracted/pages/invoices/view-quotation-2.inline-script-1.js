@@ -693,7 +693,7 @@ async function drawInvoice(data, mimeType="image/png", renderSize=null){
             );
         }else if(!sign1LoadFailedNotified){
             sign1LoadFailedNotified = true;
-            alert("Sign 1 image not found. Expected file: frontend/assets/images/pulmo-sign-1.png");
+            alert("Sign 1 image not found. Expected file: frontend/assets/images/axis-sign-1.png");
         }
     }
 
@@ -711,7 +711,7 @@ async function drawInvoice(data, mimeType="image/png", renderSize=null){
             );
         }else if(!seal1LoadFailedNotified){
             seal1LoadFailedNotified = true;
-            alert("SEAL 1 image not found. Expected file: frontend/assets/images/pulmo-seal-1.png");
+            alert("SEAL 1 image not found. Expected file: frontend/assets/images/axis-seal-1.png");
         }
     }
 

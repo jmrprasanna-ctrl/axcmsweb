@@ -1,4 +1,4 @@
-const role = (localStorage.getItem("role") || "").toLowerCase();
+﻿const role = (localStorage.getItem("role") || "").toLowerCase();
 const allowedPaths = (() => {
     try{
         const rows = JSON.parse(localStorage.getItem("userAllowedPathsRuntime") || "[]");
@@ -14,20 +14,6 @@ if(!canAccessFinance){
     alert("You don't have access to Finance.");
     window.location.href = "../dashboard.html";
 }
-const canAccessPayments = (role === "admin" || role === "manager")
-    ? true
-    : (role === "user" && allowedPaths.has("/finance/payments.html"));
-const canAccessPendings = (role === "admin" || role === "manager")
-    ? true
-    : (role === "user" && (allowedPaths.has("/finance/pendings.html") || allowedPaths.has("/finance/finance.html")));
-const paymentsBtnEl = document.getElementById("paymentsBtn");
-if(paymentsBtnEl && !canAccessPayments){
-    paymentsBtnEl.style.display = "none";
-}
-const pendingsBtnEl = document.getElementById("pendingsBtn");
-if(pendingsBtnEl && !canAccessPendings){
-    pendingsBtnEl.style.display = "none";
-}
 
 function asNumber(v){
     const n = Number(v);
@@ -39,6 +25,52 @@ function fmt(v){
 }
 
 let lastFinanceData = null;
+let salesChartInstance = null;
+let profitChartInstance = null;
+let hasWarnedMissingChartJs = false;
+
+function renderMonthlyCharts(summary){
+    const salesCanvas = document.getElementById("salesChart");
+    const profitCanvas = document.getElementById("profitChart");
+    if(!salesCanvas || !profitCanvas){
+        return;
+    }
+    if(typeof window.Chart !== "function"){
+        if(!hasWarnedMissingChartJs){
+            hasWarnedMissingChartJs = true;
+            console.warn("Chart.js is unavailable. Finance charts skipped.");
+        }
+        return;
+    }
+
+    const labels = Array.isArray(summary?.months) && summary.months.length === 12
+        ? summary.months
+        : ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const monthlySales = Array.isArray(summary?.monthlySales) ? summary.monthlySales : Array(12).fill(0);
+    const monthlyProfit = Array.isArray(summary?.monthlyProfit) ? summary.monthlyProfit : Array(12).fill(0);
+
+    if(salesChartInstance){
+        salesChartInstance.destroy();
+    }
+    salesChartInstance = new window.Chart(salesCanvas.getContext("2d"), {
+        type: "bar",
+        data: {
+            labels,
+            datasets: [{ label: "Sales", data: monthlySales, backgroundColor: "#3498db" }]
+        }
+    });
+
+    if(profitChartInstance){
+        profitChartInstance.destroy();
+    }
+    profitChartInstance = new window.Chart(profitCanvas.getContext("2d"), {
+        type: "line",
+        data: {
+            labels,
+            datasets: [{ label: "Profit", data: monthlyProfit, borderColor: "#2980b9", fill: false }]
+        }
+    });
+}
 
 function putRows(tbodyId, rows, emptyCols){
     const tbody = document.getElementById(tbodyId);
@@ -59,13 +91,27 @@ function putRows(tbodyId, rows, emptyCols){
 async function loadFinanceOverview(){
     try{
         const query = `?date=${encodeURIComponent("")}`;
-        const data = await request(`/reports/finance-overview${query}`, "GET");
+        const today = new Date().toISOString().slice(0, 10);
+        const [data, dashboardSummary, dashboardYearSummary] = await Promise.all([
+            request(`/reports/finance-overview${query}`, "GET"),
+            request(`/dashboard/summary?period=month&date=${encodeURIComponent(today)}`, "GET"),
+            request(`/dashboard/summary?period=year&date=${encodeURIComponent(today)}`, "GET")
+        ]);
         lastFinanceData = data;
 
-        const monthSummary = data.summary_by_period?.month || { total_sales:0, total_expenses:0, net_profit:0 };
-        document.getElementById("totalSales").innerText = fmt(monthSummary.total_sales);
-        document.getElementById("totalExpense").innerText = fmt(monthSummary.total_expenses);
-        document.getElementById("netProfit").innerText = fmt(monthSummary.net_profit);
+        const salesValue = dashboardSummary.totalSalesPeriod ?? dashboardSummary.totalSales ?? 0;
+        const receivedValue = dashboardSummary.receivedPaymentPeriod ?? dashboardSummary.receivedPayment ?? 0;
+        const expenseValue = dashboardSummary.totalExpensesPeriod ?? dashboardSummary.totalExpenses ?? 0;
+        const profitValue = dashboardSummary.netProfitPeriod ?? dashboardSummary.netProfit ?? 0;
+        const salesEl = document.getElementById("financeTotalSales");
+        const receivedEl = document.getElementById("financeReceivedPayment");
+        const expenseEl = document.getElementById("financeTotalExpense");
+        const profitEl = document.getElementById("financeNetProfit");
+        if(salesEl) salesEl.innerText = fmt(salesValue);
+        if(receivedEl) receivedEl.innerText = fmt(receivedValue);
+        if(expenseEl) expenseEl.innerText = fmt(expenseValue);
+        if(profitEl) profitEl.innerText = fmt(profitValue);
+        renderMonthlyCharts(dashboardYearSummary || dashboardSummary);
 
         const summaryRows = ["week","month","year"].map((k) => {
             const s = data.summary_by_period?.[k] || {};
@@ -77,46 +123,6 @@ async function loadFinanceOverview(){
             `;
         });
         putRows("summaryBody", summaryRows, 4);
-
-        const soldRows = (data.sold_product_selling_price_by_period || []).map((r) => `
-            <td>${r.period || ""}</td>
-            <td>${fmt(r.total_amount)}</td>
-        `);
-        putRows("soldPriceBody", soldRows, 2);
-
-        const vendorTotalRows = (data.vendor_dealer_price_by_period || []).map((r) => `
-            <td>${r.period || ""}</td>
-            <td>${fmt(r.total_amount)}</td>
-        `);
-        putRows("vendorTotalBody", vendorTotalRows, 2);
-
-        const vendorPeriod = "month";
-        const vendorDetails = data.vendor_dealer_details_by_period?.[vendorPeriod] || [];
-        const vendorDetailRows = vendorDetails.map((r) => `
-            <td>${r.vendor || ""}</td>
-            <td>${Number(r.qty || 0)}</td>
-            <td>${fmt(r.total_dealer_amount)}</td>
-        `);
-        putRows("vendorDetailBody", vendorDetailRows, 3);
-
-        const rcMonthRows = (data.rental_consumables?.month_wise || []).map((r) => `
-            <td>${r.month_name || ""}</td>
-            <td>${fmt(r.total_amount)}</td>
-        `);
-        putRows("rcMonthBody", rcMonthRows, 2);
-
-        const rcYearRows = (data.rental_consumables?.year_wise || []).map((r) => `
-            <td>${r.year_name || ""}</td>
-            <td>${fmt(r.total_amount)}</td>
-        `);
-        putRows("rcYearBody", rcYearRows, 2);
-
-        const rcCustomerRows = (data.rental_consumables?.customer_wise || []).map((r) => `
-            <td>${r.customer_name || ""}</td>
-            <td>${Number(r.total_qty || 0)}</td>
-            <td>${fmt(r.total_amount)}</td>
-        `);
-        putRows("rcCustomerBody", rcCustomerRows, 3);
 
     }catch(err){
         putRows("summaryBody", [`<td colspan="4">${err.message || "Failed to load finance overview"}</td>`], 4);
@@ -156,41 +162,6 @@ function exportFinanceExcel(){
         lines.push([s.period || k, fmt(s.total_sales), fmt(s.total_expenses), fmt(s.net_profit)].map(csvEscape).join(","));
     });
 
-    lines.push("");
-    lines.push("Sold Product Price");
-    lines.push("Period,Total Amount");
-    (lastFinanceData.sold_product_selling_price_by_period || []).forEach((r) => {
-        lines.push([r.period, fmt(r.total_amount)].map(csvEscape).join(","));
-    });
-
-    lines.push("");
-    lines.push("Vendor Dealer Price By Period");
-    lines.push("Period,Total Dealer Amount");
-    (lastFinanceData.vendor_dealer_price_by_period || []).forEach((r) => {
-        lines.push([r.period, fmt(r.total_amount)].map(csvEscape).join(","));
-    });
-
-    lines.push("");
-    lines.push("Rental Consumables - Month Wise");
-    lines.push("Month,Total Amount");
-    (lastFinanceData.rental_consumables?.month_wise || []).forEach((r) => {
-        lines.push([r.month_name, fmt(r.total_amount)].map(csvEscape).join(","));
-    });
-
-    lines.push("");
-    lines.push("Rental Consumables - Annual Wise");
-    lines.push("Year,Total Amount");
-    (lastFinanceData.rental_consumables?.year_wise || []).forEach((r) => {
-        lines.push([r.year_name, fmt(r.total_amount)].map(csvEscape).join(","));
-    });
-
-    lines.push("");
-    lines.push("Rental Consumables - Customer Wise");
-    lines.push("Customer,Total Qty,Total Amount");
-    (lastFinanceData.rental_consumables?.customer_wise || []).forEach((r) => {
-        lines.push([r.customer_name, r.total_qty, fmt(r.total_amount)].map(csvEscape).join(","));
-    });
-
     downloadFile("Finance_Overview.csv", lines.join("\n"), "text/csv;charset=utf-8;");
 }
 
@@ -218,21 +189,6 @@ function exportFinancePDF(){
         const s = lastFinanceData.summary_by_period?.[k] || {};
         line(`${s.period || k}: Sales ${fmt(s.total_sales)} | Expenses ${fmt(s.total_expenses)} | Net ${fmt(s.net_profit)}`);
     });
-    line("");
-    line("Sold Product Price");
-    (lastFinanceData.sold_product_selling_price_by_period || []).forEach((r) => {
-        line(`${r.period || ""}: ${fmt(r.total_amount)}`);
-    });
-    line("");
-    line("Vendor Dealer Price By Period");
-    (lastFinanceData.vendor_dealer_price_by_period || []).forEach((r) => {
-        line(`${r.period || ""}: ${fmt(r.total_amount)}`);
-    });
-    line("");
-    line("Rental Consumables Month Wise");
-    (lastFinanceData.rental_consumables?.month_wise || []).forEach((r) => {
-        line(`${r.month_name || ""}: ${fmt(r.total_amount)}`);
-    });
     doc.save("Finance_Overview.pdf");
 }
 
@@ -241,69 +197,6 @@ function exportSummaryPDF(){
 }
 function exportSummaryXlsx(){
     exportTableXlsx("summaryTable", "Finance_Summary_By_Period.xlsx");
-}
-
-function exportSoldPricePDF(){
-    exportTablePDF("soldPriceTable", "Sold Product Price", "Finance_Sold_Product_Price.pdf");
-}
-function exportSoldPriceXlsx(){
-    exportTableXlsx("soldPriceTable", "Finance_Sold_Product_Price.xlsx");
-}
-
-function exportVendorPDF(){
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ format: "a4" });
-    doc.setFontSize(12);
-    doc.text("Vendor Products Dealer Price", 14, 20);
-    let y = 28;
-
-    y = writeTableToDoc(doc, "Vendor Products Dealer Price", "vendorTotalTable", y);
-    if(y === -1){
-        alert("No data to export. Please click Refresh first.");
-        return;
-    }
-    y += 6;
-    writeTableToDoc(doc, "Vendor Detail", "vendorDetailTable", y);
-    doc.save("Finance_Vendor_Dealer_Price.pdf");
-}
-
-function exportRentalConsumablesPDF(){
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ format: "a4" });
-    doc.setFontSize(12);
-    doc.text("Rental Consumables", 14, 20);
-    let y = 28;
-
-    y = writeTableToDoc(doc, "Month Wise", "rcMonthTable", y);
-    if(y === -1){
-        alert("No data to export. Please click Refresh first.");
-        return;
-    }
-    y += 6;
-    y = writeTableToDoc(doc, "Annual Wise", "rcYearTable", y);
-    y += 6;
-    writeTableToDoc(doc, "Customer Wise", "rcCustomerTable", y);
-    doc.save("Finance_Rental_Consumables.pdf");
-}
-function exportRentalConsumablesXlsx(){
-    exportMultiTableXlsx(
-        [
-            { title: "Month Wise", tableId: "rcMonthTable" },
-            { title: "Annual Wise", tableId: "rcYearTable" },
-            { title: "Customer Wise", tableId: "rcCustomerTable" }
-        ],
-        "Finance_Rental_Consumables.xlsx"
-    );
-}
-
-function exportVendorXlsx(){
-    exportMultiTableXlsx(
-        [
-            { title: "Vendor Products Dealer Price", tableId: "vendorTotalTable" },
-            { title: "Vendor Detail", tableId: "vendorDetailTable" }
-        ],
-        "Finance_Vendor_Dealer_Price.xlsx"
-    );
 }
 
 function exportTablePDF(tableId, title, fileName){
@@ -404,3 +297,5 @@ function logout(){
 }
 
 loadFinanceOverview();
+
+

@@ -28,10 +28,12 @@ temp/
 # App-specific generated files
 backend/uploads/
 folder_structure.pdf
-pulmo_web_UI_structure.pdf
+AXIS_CMS_WEB_structure.pdf
 *.tmp
 
 # Expo/React Native
 .expo/
 mobile-app/.expo/
 backend/templates/
+
+AWS/

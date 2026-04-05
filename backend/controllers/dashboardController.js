@@ -1,14 +1,9 @@
 const User = require("../models/User");
-const Product = require("../models/Product");
-const RentalMachine = require("../models/RentalMachine");
-const GeneralMachine = require("../models/GeneralMachine");
 const Customer = require("../models/Customer");
-const Vendor = require("../models/Vendor");
 const Invoice = require("../models/Invoice");
 const InvoiceItem = require("../models/InvoiceItem");
 const Expense = require("../models/Expense");
-const RentalMachineCount = require("../models/RentalMachineCount");
-const RentalMachineConsumable = require("../models/RentalMachineConsumable");
+const LegalCase = require("../models/Case");
 const { Op, fn, col, where: sqWhere } = require("sequelize");
 
 function sumTechnicianPaid(rows){
@@ -17,20 +12,9 @@ function sumTechnicianPaid(rows){
         const total = Number(inv.total_amount || 0);
         const rawPct = Number(inv.support_technician_percentage || 0);
         const pct = Number.isFinite(rawPct) ? Math.min(Math.max(rawPct, 0), 100) : 0;
-        const vendorProductValue = sumVendorPaidFromInvoiceItems(inv.InvoiceItems || []);
-        const balance = Math.max(total - vendorProductValue, 0);
         if(!technician) return sum;
         if(!Number.isFinite(total) || !Number.isFinite(pct) || pct <= 0) return sum;
-        return sum + (balance * pct / 100);
-    }, 0);
-}
-
-function sumVendorPaidFromInvoiceItems(rows){
-    return (Array.isArray(rows) ? rows : []).reduce((sum, row) => {
-        const qty = Number(row.qty || 0);
-        const dealer = Number((row.Product && row.Product.dealer_price) || 0);
-        if(!Number.isFinite(qty) || !Number.isFinite(dealer) || qty <= 0 || dealer <= 0) return sum;
-        return sum + (qty * dealer);
+        return sum + (total * pct / 100);
     }, 0);
 }
 
@@ -56,24 +40,6 @@ function getGeneralCustomerInclude(){
     };
 }
 
-function sumRentalCountPrice(rows){
-    return (Array.isArray(rows) ? rows : []).reduce((sum, row) => {
-        const input = Number(row.input_count || 0);
-        const updated = Number(row.updated_count || 0);
-        if(!Number.isFinite(input) || !Number.isFinite(updated)) return sum;
-        return sum + ((updated - input) * 1);
-    }, 0);
-}
-
-function sumRentalConsumablesPrice(rows){
-    return (Array.isArray(rows) ? rows : []).reduce((sum, row) => {
-        const qty = Number(row.quantity || 0);
-        const dealer = Number((row.Product && row.Product.dealer_price) || 0);
-        if(!Number.isFinite(qty) || !Number.isFinite(dealer) || qty <= 0 || dealer <= 0) return sum;
-        return sum + (qty * dealer);
-    }, 0);
-}
-
 function toDateOnlyText(value){
     const raw = String(value || "").trim();
     if(!raw) return "";
@@ -84,6 +50,31 @@ function toDateOnlyText(value){
     const m = String(dt.getMonth() + 1).padStart(2, "0");
     const d = String(dt.getDate()).padStart(2, "0");
     return `${y}-${m}-${d}`;
+}
+
+function toDateOnlyTextInTimeZone(value, timeZone = "Asia/Colombo"){
+    const dt = value instanceof Date ? value : new Date(value || Date.now());
+    if(Number.isNaN(dt.getTime())) return "";
+    const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+    }).formatToParts(dt);
+    const year = parts.find((p) => p.type === "year")?.value || "";
+    const month = parts.find((p) => p.type === "month")?.value || "";
+    const day = parts.find((p) => p.type === "day")?.value || "";
+    if(!year || !month || !day) return "";
+    return `${year}-${month}-${day}`;
+}
+
+function addDaysToDateOnlyText(dateText, days){
+    const safe = String(dateText || "").trim();
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(safe)) return "";
+    const base = new Date(`${safe}T00:00:00`);
+    if(Number.isNaN(base.getTime())) return "";
+    base.setDate(base.getDate() + Number(days || 0));
+    return toDateOnlyText(base);
 }
 
 function parseBaseDateInput(value){
@@ -100,6 +91,26 @@ function buildDateOnlyRangeWhere(columnName, startDate, endDate){
         fn("DATE", col(columnName)),
         { [Op.between]: [startDate, endDate] }
     );
+}
+
+function normalizeCaseStep(value){
+    const raw = String(value || "").trim().toUpperCase();
+    if (raw === "FINISHED" || raw === "FINISHED_STEP" || raw === "FINISHED STEP") return "FINISHED";
+    if (raw === "PLAINT STEP" || raw === "PLAINT_STEP" || raw === "PLAINTSTEP") return "PLAINT_STEP";
+    if (raw === "ANSWER STEP" || raw === "ANSWER_STEP" || raw === "ANSWERSTEP") return "ANSWER_STEP";
+    if (raw === "L/W STEP" || raw === "L_W_STEP" || raw === "LW STEP" || raw === "LW_STEP" || raw === "LWSTEP") return "LW_STEP";
+    if (raw === "DUDGMENT STEP" || raw === "DUDGMENT_STEP" || raw === "DUDGMENTSTEP" || raw === "JUDGMENT STEP" || raw === "JUDGMENT_STEP" || raw === "JUDGMENTSTEP") return "DUDGMENT_STEP";
+    return "STEP";
+}
+
+function toCaseStepLabel(stepValue){
+    const step = normalizeCaseStep(stepValue);
+    if (step === "PLAINT_STEP") return "Plaint";
+    if (step === "ANSWER_STEP") return "Answer";
+    if (step === "LW_STEP") return "L/W";
+    if (step === "DUDGMENT_STEP") return "Dudgment";
+    if (step === "FINISHED") return "Finished";
+    return "Step";
 }
 
 exports.getSummary = async (req,res)=>{
@@ -136,13 +147,70 @@ exports.getSummary = async (req,res)=>{
         const periodEndDate = toDateOnlyText(periodEnd) || new Date(periodEnd).toISOString().slice(0, 10);
 
         const totalUsers = await User.count();
-        const totalGeneralMachines = await GeneralMachine.count({
-            include: [getGeneralCustomerInclude()]
-        });
-        const totalRentalMachines = await RentalMachine.count();
-        const totalProducts = await Product.count();
         const totalCustomers = await Customer.count();
-        const totalVendors = await Vendor.count();
+        const totalCasesRows = await LegalCase.findAll({
+            attributes: [[fn("DISTINCT", col("case_no")), "case_no"]],
+            where: {
+                case_step: "STEP"
+            },
+            raw: true,
+        });
+        const totalCases = Array.isArray(totalCasesRows) ? totalCasesRows.length : 0;
+        const colomboToday = toDateOnlyTextInTimeZone(new Date(), "Asia/Colombo") || toDateOnlyText(new Date());
+        const startDate = colomboToday;
+        const endDate = addDaysToDateOnlyText(colomboToday, 3) || colomboToday;
+        const upcomingCaseRows = await LegalCase.findAll({
+            where: {
+                [Op.and]: [
+                    {
+                        [Op.or]: [
+                            { case_step: { [Op.ne]: "FINISHED" } },
+                            { case_step: null }
+                        ]
+                    },
+                    {
+                        [Op.or]: [
+                            {
+                                next_date: {
+                                    [Op.between]: [startDate, endDate]
+                                }
+                            },
+                            {
+                                [Op.and]: [
+                                    { next_date: null },
+                                    {
+                                        case_date: {
+                                            [Op.between]: [startDate, endDate]
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            attributes: ["id", "case_no", "customer_name", "court", "attend_lawyer", "case_step", "next_date", "case_date"],
+            order: [["next_date", "ASC"], ["case_date", "ASC"], ["id", "DESC"]],
+            raw: true
+        });
+        const seenCaseNo = new Set();
+        const upcomingCasesNext3Days = (Array.isArray(upcomingCaseRows) ? upcomingCaseRows : [])
+            .filter((row) => {
+                const key = String(row.case_no || "").trim().toUpperCase();
+                if (!key) return false;
+                if (seenCaseNo.has(key)) return false;
+                seenCaseNo.add(key);
+                return true;
+            })
+            .map((row) => ({
+                id: Number(row.id || 0) || null,
+                case_no: row.case_no || "",
+                customer_name: row.customer_name || "",
+                court: row.court || "",
+                step: toCaseStepLabel(row.case_step),
+                attend_lawyer: row.attend_lawyer || "",
+                next_date: row.next_date || row.case_date || null
+            }));
         const totalSalesPeriod = await Invoice.sum("total_amount",{
             where: buildDateOnlyRangeWhere("invoice_date", periodStartDate, periodEndDate)
         }) || 0;
@@ -159,25 +227,6 @@ exports.getSummary = async (req,res)=>{
                 ]
             }
         }) || 0;
-        const invoicesPeriodForProfit = await Invoice.findAll({
-            where:{
-                [Op.and]: [
-                    buildDateOnlyRangeWhere("invoice_date", periodStartDate, periodEndDate),
-                    { payment_status: getReceivedPaymentStatusFilter() }
-                ]
-            },
-            attributes:["id","total_amount","support_technician","support_technician_percentage"],
-            include: [
-                getGeneralCustomerInclude(),
-                {
-                    model: InvoiceItem,
-                    required: false,
-                    attributes: ["qty"],
-                    include: [{ model: Product, required: false, attributes: ["dealer_price"] }]
-                }
-            ]
-        });
-        const technicianPaidPeriodForProfit = sumTechnicianPaid(invoicesPeriodForProfit);
         const invoicesPeriodForCard = await Invoice.findAll({
             where:{
                 [Op.and]: [
@@ -190,59 +239,13 @@ exports.getSummary = async (req,res)=>{
                 {
                     model: InvoiceItem,
                     required: false,
-                    attributes: ["qty"],
-                    include: [{ model: Product, required: false, attributes: ["dealer_price"] }]
+                    attributes: ["qty"]
                 }
             ]
         });
         const technicianPaidPeriod = sumTechnicianPaid(invoicesPeriodForCard);
-        const invoiceItemsPeriod = await InvoiceItem.findAll({
-            include: [
-                {
-                    model: Invoice,
-                    required: true,
-                    attributes: ["id", "invoice_date", "payment_status"],
-                    where: {
-                        [Op.and]: [
-                            buildDateOnlyRangeWhere("invoice_date", periodStartDate, periodEndDate),
-                            { payment_status: getReceivedPaymentStatusFilter() }
-                        ]
-                    },
-                    include: [getGeneralCustomerInclude()]
-                },
-                { model: Product, required: false, attributes: ["id", "dealer_price"] }
-            ],
-            attributes: ["qty"]
-        });
-        const vendorPaidPeriod = sumVendorPaidFromInvoiceItems(invoiceItemsPeriod);
+        const vendorPaidPeriod = 0;
         const netProfitPeriod = receivedPaymentPeriod - totalExpensesPeriod - technicianPaidPeriod - vendorPaidPeriod;
-        const rentalCountsPeriodRows = await RentalMachineCount.findAll({
-            where: {
-                [Op.or]: [
-                    { entry_date: { [Op.between]: [periodStartDate, periodEndDate] } },
-                    {
-                        entry_date: { [Op.is]: null },
-                        createdAt: { [Op.between]: [periodStart, periodEnd] }
-                    }
-                ]
-            },
-            attributes: ["input_count", "updated_count"]
-        });
-        const rentalMachinesCountsPricePeriod = sumRentalCountPrice(rentalCountsPeriodRows);
-        const rentalConsumablesPeriodRows = await RentalMachineConsumable.findAll({
-            where: {
-                [Op.or]: [
-                    { entry_date: { [Op.between]: [periodStartDate, periodEndDate] } },
-                    {
-                        entry_date: { [Op.is]: null },
-                        createdAt: { [Op.between]: [periodStart, periodEnd] }
-                    }
-                ]
-            },
-            include: [{ model: Product, required: false, attributes: ["id", "dealer_price"] }],
-            attributes: ["quantity"]
-        });
-        const rentalConsumablesPricePeriod = sumRentalConsumablesPrice(rentalConsumablesPeriodRows);
 
         const totalSalesAllTime = await Invoice.sum("total_amount") || 0;
         const totalExpensesAllTime = await Expense.sum("amount") || 0;
@@ -252,22 +255,6 @@ exports.getSummary = async (req,res)=>{
                 payment_status: getReceivedPaymentStatusFilter()
             }
         }) || 0;
-        const invoicesAllTimeForProfit = await Invoice.findAll({
-            include: [
-                getGeneralCustomerInclude(),
-                {
-                    model: InvoiceItem,
-                    required: false,
-                    attributes: ["qty"],
-                    include: [{ model: Product, required: false, attributes: ["dealer_price"] }]
-                }
-            ],
-            where: {
-                payment_status: getReceivedPaymentStatusFilter()
-            },
-            attributes:["id","total_amount","support_technician","support_technician_percentage"]
-        });
-        const technicianPaidAllTimeForProfit = sumTechnicianPaid(invoicesAllTimeForProfit);
         const invoicesAllTimeForCard = await Invoice.findAll({
             where: {
                 support_technician: { [Op.not]: null }
@@ -277,29 +264,14 @@ exports.getSummary = async (req,res)=>{
                 {
                     model: InvoiceItem,
                     required: false,
-                    attributes: ["qty"],
-                    include: [{ model: Product, required: false, attributes: ["dealer_price"] }]
+                    attributes: ["qty"]
                 }
             ]
         });
         const technicianPaidAllTime = sumTechnicianPaid(invoicesAllTimeForCard);
-        const invoiceItemsAllTime = await InvoiceItem.findAll({
-            include: [
-                {
-                    model: Invoice,
-                    required: true,
-                    attributes: ["id", "payment_status"],
-                    where: {
-                        payment_status: getReceivedPaymentStatusFilter()
-                    },
-                    include: [getGeneralCustomerInclude()]
-                },
-                { model: Product, required: false, attributes: ["id", "dealer_price"] }
-            ],
-            attributes: ["qty"]
-        });
-        const vendorPaidAllTime = sumVendorPaidFromInvoiceItems(invoiceItemsAllTime);
+        const vendorPaidAllTime = 0;
         const netProfitAllTime = receivedPaymentAllTime - totalExpensesAllTime - technicianPaidAllTime - vendorPaidAllTime;
+<<<<<<< HEAD
         const rentalCountsAllTimeRows = await RentalMachineCount.findAll({
             attributes: ["input_count", "updated_count"]
         });
@@ -315,6 +287,9 @@ exports.getSummary = async (req,res)=>{
             where:{ count:{ [Op.lt]:5 } },
             attributes:["product_id","description","count"]
         });
+=======
+        const lowStock = [];
+>>>>>>> 046c6f3 (feat: apply AXIS web updates across backend and frontend)
 
                                         
         const months = [];
@@ -332,8 +307,7 @@ exports.getSummary = async (req,res)=>{
                 where: buildDateOnlyRangeWhere("invoice_date", startText, endText),
                 include:[{
                     model: InvoiceItem,
-                    required: false,
-                    include: [{ model: Product, required: false, attributes: ["dealer_price"] }]
+                    required: false
                 }]
             });
 
@@ -344,10 +318,10 @@ exports.getSummary = async (req,res)=>{
                 const technician = String(inv.support_technician || "").trim();
                 const rawPct = Number(inv.support_technician_percentage || 0);
                 const pct = Number.isFinite(rawPct) ? Math.min(Math.max(rawPct, 0), 100) : 0;
-                const vendorProductValue = sumVendorPaidFromInvoiceItems(inv.InvoiceItems || []);
-                const balanceForTechnician = Math.max(Number(inv.total_amount || 0) - vendorProductValue, 0);
-                const technicianPaid = technician ? (balanceForTechnician * pct) / 100 : 0;
-                monthProfit += inv.total_amount - inv.InvoiceItems.reduce((a,b)=>a+b.gross,0) - technicianPaid;
+                const totalAmount = Number(inv.total_amount || 0);
+                const lineGross = (Array.isArray(inv.InvoiceItems) ? inv.InvoiceItems : []).reduce((a,b)=>a + Number(b.gross || 0),0);
+                const technicianPaid = technician ? (totalAmount * pct) / 100 : 0;
+                monthProfit += totalAmount - lineGross - technicianPaid;
             });
             months.push(start.toLocaleString('default',{month:'short'}));
             monthlySales.push(monthSales);
@@ -356,44 +330,25 @@ exports.getSummary = async (req,res)=>{
 
         res.json({
             totalUsers,
-            totalGeneralMachines,
-            totalRentalMachines,
-            totalProducts,
             totalCustomers,
-            totalVendors,
+            totalCases,
             totalSales: totalSalesPeriod,
             receivedPayment: receivedPaymentPeriod,
-            rentalMachinesCountsPrice: rentalMachinesCountsPricePeriod,
-            rentalConsumablesPrice: rentalConsumablesPricePeriod,
             totalExpenses: totalExpensesPeriod,
             netProfit: netProfitPeriod,
-            technicianPaid: technicianPaidPeriod,
-            technicianPaidForProfit: technicianPaidPeriodForProfit,
-            vendorPaid: vendorPaidPeriod,
             totalSalesAllTime,
             receivedPaymentAllTime,
-            rentalMachinesCountsPriceAllTime,
-            rentalMachinesCountsPriceAllInputs: rentalMachinesCountsPriceAllTime,
-            rentalConsumablesPriceAllTime,
-            rentalConsumablesPriceAllInputs: rentalConsumablesPriceAllTime,
             totalExpensesAllTime,
             netProfitAllTime,
-            technicianPaidAllTime,
-            technicianPaidAllTimeForProfit,
-            vendorPaidAllTime,
             totalSalesPeriod,
             receivedPaymentPeriod,
-            rentalMachinesCountsPricePeriod,
-            rentalConsumablesPricePeriod,
             totalExpensesPeriod,
             netProfitPeriod,
-            technicianPaidPeriod,
-            technicianPaidForProfitPeriod: technicianPaidPeriodForProfit,
-            vendorPaidPeriod,
             lowStock,
             months,
             monthlySales,
             monthlyProfit,
+            upcomingCasesNext3Days,
             period,
             periodStart,
             periodEnd

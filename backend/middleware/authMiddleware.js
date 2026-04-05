@@ -2,37 +2,7 @@ const jwt = require("jsonwebtoken");
 const db = require("../config/database");
 const { Client } = require("pg");
 
-const DEFAULT_DB = db.normalizeDatabaseName(process.env.DB_NAME || "inventory") || "inventory";
-const ensuredMachineEntryDateDbs = new Set();
-const ensuredCatalogSeedDbs = new Set();
-const DEFAULT_CATEGORIES = [
-  "Photocopier",
-  "Printer",
-  "Plotter",
-  "Computer",
-  "Laptop",
-  "Accessory",
-  "Consumable",
-  "Machine",
-  "CCTV",
-  "Duplo",
-  "Other",
-  "Service",
-];
-const DEFAULT_CATEGORY_MODELS = {
-  Accessory: ["CANON", "TOSHIBA", "RECOH", "SHARP", "KYOCERA", "SEROX", "SAMSUNG", "HP", "DELL"],
-  Consumable: ["CANON", "TOSHIBA", "RECOH", "SHARP", "KYOCERA", "SEROX", "SAMSUNG", "HP", "DELL"],
-  Machine: ["CANON", "TOSHIBA", "RECOH", "SHARP", "KYOCERA", "SEROX", "SAMSUNG", "HP", "DELL"],
-  Photocopier: ["CANON", "TOSHIBA", "RECOH", "SHARP", "KYOCERA", "SEROX", "SAMSUNG", "HP", "DELL"],
-  Printer: ["CANON", "HP", "EPSON", "BROTHER", "LEXMARK", "OTHER", "SEROX", "SAMSUNG"],
-  Computer: ["HP", "DELL", "ASUS", "SONY", "SINGER", "SAMSUNG", "SPARE PARTS", "OTHER"],
-  Laptop: ["HP", "DELL", "ASUS", "SONY", "SINGER", "SAMSUNG", "SPARE PARTS", "OTHER"],
-  Plotter: ["CANON", "HP", "EPSON", "OTHER"],
-  CCTV: ["HICKVISION", "DAHUA", "OTHER"],
-  Duplo: ["RONGDA", "RISO", "RECOH", "DUPLO"],
-  Other: ["OTHER"],
-  Service: ["OTHER"],
-};
+const DEFAULT_DB = db.normalizeDatabaseName(process.env.DB_NAME || "axiscmsdb") || "axiscmsdb";
 
 function getAuthDbClient() {
   return new Client({
@@ -64,7 +34,7 @@ async function resolveUserAssignedDatabase(userId) {
       `SELECT database_name
        FROM user_accesses
        WHERE user_id = $1
-         AND LOWER(COALESCE(user_database, 'inventory')) = 'inventory'
+         AND LOWER(COALESCE(user_database, 'axiscmsdb')) IN ('axiscmsdb', 'inventory')
        ORDER BY "updatedAt" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
        LIMIT 1`,
       [userId]
@@ -99,103 +69,6 @@ async function resolveMappedDatabase(userId) {
   } finally {
     await client.end().catch(() => {});
   }
-}
-
-async function ensureMachineEntryDateColumns(databaseName) {
-  const targetDb = db.normalizeDatabaseName(databaseName || "");
-  if (!targetDb || ensuredMachineEntryDateDbs.has(targetDb)) {
-    return;
-  }
-
-  await db.withDatabase(targetDb, async () => {
-    const tableExistsRs = await db.query(
-      `SELECT to_regclass('public.rental_machines') AS rental_table, to_regclass('public.general_machines') AS general_table`
-    );
-    const row = Array.isArray(tableExistsRs?.[0]) ? tableExistsRs[0][0] : tableExistsRs?.[0];
-    const hasRental = Boolean(row?.rental_table);
-    const hasGeneral = Boolean(row?.general_table);
-
-    if (hasRental) {
-      await db.query(`
-        ALTER TABLE rental_machines
-        ADD COLUMN IF NOT EXISTS entry_date DATE;
-      `);
-      await db.query(`
-        UPDATE rental_machines
-        SET entry_date = COALESCE(entry_date, DATE("createdAt"), CURRENT_DATE)
-        WHERE entry_date IS NULL;
-      `);
-      await db.query(`
-        CREATE INDEX IF NOT EXISTS rental_machines_entry_date_idx
-        ON rental_machines(entry_date);
-      `);
-    }
-
-    if (hasGeneral) {
-      await db.query(`
-        ALTER TABLE general_machines
-        ADD COLUMN IF NOT EXISTS entry_date DATE;
-      `);
-      await db.query(`
-        UPDATE general_machines
-        SET entry_date = COALESCE(entry_date, DATE("createdAt"), CURRENT_DATE)
-        WHERE entry_date IS NULL;
-      `);
-      await db.query(`
-        CREATE INDEX IF NOT EXISTS general_machines_entry_date_idx
-        ON general_machines(entry_date);
-      `);
-    }
-  });
-
-  ensuredMachineEntryDateDbs.add(targetDb);
-}
-
-async function ensureCatalogSeedData(databaseName) {
-  const targetDb = db.normalizeDatabaseName(databaseName || "");
-  if (!targetDb || ensuredCatalogSeedDbs.has(targetDb)) {
-    return;
-  }
-
-  await db.withDatabase(targetDb, async () => {
-    const tableExistsRs = await db.query(
-      `SELECT to_regclass('public.categories') AS categories_table, to_regclass('public.category_model_options') AS cmo_table`
-    );
-    const row = Array.isArray(tableExistsRs?.[0]) ? tableExistsRs[0][0] : tableExistsRs?.[0];
-    const hasCategories = Boolean(row?.categories_table);
-    const hasCmo = Boolean(row?.cmo_table);
-
-    if (hasCategories) {
-      for (const name of DEFAULT_CATEGORIES) {
-        await db.query(
-          `INSERT INTO categories(name)
-           SELECT $1
-           WHERE NOT EXISTS (
-             SELECT 1 FROM categories WHERE LOWER(name) = LOWER($1)
-           )`,
-          { bind: [name] }
-        );
-      }
-    }
-
-    if (hasCmo) {
-      for (const [categoryName, models] of Object.entries(DEFAULT_CATEGORY_MODELS)) {
-        for (const modelName of models) {
-          await db.query(
-            `INSERT INTO category_model_options(category_name, model_name, "createdAt", "updatedAt")
-             SELECT $1, $2, NOW(), NOW()
-             WHERE NOT EXISTS (
-               SELECT 1 FROM category_model_options
-               WHERE LOWER(category_name) = LOWER($1) AND LOWER(model_name) = LOWER($2)
-             )`,
-            { bind: [categoryName, modelName] }
-          );
-        }
-      }
-    }
-  });
-
-  ensuredCatalogSeedDbs.add(targetDb);
 }
 
 const authMiddleware = async (req, res, next) => {
@@ -241,16 +114,6 @@ const authMiddleware = async (req, res, next) => {
         return res.status(403).json({ message: "Invalid assigned database access." });
       }
       targetDb = assignedDb;
-    }
-
-    try {
-      await ensureCatalogSeedData(targetDb);
-    } catch (_err) {
-    }
-
-    try {
-      await ensureMachineEntryDateColumns(targetDb);
-    } catch (_err) {
     }
 
     req.user = decoded;

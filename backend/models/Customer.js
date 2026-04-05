@@ -8,11 +8,13 @@ const Customer = db.define("Customer",{
     address:{ type: DataTypes.STRING },
     quotation2_address:{ type: DataTypes.STRING, allowNull: true },
     tel:{ type: DataTypes.STRING },
+    mobile:{ type: DataTypes.STRING, allowNull: true },
     contact_person:{ type: DataTypes.STRING, allowNull: true },
+    comment:{ type: DataTypes.TEXT, allowNull: true },
     customer_type:{ type: DataTypes.STRING, defaultValue:"Silver" },
     customer_mode:{ type: DataTypes.STRING, defaultValue:"General" },
     vat_number:{ type: DataTypes.STRING, allowNull:true },
-    email:{ type: DataTypes.STRING, allowNull:false, unique:true },
+    email:{ type: DataTypes.STRING, allowNull:true, unique:true },
     createdAt: { type: DataTypes.DATE, allowNull: true, defaultValue: DataTypes.NOW },
     updatedAt: { type: DataTypes.DATE, allowNull: true, defaultValue: DataTypes.NOW }
 },{tableName:"customers",timestamps:true});

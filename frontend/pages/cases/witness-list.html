@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>List of Witnesses - AXIS_CMS_WEB</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<link rel="stylesheet" href="../../assets/css/cases.css">
+</head>
+<body>
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>AXIS_CMS_WEB</span>
+    </div>
+    <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="case-list.html">Cases</a></li>
+        <li><a href="new-case.html">New Case</a></li>
+        <li><a href="plaint.html">Plaint</a></li>
+        <li><a href="answer.html">Answer</a></li>
+        <li><a href="witness-list.html">List of witnesses</a></li>
+        <li><a href="judgment-list.html">Dugement</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header><h2>List of witnesses</h2></header>
+    <div class="form-container">
+        <div class="cases-toolbar">
+            <input type="text" id="witnessSearch" class="search-inline" placeholder="Search Case No, Customer, Court, Lawyer">
+            <div class="cases-actions">
+                <a class="icon-btn back-icon-btn" href="answer.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+            </div>
+        </div>
+        <div class="customer-table-wrap">
+            <table id="witnessesTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Case No</th>
+                        <th>Customer Name</th>
+                        <th>Court</th>
+                        <th>Attend Lawyer</th>
+                        <th>Uploads</th>
+                        <th>Dudgment Created</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js?v=20260402p03"></script>
+<script src="../../assets/js/witness-list.js?v=20260403p03"></script>
+</body>
+</html>
+
+
+
+
+

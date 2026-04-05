@@ -3,29 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Finance - PULMO TECHNOLOGIES</title>
+<title>Finance - AXIS_CMS_WEB</title>
 <link rel="stylesheet" href="../../assets/css/style.css">
 <link rel="stylesheet" href="../../assets/css/dashboard.css">
 <link rel="stylesheet" href="../../assets/extracted/pages/finance/finance.inline-style-1.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
 <div class="sidebar">
     <div class="logo">
         <img src="../../assets/images/logo.png" alt="Logo">
-        <span>PULMO TECHNOLOGIES</span>
+        <span>AXIS_CMS_WEB</span>
     </div>
     <ul class="nav-links">
         <li><a href="../dashboard.html">Dashboard</a></li>
-        <li><a href="../products/product-list.html">Products</a></li>
-        <li><a href="../products/general-machine.html">Machines</a></li>
-        <li><a href="../customers/customer-list.html">Customers</a></li>
-        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
-        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
-        <li><a href="../expenses/expense-list.html">Expenses</a></li>
-        <li><a href="../reports/sales-report.html">Reports</a></li>
-        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
-        <li><a href="finance.html">Finance</a></li>
+        <li><a href="../customers/client-list.html">Client</a></li>
+        <li><a href="../invoices/Payments-list.html">Invoices</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>`r`n        <li><a href="finance.html">Finance</a></li>
     </ul>
 </div>
 
@@ -33,24 +28,37 @@
     <header><h2>Finance</h2></header>
 
     <div class="toolbar">
-        <a class="btn" id="paymentsBtn" href="payments.html">Payments</a>
-        <a class="btn" id="pendingsBtn" href="pendings.html">Pendings</a>
         <button class="btn" type="button" onclick="loadFinanceOverview()">Refresh</button>
-        <a class="btn btn-secondary" href="../dashboard.html">Back</a>
+        <a class="icon-btn back-icon-btn" href="../dashboard.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
     </div>
 
     <div class="grid-3">
         <div class="card-block">
-            <h3>Total Sales (Month)</h3>
-            <p class="finance-value" id="totalSales">0.00</p>
+            <h3>Total Sales</h3>
+            <p class="finance-value" id="financeTotalSales">0.00</p>
         </div>
         <div class="card-block">
-            <h3>Total Expenses (Month)</h3>
-            <p class="finance-value" id="totalExpense">0.00</p>
+            <h3>Received Payment</h3>
+            <p class="finance-value" id="financeReceivedPayment">0.00</p>
         </div>
         <div class="card-block">
-            <h3>Net Profit (Month)</h3>
-            <p class="finance-value" id="netProfit">0.00</p>
+            <h3>Total Expenses</h3>
+            <p class="finance-value" id="financeTotalExpense">0.00</p>
+        </div>
+        <div class="card-block">
+            <h3>Net Profit</h3>
+            <p class="finance-value" id="financeNetProfit">0.00</p>
+        </div>
+    </div>
+
+    <div class="charts">
+        <div class="chart-container">
+            <h3>Monthly Sales</h3>
+            <canvas id="salesChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Monthly Profit</h3>
+            <canvas id="profitChart"></canvas>
         </div>
     </div>
 
@@ -71,68 +79,6 @@
         </table>
     </div>
 
-    <div class="form-container section">
-        <div class="section-head">
-            <h3>Sold Product Price</h3>
-        </div>
-        <table id="soldPriceTable">
-            <thead>
-                <tr>
-                    <th>Period</th>
-                    <th>Total Amount</th>
-                </tr>
-            </thead>
-            <tbody id="soldPriceBody"></tbody>
-        </table>
-    </div>
-
-    <div class="form-container section">
-        <div class="section-head">
-            <h3>Vendor Products Dealer Price</h3>
-        </div>
-        <table id="vendorTotalTable">
-            <thead>
-                <tr>
-                    <th>Period</th>
-                    <th>Total Dealer Amount</th>
-                </tr>
-            </thead>
-            <tbody id="vendorTotalBody"></tbody>
-        </table>
-        <h3 style="margin-top:10px;">Vendor Detail</h3>
-        <table id="vendorDetailTable">
-            <thead>
-                <tr>
-                    <th>Vendor</th>
-                    <th>Qty</th>
-                    <th>Total Dealer Amount</th>
-                </tr>
-            </thead>
-            <tbody id="vendorDetailBody"></tbody>
-        </table>
-    </div>
-
-    <div class="form-container section">
-        <div class="section-head">
-            <h3>Rental Consumables</h3>
-        </div>
-        <h3>Month Wise</h3>
-        <table id="rcMonthTable">
-            <thead><tr><th>Month</th><th>Total Amount</th></tr></thead>
-            <tbody id="rcMonthBody"></tbody>
-        </table>
-        <h3 style="margin-top:10px;">Annual Wise</h3>
-        <table id="rcYearTable">
-            <thead><tr><th>Year</th><th>Total Amount</th></tr></thead>
-            <tbody id="rcYearBody"></tbody>
-        </table>
-        <h3 style="margin-top:10px;">Customer Wise</h3>
-        <table id="rcCustomerTable">
-            <thead><tr><th>Customer</th><th>Total Qty</th><th>Total Amount</th></tr></thead>
-            <tbody id="rcCustomerBody"></tbody>
-        </table>
-    </div>
-
 </div>
 
 <script src="../../assets/js/api.js"></script>
@@ -140,3 +86,6 @@
 <script src="../../assets/extracted/pages/finance/finance.inline-script-1.js"></script>
 </body>
 </html>
+
+
+

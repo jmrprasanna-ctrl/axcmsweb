@@ -8,7 +8,6 @@ const periodEl = document.getElementById("periodSelect");
 const dateEl = document.getElementById("dateInput");
 const userEl = document.getElementById("userSelect");
 const clearLogsBtn = document.getElementById("clearLogsBtn");
-const searchLogsBtn = document.getElementById("searchLogsBtn");
 const saveLogsPdfBtn = document.getElementById("saveLogsPdfBtn");
 
         async function loadUsers(){
@@ -99,9 +98,6 @@ dateEl.addEventListener("change", loadLogs);
 userEl.addEventListener("change", loadLogs);
 if(clearLogsBtn){
     clearLogsBtn.addEventListener("click", clearLogs);
-}
-if(searchLogsBtn){
-    searchLogsBtn.addEventListener("click", loadLogs);
 }
 if(saveLogsPdfBtn){
     saveLogsPdfBtn.addEventListener("click", savePDF);

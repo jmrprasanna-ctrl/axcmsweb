@@ -1,7 +1,7 @@
 {
-  "name": "pulmotech_inhouse",
+  "name": "AXIS_CMS_WEB",
   "version": "1.0.0",
-  "description": "pulmotech_inhouse - IT Inventory & Business Management System with Node.js, Express, PostgreSQL, and Modern UI",
+  "description": "AXIS_CMS_WEB - IT Inventory & Business Management System with Node.js, Express, PostgreSQL, and Modern UI",
   "main": "backend/server.js",
   "scripts": {
     "start": "node backend/server.js",

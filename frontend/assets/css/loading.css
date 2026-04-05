@@ -1,0 +1,82 @@
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  background: radial-gradient(
+      circle at 20% 20%,
+      rgba(243, 248, 255, 0.1) 0%,
+      rgba(238, 244, 255, 0.1) 44%,
+      rgba(230, 239, 255, 0.1) 100%
+    );
+}
+
+.loading-wrap {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.loading-logo {
+  width: min(240px, 62vw);
+  height: auto;
+  animation: logoPulse 1.9s ease-in-out infinite;
+  filter: drop-shadow(0 12px 26px rgba(40, 78, 165, 0.24));
+}
+
+.loading-spinner {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  animation: spinnerRotate 1.05s linear infinite;
+}
+
+.loading-spinner span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px;
+  border-radius: 50%;
+  background: #2f6fd4;
+  opacity: 0.2;
+  animation: dotFade 1.05s linear infinite;
+}
+
+.loading-spinner span:nth-child(1) { transform: rotate(0deg) translate(0, -18px); animation-delay: -0.92s; }
+.loading-spinner span:nth-child(2) { transform: rotate(45deg) translate(0, -18px); animation-delay: -0.79s; }
+.loading-spinner span:nth-child(3) { transform: rotate(90deg) translate(0, -18px); animation-delay: -0.66s; }
+.loading-spinner span:nth-child(4) { transform: rotate(135deg) translate(0, -18px); animation-delay: -0.53s; }
+.loading-spinner span:nth-child(5) { transform: rotate(180deg) translate(0, -18px); animation-delay: -0.40s; }
+.loading-spinner span:nth-child(6) { transform: rotate(225deg) translate(0, -18px); animation-delay: -0.27s; }
+.loading-spinner span:nth-child(7) { transform: rotate(270deg) translate(0, -18px); animation-delay: -0.14s; }
+.loading-spinner span:nth-child(8) { transform: rotate(315deg) translate(0, -18px); animation-delay: 0s; }
+
+.loading-text {
+  margin: 0;
+  color: #223f73;
+  font-size: 0.98rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+@keyframes logoPulse {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.96; }
+  50% { transform: translateY(-3px) scale(1.025); opacity: 1; }
+}
+
+@keyframes spinnerRotate {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes dotFade {
+  0%, 100% { opacity: 0.18; }
+  50% { opacity: 1; }
+}

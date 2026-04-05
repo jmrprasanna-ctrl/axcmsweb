@@ -1,8 +1,52 @@
+.add-user-page-header{
+            display:flex;
+            align-items:flex-start;
+            justify-content:space-between;
+            gap:10px;
+            margin-bottom:14px;
+        }
+.add-user-page-header header{
+            margin:0;
+        }
+.add-user-page-header .muted{
+            margin-top:4px;
+            color:#5f7388;
+            font-size:0.95rem;
+        }
+.add-user-page-header .back-icon-btn{
+            margin-left:auto;
+            flex:0 0 auto;
+        }
 .form-actions{
             display: flex;
+            align-items: center;
+            justify-content: flex-start;
             gap: 12px;
             flex-wrap: wrap;
             margin-top: 12px;
+        }
+.form-actions .icon-btn{
+            width:44px;
+            height:44px;
+            min-width:44px;
+            min-height:44px;
+            display:inline-grid;
+            place-items:center;
+            margin:0;
+            line-height:1;
+        }
+.form-actions .icon-btn svg{
+            width:21px;
+            height:21px;
+        }
+.save-icon-btn{
+            background:#eef8ff;
+            color:#0a67b2;
+            border-color:#c7e2f8;
+        }
+.save-icon-btn:hover{
+            border-color:#9ac8ec;
+            box-shadow:0 10px 20px rgba(15, 106, 191, 0.16);
         }
         .btn-secondary{
             background: #e9f3fc;
@@ -50,4 +94,9 @@
         button.toggle-pass:focus{
             outline:none;
             box-shadow:0 0 0 3px rgba(79,126,169,0.2);
+        }
+@media (max-width: 700px){
+            .add-user-page-header{
+                align-items:center;
+            }
         }

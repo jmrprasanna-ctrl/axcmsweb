@@ -6,8 +6,7 @@ function canShowAdminTool(path){
                 || (typeof hasUserActionPermission === "function" && hasUserActionPermission(path, "view"))
             );
             if(role === "admin"){
-                if(!hasConfiguredAccess) return true;
-                return hasPageAccess;
+                return true;
             }
             if(role === "manager"){
                 if(!hasConfiguredAccess) return false;
@@ -18,11 +17,6 @@ function canShowAdminTool(path){
 
         function applyTopButtonVisibility(){
             const map = [
-                { id: "btnAddUser", path: "/users/add-user.html" },
-                { id: "btnPreference", path: "/users/preference.html" },
-                { id: "btnAccess", path: "/users/user-access.html" },
-                { id: "btnLogged", path: "/users/user-logged.html" },
-                { id: "btnEmailSetup", path: "/support/email-setup.html" },
                 { id: "btnCheckTools", path: "/tools/check-backup.html" },
                 { id: "btnBackup", path: "/tools/backup-download.html" },
                 { id: "btnUploadDb", path: "/tools/upload-db.html" }
@@ -37,15 +31,10 @@ function canShowAdminTool(path){
         function bindTopButtons(){
             const bindClick = (id, handler) => {
                 const el = document.getElementById(id);
-                if(el){
-                    el.addEventListener("click", handler);
-                }
-            };
-            bindClick("btnAddUser", () => { window.location.href = "add-user.html"; });
-            bindClick("btnPreference", () => { window.location.href = "preference.html"; });
-            bindClick("btnAccess", () => { window.location.href = "user-access.html"; });
-            bindClick("btnLogged", () => { window.location.href = "user-logged.html"; });
-            bindClick("btnEmailSetup", () => { window.location.href = "../support/email-setup.html"; });
+            if(el){
+                el.addEventListener("click", handler);
+            }
+        };
             bindClick("btnCheckTools", checkBackupTools);
             bindClick("btnBackup", downloadSystemBackup);
             bindClick("btnUploadDb", openRestorePicker);
@@ -60,22 +49,13 @@ function canShowAdminTool(path){
                 const users = await request("/users","GET");
                 const tbody = document.getElementById('user-table-body');
                 tbody.innerHTML = '';
-                const canEditUser = typeof hasUserActionPermission === "function"
-                    && hasUserActionPermission("/users/user-list.html", "edit");
-                const canDeleteUser = typeof hasUserActionPermission === "function"
-                    && hasUserActionPermission("/users/user-list.html", "delete");
                 users.forEach(u => {
-                    const rowActions = [];
-                    if(canEditUser){
-                        rowActions.push(`<a class="btn btn-inline action-btn" href="edit-user.html?id=${u.id}">Edit</a>`);
-                    }
-                    if(canDeleteUser){
-                        rowActions.push(`<button class="btn btn-danger btn-inline action-btn" type="button" onclick="deleteUser(${u.id})">Delete</button>`);
-                    }
-                    const actionHtml = rowActions.length
-                        ? rowActions.join("")
-                        : `<span class="muted">No actions</span>`;
                     const row = document.createElement('tr');
+                    row.className = 'user-row-open';
+                    row.style.cursor = 'pointer';
+                    row.addEventListener("click", () => {
+                        window.location.href = `edit-user.html?id=${u.id}`;
+                    });
                     row.innerHTML = `
                         <td>${u.id}</td>
                         <td>${u.username}</td>
@@ -84,27 +64,11 @@ function canShowAdminTool(path){
                         <td>${u.telephone || ""}</td>
                         <td>${u.email}</td>
                         <td>${u.role}</td>
-                        <td>
-                            <div class="user-action-row">
-                                ${actionHtml}
-                            </div>
-                        </td>
                     `;
                     tbody.appendChild(row);
                 });
             }catch(err){
                 alert(err.message || "Failed to load users");
-            }
-        }
-
-        async function deleteUser(id){
-            if(!confirm("Delete this user?")) return;
-            try{
-                await request(`/users/${id}`,"DELETE");
-                showMessageBox("User deleted");
-                loadUsers();
-            }catch(err){
-                alert(err.message || "Failed to delete user");
             }
         }
 
@@ -126,7 +90,8 @@ function canShowAdminTool(path){
             el.innerText = "Unknown";
         }
 
-        async function loadSystemHealthPreview(){
+async function loadSystemHealthPreview(){
+            let healthLoadFailed = false;
             try{
                 const health = await request("/health","GET");
                 setHealthBadge("healthOverall", !!health.ok);
@@ -134,21 +99,19 @@ function canShowAdminTool(path){
                 setHealthBadge("healthPgDump", !!health?.checks?.tools?.pg_dump?.available);
                 setHealthBadge("healthPsql", !!health?.checks?.tools?.psql?.available);
                 setHealthBadge("healthTplInvoice", !!health?.checks?.templateFiles?.invoice?.exists);
-                setHealthBadge("healthTplQuotation", !!health?.checks?.templateFiles?.quotation?.exists);
-                setHealthBadge("healthTplQuotation2", !!health?.checks?.templateFiles?.quotation2?.exists);
             }catch(_err){
+                healthLoadFailed = true;
                 setHealthBadge("healthOverall", false);
                 setHealthBadge("healthDb", null);
                 setHealthBadge("healthPgDump", null);
                 setHealthBadge("healthPsql", null);
                 setHealthBadge("healthTplInvoice", null);
-                setHealthBadge("healthTplQuotation", null);
-                setHealthBadge("healthTplQuotation2", null);
             }
 
             const updated = document.getElementById("healthUpdatedAt");
             if(updated){
-                updated.innerText = `Last updated: ${new Date().toLocaleString()}`;
+                const suffix = healthLoadFailed ? " (backend unavailable)" : "";
+                updated.innerText = `Last updated: ${new Date().toLocaleString()}${suffix}`;
             }
         }
 
@@ -185,7 +148,7 @@ function canShowAdminTool(path){
                 const blob = await res.blob();
                 const disposition = res.headers.get("Content-Disposition") || "";
                 const fileNameMatch = disposition.match(/filename="([^"]+)"/i);
-                const fileName = (fileNameMatch && fileNameMatch[1]) ? fileNameMatch[1] : `inventory_backup_${Date.now()}.sql`;
+                const fileName = (fileNameMatch && fileNameMatch[1]) ? fileNameMatch[1] : `axiscmsdb_backup_${Date.now()}.sql`;
 
                                                                                                         
                 if(window.showSaveFilePicker){

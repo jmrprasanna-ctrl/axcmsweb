@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PM2_NAME="${PM2_NAME:-pulmo-backend}"
+PM2_NAME="${PM2_NAME:-AXIS_CMS_WEB-backend}"
 API_HEALTH_URL="${API_HEALTH_URL:-http://127.0.0.1:5000/api/health}"
 WEB_HEALTH_URL="${WEB_HEALTH_URL:-http://127.0.0.1}"
 

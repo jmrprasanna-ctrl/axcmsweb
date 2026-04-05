@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Client List - AXIS_CMS_WEB</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<link rel="stylesheet" href="../../assets/extracted/pages/customers/customer-list.inline-style-1.css">
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>AXIS_CMS_WEB</span>
+    </div>
+    <ul class="nav-links" style="visibility:hidden;">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../calendar.html">Calender</a></li>
+        <li><a href="../customers/client-list.html">Client</a></li>
+        <li><a href="../cases/case-list.html">Cases</a></li>
+        <li><a href="../cases/finished.html">Finished</a></li>
+        <li><a href="../invoices/Payments-list.html">Payments</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../finance/finance.html">Finance</a></li>
+        <li><a href="../users/user-list.html">Users</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <div class="customer-page-header">
+        <header>
+            <h2>Client List</h2>
+            <p class="muted">View and search client records.</p>
+        </header>
+        <a class="icon-btn back-icon-btn" href="../dashboard.html" id="customersBackBtn" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+    </div>
+
+    <div class="form-container customer-shell">
+        <div class="customer-toolbar">
+            <div class="customer-search-wrap">
+                <input type="text" id="customerSearch" class="search-inline" placeholder="Search ID, Name, Tel, Mobile, Email">
+            </div>
+            <div class="customer-actions">
+                <a class="icon-btn add-client-icon-btn" href="Add-Client.html" title="Add Client" aria-label="Add Client">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 8.2a2.7 2.7 0 1 1 0-5.4a2.7 2.7 0 0 1 0 5.4Z" stroke="currentColor" stroke-width="1.7"/>
+                        <path d="M6.2 18.4a5.8 5.8 0 0 1 11.6 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                        <path d="M19 8v5M16.5 10.5h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                    </svg>
+                </a>
+                <button type="button" class="icon-btn pdf-icon-btn" id="exportPdfBtn" title="Export as PDF" aria-label="Export as PDF">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M7 3.5h7l4 4v13a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 20.5V5A1.5 1.5 0 0 1 7.5 3.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                        <path d="M14 3.5V8h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M8.5 16h7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="customer-table-wrap">
+            <table id="customerTable">
+                <thead>
+                    <tr>
+                        <th>Customer ID</th>
+                        <th>Name</th>
+                        <th>Address</th>
+                        <th>Tel</th>
+                        <th>Mobile</th>
+                        <th>Email</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js?v=20260404p12"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="../../assets/extracted/pages/customers/customer-list.inline-script-1.js"></script>
+</body>
+</html>
+
+
+
+

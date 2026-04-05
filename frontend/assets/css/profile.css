@@ -1,0 +1,137 @@
+.profile-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.profile-page-header header {
+  margin: 0;
+}
+.profile-page-header .profile-actions {
+  margin-left: auto;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.profile-page-header .profile-actions .icon-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+  display: inline-grid;
+  place-items: center;
+  vertical-align: middle;
+}
+
+.profile-page-header .profile-actions button.icon-btn {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.profile-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.profile-card .profile-actions .icon-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  margin-top: 0;
+}
+
+.profile-card .profile-actions .btn {
+  min-height: 44px;
+  margin-top: 0;
+  display: inline-flex;
+  align-items: center;
+}
+.profile-card .profile-actions .save-icon-btn {
+  background: #eef8ff;
+  color: #0a67b2;
+  border-color: #c7e2f8;
+}
+
+.profile-card .profile-actions .save-icon-btn:hover {
+  border-color: #9ac8ec;
+  box-shadow: 0 10px 20px rgba(15, 106, 191, 0.16);
+}
+.profile-card .profile-actions .delete-icon-btn {
+  background: #fff3f4;
+  color: #b4232f;
+  border-color: #f2c6cb;
+}
+
+.profile-card .profile-actions .delete-icon-btn:hover {
+  border-color: #e59aa3;
+  box-shadow: 0 10px 20px rgba(180, 35, 47, 0.14);
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.profile-grid .full {
+  grid-column: 1 / -1;
+}
+
+.profile-card {
+  border: 1px solid #e2ebf7;
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
+}
+
+.profile-avatar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.profile-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 1px solid #d8e4f2;
+  object-fit: cover;
+  background: #f6f9fd;
+}
+
+.profile-avatar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.profile-table-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #d8e4f2;
+  background: #f6f9fd;
+}
+
+.profile-title-col {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  .profile-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

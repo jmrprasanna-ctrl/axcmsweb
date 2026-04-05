@@ -2,6 +2,7 @@
 const storedRole = localStorage.getItem("role") || "";
 const storedEmail = localStorage.getItem("userEmail") || "";
 const storedName = localStorage.getItem("userName") || "";
+let storedProfilePicturePath = localStorage.getItem("userProfilePictureUrl") || "";
 const displayName = storedName || storedEmail || storedRole || "User";
 
 const roleEl = document.getElementById("userRole");
@@ -14,6 +15,60 @@ const initialEl = document.getElementById("userInitial");
 if (initialEl) {
     const initialSource = displayName.trim();
     initialEl.innerText = initialSource ? initialSource[0].toUpperCase() : "U";
+}
+const menuNameEl = document.getElementById("userMenuName");
+if(menuNameEl){
+    menuNameEl.innerText = displayName;
+}
+const menuRoleEl = document.getElementById("userMenuRole");
+if(menuRoleEl){
+    menuRoleEl.innerText = storedRole || "User";
+}
+const menuInitialEl = document.getElementById("userMenuInitial");
+if(menuInitialEl){
+    const initialSource = displayName.trim();
+    menuInitialEl.innerText = initialSource ? initialSource[0].toUpperCase() : "U";
+}
+
+function applyUserAvatarImage() {
+    const menuAvatarEl = document.getElementById("userMenuInitial");
+    if(!menuAvatarEl) return;
+    const raw = String(storedProfilePicturePath || "").trim();
+    if(!raw){
+        menuAvatarEl.classList.remove("has-image");
+        const initialSource = displayName.trim();
+        menuAvatarEl.textContent = initialSource ? initialSource[0].toUpperCase() : "U";
+        return;
+    }
+    const apiOrigin = String(BASE_URL || "").replace(/\/api\/?$/i, "");
+    const absolute = /^https?:\/\//i.test(raw)
+        ? raw
+        : `${apiOrigin}${raw.startsWith("/") ? "" : "/"}${raw}`;
+    menuAvatarEl.classList.add("has-image");
+    menuAvatarEl.innerHTML = `<img src="${absolute}" alt="Profile" class="user-menu-head-avatar-img">`;
+}
+
+async function hydrateAvatarFromProfiles() {
+    try {
+        const rows = await request("/users/profiles", "GET");
+        const list = Array.isArray(rows) ? rows : [];
+        if (!list.length) return;
+        const userId = Number(localStorage.getItem("userId") || 0);
+        const email = String(localStorage.getItem("userEmail") || "").trim().toLowerCase();
+        const username = String(localStorage.getItem("userName") || "").trim().toLowerCase();
+
+        const match = list.find((p) => Number(p.user_id || 0) === userId)
+            || list.find((p) => String(p.email || "").trim().toLowerCase() === email)
+            || list.find((p) => String(p.login_user || "").trim().toLowerCase() === username)
+            || list.find((p) => String(p.login_user || "").trim().toLowerCase() === email);
+
+        if (match && match.profile_picture_url) {
+            storedProfilePicturePath = String(match.profile_picture_url || "").trim();
+            localStorage.setItem("userProfilePictureUrl", storedProfilePicturePath);
+            applyUserAvatarImage();
+        }
+    } catch (_err) {
+    }
 }
 
 const userRole = (storedRole || "").toLowerCase();
@@ -50,8 +105,9 @@ function syncDashboardCommunicationButtons(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
     if(role !== "admin" && role !== "manager" && role !== "user") return;
 
-    const messagesBtn = document.getElementById("messagesBtn");WWWWWWW
+    const messagesBtn = document.getElementById("messagesBtn");
     const noticeBtn = document.getElementById("noticeBtn");
+    const todoBtn = document.getElementById("todoBtn");
 
     if(messagesBtn){
         const allowMessages = hasDashboardAccessFor("/messages/messages.html", ["view", "add", "delete"]);
@@ -61,6 +117,11 @@ function syncDashboardCommunicationButtons(){
     if(noticeBtn){
         const allowNotifications = hasDashboardAccessFor("/notifications/notifications.html", ["view", "add", "delete"]);
         noticeBtn.style.display = allowNotifications ? "" : "none";
+    }
+
+    if(todoBtn){
+        const allowTodo = hasDashboardAccessFor("/calendar.html", ["view"]);
+        todoBtn.style.display = allowTodo ? "" : "none";
     }
 }
 
@@ -82,17 +143,13 @@ function toDashboardMenuHref(canonicalPath){
 
 const DASHBOARD_MENU_ENTRIES = [
     { path: "/dashboard.html", label: "Dashboard" },
-    { path: "/products/product-list.html", label: "Products" },
-    { path: "/products/general-machine.html", label: "Machines" },
-    { path: "/customers/customer-list.html", label: "Customers" },
-    { path: "/invoices/invoice-list.html", label: "Invoices" },
-    { path: "/vendors/list-vendor.html", label: "Vendors" },
+    { path: "/calendar.html", label: "Calender" },
+    { path: "/customers/client-list.html", label: "Client" },
+    { path: "/cases/case-list.html", label: "Cases" },
+    { path: "/cases/finished.html", label: "Finished" },
+    { path: "/invoices/Payments-list.html", label: "Invoices" },
     { path: "/expenses/expense-list.html", label: "Expenses" },
-    { path: "/reports/sales-report.html", label: "Reports" },
-    { path: "/analytics/sales-chart.html", label: "Analytics" },
     { path: "/finance/finance.html", label: "Finance" },
-    { path: "/support/support.html", label: "Support" },
-    { path: "/stock/stock.html", label: "Stock" },
     { path: "/users/user-list.html", label: "Users" }
 ];
 let dashboardAllowedMenuEntries = null;
@@ -113,29 +170,13 @@ function renderDashboardSidebarMenu(entries){
 }
 
 function enforceDashboardSidebarAccess(){
-    const role = (localStorage.getItem("role") || "").toLowerCase();
-    if(role !== "admin" && role !== "manager" && role !== "user") return;
-    const granted = DASHBOARD_MENU_ENTRIES.filter((entry) => {
-        if(typeof hasUserGrantedPath !== "function"){
-            return true;
-        }
-        return hasUserGrantedPath(entry.path);
-    });
-    dashboardAllowedMenuEntries = granted.length
-        ? granted
-        : [{ path: "/dashboard.html", label: "Dashboard" }];
-    renderDashboardSidebarMenu(dashboardAllowedMenuEntries);
+    // Sidebar rendering is centralized in assets/js/api.js
+    // to keep behavior consistent on all pages.
+    return;
 }
 
 function startDashboardSidebarGuard(){
-    if(window.__dashboardSidebarGuardStarted) return;
-    window.__dashboardSidebarGuardStarted = true;
-    const sync = () => enforceDashboardSidebarAccess();
-    if(window.__userAccessPermissionsLoaded){
-        sync();
-    }else{
-        document.addEventListener("app:user-access-ready", sync, { once: true });
-    }
+    return;
 }
 
          
@@ -148,11 +189,112 @@ function logout(){
     localStorage.removeItem("selectedDatabaseName");
     localStorage.removeItem("mappedCompanyName");
     localStorage.removeItem("mappedCompanyLogoUrl");
+    localStorage.removeItem("userProfilePictureUrl");
     window.location.href = "login.html";
 }
 
-let salesChartInstance = null;
-let profitChartInstance = null;
+function closeUserMenu(){
+    const menu = document.getElementById("userMenu");
+    const btn = document.getElementById("userMenuBtn");
+    const wrap = document.querySelector(".user-menu-wrap");
+    if(menu){
+        menu.classList.add("hidden");
+    }
+    if(btn){
+        btn.setAttribute("aria-expanded", "false");
+    }
+    if(wrap){
+        wrap.classList.remove("is-open");
+    }
+}
+
+function openUserMenu(){
+    const menu = document.getElementById("userMenu");
+    const btn = document.getElementById("userMenuBtn");
+    const wrap = document.querySelector(".user-menu-wrap");
+    if(menu){
+        menu.classList.remove("hidden");
+    }
+    if(btn){
+        btn.setAttribute("aria-expanded", "true");
+    }
+    if(wrap){
+        wrap.classList.add("is-open");
+    }
+}
+
+function toggleUserMenu(){
+    const menu = document.getElementById("userMenu");
+    if(!menu) return;
+    if(menu.classList.contains("hidden")){
+        openUserMenu();
+    }else{
+        closeUserMenu();
+    }
+}
+
+function openMyProfile(){
+    const userId = Number(localStorage.getItem("userId") || 0);
+    if(Number.isFinite(userId) && userId > 0){
+        window.location.href = `users/edit-user.html?id=${userId}`;
+        return;
+    }
+    window.location.href = "users/user-list.html";
+}
+
+function openPreferencePage(){
+    window.location.href = "users/preference.html";
+}
+
+function initUserMenu(){
+    const menuWrap = document.querySelector(".user-menu-wrap");
+    const menuBtn = document.getElementById("userMenuBtn");
+    const profileItem = document.getElementById("profileMenuItem");
+    const preferenceItem = document.getElementById("preferenceMenuItem");
+    const logoutItem = document.getElementById("logoutMenuItem");
+
+    if(!menuWrap || !menuBtn) return;
+
+    menuBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleUserMenu();
+    });
+
+    if(profileItem){
+        profileItem.addEventListener("click", () => {
+            closeUserMenu();
+            openMyProfile();
+        });
+    }
+
+    if(preferenceItem){
+        preferenceItem.addEventListener("click", () => {
+            closeUserMenu();
+            openPreferencePage();
+        });
+    }
+
+    if(logoutItem){
+        logoutItem.addEventListener("click", () => {
+            closeUserMenu();
+            logout();
+        });
+    }
+
+    document.addEventListener("click", (event) => {
+        if(!menuWrap.contains(event.target)){
+            closeUserMenu();
+        }
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if(event.key === "Escape"){
+            closeUserMenu();
+        }
+    });
+}
+
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 function formatDateWithWeekday(dateText){
@@ -168,6 +310,37 @@ function formatDateWithWeekday(dateText){
     return `${safe} ${weekday}`;
 }
 
+function formatLocalDateLine(now){
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const weekdays = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const weekday = weekdays[now.getDay()];
+    return `${year}-${month}-${day} ${weekday}`;
+}
+
+function formatLocalTimeLine(now){
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    const ss = String(now.getSeconds()).padStart(2, "0");
+    return `${hh}:${mm}:${ss}`;
+}
+
+function startDashboardDateTimeClock(){
+    const dateEl = document.getElementById("currentDateText");
+    const timeEl = document.getElementById("currentTimeText");
+    if(!dateEl || !timeEl) return;
+
+    const tick = () => {
+        const now = new Date();
+        dateEl.innerText = formatLocalDateLine(now);
+        timeEl.innerText = formatLocalTimeLine(now);
+    };
+
+    tick();
+    window.setInterval(tick, 1000);
+}
+
 function formatAmountWithSeparators(value){
     return Number(value || 0).toLocaleString("en-US", {
         minimumFractionDigits: 2,
@@ -175,7 +348,44 @@ function formatAmountWithSeparators(value){
     });
 }
 
+<<<<<<< HEAD
                      
+=======
+function escapeHtml(value){
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function renderUpcomingCases(rows){
+    const bodyEl = document.getElementById("upcomingCasesBody");
+    if(!bodyEl) return;
+    const list = Array.isArray(rows) ? rows : [];
+    if(!list.length){
+        bodyEl.innerHTML = `
+            <tr>
+                <td colspan="6" class="upcoming-empty">No onway cases for the next 3 days.</td>
+            </tr>
+        `;
+        return;
+    }
+    bodyEl.innerHTML = list.map((row) => `
+        <tr>
+            <td>${escapeHtml(row.next_date || "")}</td>
+            <td>${escapeHtml(row.case_no || "")}</td>
+            <td>${escapeHtml(row.customer_name || "")}</td>
+            <td>${escapeHtml(row.court || "")}</td>
+            <td>${escapeHtml(row.step || "Step")}</td>
+            <td>${escapeHtml(row.attend_lawyer || "")}</td>
+        </tr>
+    `).join("");
+}
+
+// Fetch summary data
+>>>>>>> 046c6f3 (feat: apply AXIS web updates across backend and frontend)
 async function fetchSummary(){
     try{
         const periodEl = document.getElementById("summaryPeriod");
@@ -189,63 +399,37 @@ async function fetchSummary(){
         if(totalUsersEl){
             totalUsersEl.querySelector("p").innerText = summary.totalUsers || 0;
         }
-        const totalMchineEl = document.getElementById("totalMchine");
-        if(totalMchineEl){
-            totalMchineEl.querySelector("p").innerText = summary.totalGeneralMachines || 0;
+        const totalCasesEl = document.getElementById("totalCases");
+        if(totalCasesEl){
+            totalCasesEl.querySelector("p").innerText = summary.totalCases || 0;
         }
-        const rentalMachinesEl = document.getElementById("totalRentalMachines");
-        if(rentalMachinesEl){
-            rentalMachinesEl.querySelector("p").innerText = summary.totalRentalMachines || 0;
-        }
-        document.getElementById("totalProducts").querySelector("p").innerText = summary.totalProducts || 0;
         document.getElementById("totalCustomers").querySelector("p").innerText = summary.totalCustomers || 0;
+<<<<<<< HEAD
         document.getElementById("totalVendors").querySelector("p").innerText = summary.totalVendors || 0;
                                             
+=======
+        // Total Sales: invoice totals only.
+>>>>>>> 046c6f3 (feat: apply AXIS web updates across backend and frontend)
         const salesVal = summary.totalSalesPeriod ?? summary.totalSales ?? 0;
         const receivedPaymentVal = summary.receivedPaymentPeriod ?? summary.receivedPayment ?? 0;
-        const rentalMachinesCountsVal = summary.rentalMachinesCountsPricePeriod
-            ?? summary.rentalMachinesCountsPrice
-            ?? summary.rentalMachinesCountsPriceAllInputs
-            ?? summary.rentalMachinesCountsPriceAllTime
-            ?? 0;
-        const rentalConsumablesVal = summary.rentalConsumablesPricePeriod
-            ?? summary.rentalConsumablesPrice
-            ?? summary.rentalConsumablesPriceAllInputs
-            ?? summary.rentalConsumablesPriceAllTime
-            ?? 0;
         const expenseVal = summary.totalExpensesPeriod ?? summary.totalExpenses ?? 0;
-        const technicianPaidVal = summary.technicianPaidPeriod ?? summary.technicianPaid ?? 0;
-        const vendorPaidVal = summary.vendorPaidPeriod ?? summary.vendorPaid ?? 0;
-        const profitVal =
-            Number(receivedPaymentVal || 0)
-            + Number(rentalMachinesCountsVal || 0)
-            - Number(rentalConsumablesVal || 0)
-            - Number(expenseVal || 0)
-            - Number(technicianPaidVal || 0)
-            - Number(vendorPaidVal || 0);
-        document.getElementById("totalSales").querySelector("p").innerText = formatAmountWithSeparators(salesVal);
+        const profitVal = summary.netProfitPeriod ?? summary.netProfit ?? (Number(receivedPaymentVal || 0) - Number(expenseVal || 0));
+        const totalSalesEl = document.getElementById("totalSales");
+        if(totalSalesEl){
+            totalSalesEl.querySelector("p").innerText = formatAmountWithSeparators(salesVal);
+        }
         const receivedPaymentEl = document.getElementById("receivedPayment");
         if(receivedPaymentEl){
             receivedPaymentEl.querySelector("p").innerText = formatAmountWithSeparators(receivedPaymentVal);
         }
-        const rentalMachinesCountsEl = document.getElementById("rentalMachinesCountsPrice");
-        if(rentalMachinesCountsEl){
-            rentalMachinesCountsEl.querySelector("p").innerText = formatAmountWithSeparators(rentalMachinesCountsVal);
+        const totalExpensesEl = document.getElementById("totalExpenses");
+        if(totalExpensesEl){
+            totalExpensesEl.querySelector("p").innerText = formatAmountWithSeparators(expenseVal);
         }
-        const rentalConsumablesEl = document.getElementById("rentalConsumablesPrice");
-        if(rentalConsumablesEl){
-            rentalConsumablesEl.querySelector("p").innerText = formatAmountWithSeparators(rentalConsumablesVal);
+        const netProfitEl = document.getElementById("netProfit");
+        if(netProfitEl){
+            netProfitEl.querySelector("p").innerText = formatAmountWithSeparators(profitVal);
         }
-        document.getElementById("totalExpenses").querySelector("p").innerText = formatAmountWithSeparators(expenseVal);
-        const technicianPaidEl = document.getElementById("technicianPaid");
-        if(technicianPaidEl){
-            technicianPaidEl.querySelector("p").innerText = formatAmountWithSeparators(technicianPaidVal);
-        }
-        const vendorPaidEl = document.getElementById("vendorPaid");
-        if(vendorPaidEl){
-            vendorPaidEl.querySelector("p").innerText = formatAmountWithSeparators(vendorPaidVal);
-        }
-        document.getElementById("netProfit").querySelector("p").innerText = formatAmountWithSeparators(profitVal);
         const labelEl = document.getElementById("summaryRangeLabel");
         if(labelEl){
             const periodName = (summary.period || period || "day").toString().toLowerCase();
@@ -260,36 +444,7 @@ async function fetchSummary(){
                 labelEl.innerText = formatDateWithWeekday(dateText);
             }
         }
-
-        const monthlySales = Array.isArray(summary.monthlySales) ? summary.monthlySales : Array(12).fill(0);
-        const monthlyProfit = Array.isArray(summary.monthlyProfit) ? summary.monthlyProfit : Array(12).fill(0);
-        const labels = Array.isArray(summary.months) && summary.months.length === 12
-            ? summary.months
-            : ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
-        const salesCtx = document.getElementById("salesChart").getContext("2d");
-        if(salesChartInstance){
-            salesChartInstance.destroy();
-        }
-        salesChartInstance = new Chart(salesCtx,{
-            type:"bar",
-            data:{
-                labels,
-                datasets:[{label:"Sales",data:monthlySales,backgroundColor:"#3498db"}]
-            }
-        });
-
-        const profitCtx = document.getElementById("profitChart").getContext("2d");
-        if(profitChartInstance){
-            profitChartInstance.destroy();
-        }
-        profitChartInstance = new Chart(profitCtx,{
-            type:"line",
-            data:{
-                labels,
-                datasets:[{label:"Profit",data:monthlyProfit,borderColor:"#2980b9",fill:false}]
-            }
-        });
+        renderUpcomingCases(summary.upcomingCasesNext3Days || []);
 
     }catch(err){
         console.error(err);
@@ -486,6 +641,7 @@ async function updateBadges(){
     const userId = localStorage.getItem("userId");
     const messageBadge = document.getElementById("messagesBadgeCount");
     const noticeBadge = document.getElementById("noticeBadgeCount");
+    const todoBadge = document.getElementById("todoBadgeCount");
 
     const setBadge = (el, count) => {
         if(!el) return;
@@ -522,148 +678,23 @@ async function updateBadges(){
     }catch(_err){
         setBadge(noticeBadge, 0);
     }
+
+    try{
+        if(todoBadge){
+            const todos = await request("/todos","GET");
+            const undone = (Array.isArray(todos) ? todos : []).filter((t) => !Boolean(t.done)).length;
+            setBadge(todoBadge, undone);
+        }
+    }catch(_err){
+        setBadge(todoBadge, 0);
+    }
 }
 
 updateBadges();
+initUserMenu();
+startDashboardDateTimeClock();
+applyUserAvatarImage();
+hydrateAvatarFromProfiles();
 
-function updateTodoBadgeCount(todos){
-    const badge = document.getElementById("todoBadgeCount");
-    if(!badge) return;
-    const rows = Array.isArray(todos) ? todos : [];
-    const undone = rows.filter((t) => !Boolean(t.done)).length;
-    if(undone > 0){
-        badge.innerText = undone > 99 ? "99+" : String(undone);
-        badge.classList.remove("hidden");
-    }else{
-        badge.innerText = "0";
-        badge.classList.add("hidden");
-    }
-}
 
-async function loadTodos(){
-    const listEl = document.getElementById("todoList");
-    if(!listEl) return;
-    try{
-        const todos = await request("/todos","GET");
-        renderTodos(todos || []);
-        updateTodoBadgeCount(todos || []);
-    }catch(err){
-        console.error(err);
-        listEl.innerHTML = "<li class=\"todo-item\"><span class=\"todo-title\">Failed to load to-do list.</span></li>";
-        updateTodoBadgeCount([]);
-    }
-}
 
-async function loadTodoAssignees(){
-    const select = document.getElementById("todoAssign");
-    if(!select) return;
-    const role = (localStorage.getItem("role") || "").toLowerCase();
-    if(role !== "admin" && role !== "manager") return;
-    try{
-        const users = await request("/users/assignable","GET");
-        users.forEach(u=>{
-            const opt = document.createElement("option");
-            opt.value = u.id;
-            opt.textContent = u.username || u.email || `User ${u.id}`;
-            select.appendChild(opt);
-        });
-    }catch(err){
-        console.error(err);
-    }
-}
-
-function renderTodos(todos){
-    const listEl = document.getElementById("todoList");
-    if(!listEl) return;
-    const role = (localStorage.getItem("role") || "").toLowerCase();
-    listEl.innerHTML = "";
-    todos.forEach(todo=>{
-        const li = document.createElement("li");
-        li.className = "todo-item";
-        const titleClass = todo.done ? "todo-title done" : "todo-title";
-        const doneMeta = todo.done && todo.done_by_name
-            ? `<span class="todo-meta">Done by: ${todo.done_by_name}</span>`
-            : "";
-        const canEdit = role === "admin" || role === "manager";
-        li.innerHTML = `
-            <div class="todo-main">
-                <input type="checkbox" ${todo.done ? "checked" : ""} data-id="${todo.id}">
-                <div class="todo-text">
-                    <span class="${titleClass}">${todo.title}</span>
-                    ${doneMeta}
-                </div>
-            </div>
-            <div class="todo-actions">
-                ${canEdit ? `<button class="btn btn-secondary" data-action="edit" data-id="${todo.id}">Edit</button>
-                <button class="btn btn-danger" data-action="delete" data-id="${todo.id}">Delete</button>` : ""}
-            </div>
-        `;
-        listEl.appendChild(li);
-    });
-
-    listEl.querySelectorAll("input[type='checkbox']").forEach(cb=>{
-        cb.addEventListener("change", async (e)=>{
-            const id = e.target.getAttribute("data-id");
-            try{
-                await request(`/todos/${id}`,"PUT",{ done: e.target.checked });
-                loadTodos();
-            }catch(err){
-                showMessageBox(err.message || "Failed to update to-do","error");
-                e.target.checked = !e.target.checked;
-            }
-        });
-    });
-
-    listEl.querySelectorAll("button[data-action='edit']").forEach(btn=>{
-        btn.addEventListener("click", async ()=>{
-            const id = btn.getAttribute("data-id");
-            const current = btn.closest(".todo-item").querySelector(".todo-title").innerText;
-            const next = prompt("Edit to-do", current);
-            if(next === null) return;
-            const cleaned = String(next).trim();
-            if(!cleaned) return;
-            try{
-                await request(`/todos/${id}`,"PUT",{ title: cleaned });
-                loadTodos();
-            }catch(err){
-                showMessageBox(err.message || "Failed to update to-do","error");
-            }
-        });
-    });
-
-    listEl.querySelectorAll("button[data-action='delete']").forEach(btn=>{
-        btn.addEventListener("click", async ()=>{
-            const id = btn.getAttribute("data-id");
-            if(!confirm("Delete this to-do?")) return;
-            try{
-                await request(`/todos/${id}`,"DELETE");
-                loadTodos();
-            }catch(err){
-                showMessageBox(err.message || "Failed to delete to-do","error");
-            }
-        });
-    });
-}
-
-const todoForm = document.getElementById("todoForm");
-if(todoForm){
-    const role = (localStorage.getItem("role") || "").toLowerCase();
-    todoForm.addEventListener("submit", async (e)=>{
-        e.preventDefault();
-        const input = document.getElementById("todoInput");
-        const assignSelect = document.getElementById("todoAssign");
-        const title = (input.value || "").trim();
-        if(!title) return;
-        try{
-            const assigned_to = assignSelect && assignSelect.value ? Number(assignSelect.value) : null;
-            await request("/todos","POST",{ title, assigned_to });
-            input.value = "";
-            loadTodos();
-        }catch(err){
-            showMessageBox(err.message || "Failed to add to-do","error");
-        }
-    });
-}
-
-loadTodoAssignees();
-loadTodos();

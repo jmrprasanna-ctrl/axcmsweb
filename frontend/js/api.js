@@ -37,7 +37,7 @@ function resolveBaseUrl(){
 
 const BASE_URL = resolveBaseUrl();
 window.BASE_URL = BASE_URL;
-const GLOBAL_FOOTER_TEXT = "\u00A9 All Right Recieved with CRONIT SOLLUTIONS - JMRP.";
+const GLOBAL_FOOTER_TEXT = "\u00A9 AXIS_CMS_WEB";
 const UI_SETTINGS_CACHE_KEY = "publicUiSettingsCache";
 const USER_UI_SETTINGS_CACHE_KEY = "userUiSettingsCache";
 const ENABLE_PUBLIC_UI_SETTINGS_RUNTIME = typeof window !== "undefined" && window.__ENABLE_PUBLIC_UI_SETTINGS__ === true;
@@ -46,9 +46,42 @@ const ACTIVITY_EVENTS = ["mousemove", "keydown", "touchstart"];
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 const IDLE_CHECK_INTERVAL_MS = 30 * 1000;
 
+const BASELINE_LEFT_PANEL_PATHS = [
+    "/cases/case-list.html",
+    "/cases/new-case.html",
+    "/cases/edit-case.html",
+    "/cases/plaint.html",
+    "/cases/plaint-create.html",
+    "/cases/edit-plaint.html",
+    "/cases/answer.html",
+    "/cases/answer-create.html",
+    "/cases/edit-answer.html",
+    "/cases/witness-list.html",
+    "/cases/witness-create.html",
+    "/cases/edit-witness.html",
+    "/cases/judgment-list.html",
+    "/cases/judgment-create.html",
+    "/cases/edit-judgment.html",
+    "/dashboard.html",
+    "/calendar.html",
+    "/customers/client-list.html",
+    "/customers/Add-Client.html",
+    "/invoices/Payments-list.html",
+    "/expenses/expense-list.html",
+    "/finance/finance.html",
+    "/support/support.html",
+    "/support/add-lawyer.html",
+    "/support/add-court.html",
+    "/users/user-list.html",
+    "/users/profile-list.html",
+    "/users/add-profile.html",
+    "/users/user-access.html",
+    "/users/user-logged.html",
+    "/support/email-setup.html"
+];
 const USER_DEFAULT_ALLOWED_PATHS = [
     "/login.html",
-    "/dashboard.html"
+    ...BASELINE_LEFT_PANEL_PATHS
 ];
 let USER_ALLOWED_PATHS_RUNTIME = [...USER_DEFAULT_ALLOWED_PATHS];
 const USER_ALLOWED_CACHE_KEY = "userAllowedPathsRuntime";
@@ -58,6 +91,18 @@ let USER_ACCESS_CONFIG_APPLIES_RUNTIME = false;
 const USER_ACCESS_CONFIG_ENABLED_CACHE_KEY = "userAccessConfigEnabledRuntime";
 const MAPPED_COMPANY_NAME_KEY = "mappedCompanyName";
 const MAPPED_COMPANY_LOGO_URL_KEY = "mappedCompanyLogoUrl";
+
+function ensureCoreAllowedPaths(paths){
+    const normalized = Array.isArray(paths)
+        ? paths.map((x) => String(x || "").trim().toLowerCase()).filter(Boolean)
+        : [];
+    const merged = new Set([
+        "/login.html",
+        ...BASELINE_LEFT_PANEL_PATHS,
+        ...normalized
+    ]);
+    return Array.from(merged);
+}
 window.__userAccessPermissionsLoaded = false;
 window.__waitForUserAccessPermissions = function __waitForUserAccessPermissions(){
     if(window.__userAccessPermissionsLoaded){
@@ -140,6 +185,7 @@ function logoutForInactivity(){
     localStorage.removeItem(USER_ACCESS_CONFIG_ENABLED_CACHE_KEY);
     localStorage.removeItem(MAPPED_COMPANY_NAME_KEY);
     localStorage.removeItem(MAPPED_COMPANY_LOGO_URL_KEY);
+    localStorage.removeItem("userProfilePictureUrl");
     window.location.replace(buildPagesPath("login.html"));
 }
 
@@ -189,7 +235,7 @@ function getAccessConfigState(){
 
 function enforceUserAccess(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
-    if(role !== "user" && role !== "admin" && role !== "manager") return;
+    if(role !== "user" && role !== "manager") return;
     const selectedDb = String(localStorage.getItem("selectedDatabaseName") || "").trim().toLowerCase();
     if(role === "user" && selectedDb === "demo"){
         return;
@@ -221,7 +267,7 @@ function enforceManagerAccess(){
 
 function applyUserNavRestrictions(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
-    const enforceByConfiguredRole = (role === "admin" || role === "manager") && getAccessConfigState() === true;
+    const enforceByConfiguredRole = role === "manager" && getAccessConfigState() === true;
     if(role !== "user" && !enforceByConfiguredRole) return;
     const allowed = USER_ALLOWED_PATHS_RUNTIME;
     document.querySelectorAll(".sidebar a").forEach(a=>{
@@ -231,9 +277,7 @@ function applyUserNavRestrictions(){
         if(!normalized.startsWith("/")) normalized = "/" + normalized;
         const isAllowed = allowed.some(suffix => normalized.endsWith(suffix));
         const financeAliasAllowed = normalized.endsWith("/finance.html") && hasUserGrantedPath("/finance/finance.html");
-        const supportAliasAllowed = normalized.endsWith("/support.html") && hasUserGrantedPath("/support/support.html");
-        const stockAliasAllowed = normalized.endsWith("/stock.html") && hasUserGrantedPath("/stock/stock.html");
-        const allowThisLink = isAllowed || financeAliasAllowed || supportAliasAllowed || stockAliasAllowed;
+        const allowThisLink = isAllowed || financeAliasAllowed;
         if(!allowThisLink){
             const li = a.closest("li");
             if(li){
@@ -296,16 +340,6 @@ function getSupportLink(fileName){
     return `${prefix}support/${fileName}`;
 }
 
-function getStockLink(fileName){
-    const path = window.location.pathname.replace(/\\/g, "/");
-    const idx = path.lastIndexOf("/pages/");
-    if(idx === -1) return `/stock/${fileName}`;
-    const rest = path.slice(idx + 7);
-    const depth = Math.max(0, rest.split("/").length - 1);
-    const prefix = depth === 0 ? "" : "../".repeat(depth);
-    return `${prefix}stock/${fileName}`;
-}
-
 function toMenuHref(canonicalPath){
     const clean = String(canonicalPath || "").trim().replace(/\\/g, "/").replace(/^\/+/, "");
     if(!clean) return "#";
@@ -320,37 +354,230 @@ function toMenuHref(canonicalPath){
     return `${prefix}${clean}`;
 }
 
+function normalizeAccessPath(value){
+    let raw = String(value || "").trim().replace(/\\/g, "/");
+    if(!raw) return "";
+    if(/^https?:\/\//i.test(raw)){
+        try{
+            raw = new URL(raw).pathname || "";
+        }catch(_err){
+        }
+    }
+    const pagesIdx = raw.toLowerCase().indexOf("/pages/");
+    if(pagesIdx !== -1){
+        raw = raw.slice(pagesIdx + 6);
+    }
+    if(!raw.startsWith("/")){
+        raw = `/${raw}`;
+    }
+    return raw.toLowerCase();
+}
+
+function getPagesRelativePrefix(){
+    const path = window.location.pathname.replace(/\\/g, "/");
+    const idx = path.lastIndexOf("/pages/");
+    if(idx === -1){
+        return "";
+    }
+    const rest = path.slice(idx + 7);
+    const depth = Math.max(0, rest.split("/").length - 1);
+    if(depth === 0){
+        return "../";
+    }
+    return "../".repeat(depth + 1);
+}
+
+function ensureSidebarScaffold(){
+    if(document.querySelector(".sidebar")){
+        return;
+    }
+    const container = document.getElementById("sidebar-container");
+    if(!container){
+        return;
+    }
+    const prefix = getPagesRelativePrefix();
+    const logoPath = `${prefix}assets/images/logo.png`;
+    container.innerHTML = `
+        <div class="sidebar">
+            <div class="logo">
+                <img src="${logoPath}" alt="Logo">
+                <span>AXIS_CMS_WEB</span>
+            </div>
+            <ul class="nav-links" style="visibility:hidden;"></ul>
+        </div>
+    `;
+}
+
+function isCustomersRestrictedSidebarPage(){
+    return false;
+}
+
+function isCasesRestrictedSidebarPage(){
+    return false;
+}
+
 function renderSidebarMenuByAccess(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
     if(role !== "admin" && role !== "manager" && role !== "user") return;
-    const menuEntries = [
+    const isCustomersRestrictedPage = isCustomersRestrictedSidebarPage();
+    const isCasesRestrictedPage = isCasesRestrictedSidebarPage();
+    const menuEntries = isCasesRestrictedPage ? [
         { path: "/dashboard.html", label: "Dashboard" },
-        { path: "/products/product-list.html", label: "Products" },
-        { path: "/products/general-machine.html", label: "Machines" },
-        { path: "/customers/customer-list.html", label: "Customers" },
-        { path: "/invoices/invoice-list.html", label: "Invoices" },
-        { path: "/vendors/list-vendor.html", label: "Vendors" },
+        { path: "/cases/case-list.html", label: "Cases" },
+        { path: "/cases/new-case.html", label: "New Case" },
+        { path: "/cases/plaint.html", label: "Plaint" },
+        { path: "/cases/answer.html", label: "Answer" },
+        { path: "/cases/witness-list.html", label: "List of witnesses" },
+        { path: "/cases/judgment-list.html", label: "Dudgement" }
+    ] : isCustomersRestrictedPage ? [
+        { path: "/dashboard.html", label: "Dashboard" },
+        { path: "/customers/client-list.html", label: "Client" },
+        { path: "/customers/Add-Client.html", label: "Add Client" }
+    ] : [
+        { path: "/dashboard.html", label: "Dashboard" },
+        { path: "/calendar.html", label: "Calender" },
+        { path: "/customers/client-list.html", label: "Client" },
+        { path: "/customers/Add-Client.html", label: "Add Client" },
+        { path: "/cases/case-list.html", label: "Cases" },
+        { path: "/cases/new-case.html", label: "New Case" },
+        { path: "/cases/plaint.html", label: "Plaint" },
+        { path: "/cases/answer.html", label: "Answer" },
+        { path: "/cases/witness-list.html", label: "List of witnesses" },
+        { path: "/cases/judgment-list.html", label: "Dudgement" },
+        { path: "/invoices/Payments-list.html", label: "Invoices" },
+        { path: "/invoices/create-invoice.html", label: "Create Invoice" },
         { path: "/expenses/expense-list.html", label: "Expenses" },
-        { path: "/reports/sales-report.html", label: "Reports" },
-        { path: "/analytics/sales-chart.html", label: "Analytics" },
+        { path: "/expenses/add-expense.html", label: "Add Expense" },
         { path: "/finance/finance.html", label: "Finance" },
         { path: "/support/support.html", label: "Support" },
-        { path: "/stock/stock.html", label: "Stock" },
-        { path: "/users/user-list.html", label: "Users" }
+        { path: "/support/add-lawyer.html", label: "Add Lawyer" },
+        { path: "/support/add-court.html", label: "Add Court" },
+        { path: "/users/user-list.html", label: "Users" },
+        { path: "/users/preference.html", label: "Preference" },
+        { path: "/users/add-user.html", label: "Add User" },
+        { path: "/users/profile-list.html", label: "Profile" },
+        { path: "/users/user-access.html", label: "Access" },
+        { path: "/users/user-logged.html", label: "Logged" },
+        { path: "/support/email-setup.html", label: "Email" }
     ];
+    const shouldEnforceAllowedPages =
+        !isCustomersRestrictedPage && !isCasesRestrictedPage && (
+        role === "user" ||
+        (role === "manager" && getAccessConfigState() === true)
+        );
     const granted = menuEntries.filter((entry) => hasUserGrantedPath(entry.path));
-    const finalMenu = granted.length ? granted : [{ path: "/dashboard.html", label: "Dashboard" }];
+    const finalMenu = shouldEnforceAllowedPages
+        ? (granted.length ? granted : [{ path: "/dashboard.html", label: "Dashboard" }])
+        : menuEntries;
     const signature = finalMenu.map((entry) => String(entry.path || "").trim().toLowerCase()).join("|");
     if(window.__lastAccessMenuSignature === signature){
         return;
     }
     window.__lastAccessMenuSignature = signature;
 
+    const groups = [
+        { path: "/dashboard.html", label: "Dashboard" },
+        { path: "/calendar.html", label: "Calender" },
+        {
+            path: "/customers/client-list.html",
+            label: "Client"
+        },
+        {
+            path: "/cases/case-list.html",
+            label: "Cases",
+            children: [
+                { path: "/cases/case-list.html", label: "Cases List" },
+                { path: "/cases/new-case.html", label: "New Case" },
+                { path: "/cases/plaint.html", label: "Plaint" },
+                { path: "/cases/answer.html", label: "Answer" },
+                { path: "/cases/witness-list.html", label: "List of witnesses" },
+                { path: "/cases/judgment-list.html", label: "Dudgement" }
+            ]
+        },
+        {
+            path: "/invoices/Payments-list.html",
+            label: "Payments",
+            children: [
+                { path: "/invoices/Payments-list.html", label: "Payments List" },
+                { path: "/invoices/create-invoice.html", label: "Create Invoice" }
+            ]
+        },
+        {
+            path: "/expenses/expense-list.html",
+            label: "Expenses",
+            children: [{ path: "/expenses/add-expense.html", label: "Add Expense" }]
+        },
+        { path: "/finance/finance.html", label: "Finance" },
+        {
+            path: "/support/support.html",
+            label: "Support",
+            children: [
+                { path: "/support/support.html", label: "Lawyer List" },
+                { path: "/support/add-lawyer.html", label: "Add Lawyer" },
+                { path: "/support/support.html", label: "Court List" },
+                { path: "/support/add-court.html", label: "Add Court" }
+            ]
+        },
+        {
+            path: "/users/user-list.html",
+            label: "Users",
+            children: [
+                { path: "/users/user-list.html", label: "User List" },
+                { path: "/users/add-user.html", label: "Add User" },
+                { path: "/users/profile-list.html", label: "Profile" },
+                { path: "/users/preference.html", label: "Preference" },
+                { path: "/users/user-access.html", label: "Access" },
+                { path: "/users/user-logged.html", label: "Logged" },
+                { path: "/support/email-setup.html", label: "Email" }
+            ]
+        }
+    ];
+
+    const allowedSet = new Set(finalMenu.map((entry) => normalizeAccessPath(entry.path)));
+    const normalizedPath = normalizeAccessPath(window.location.pathname || "");
+    const filterGroups = (items) => (Array.isArray(items) ? items : [])
+        .map((item) => {
+            const children = filterGroups(item.children || []);
+            const normalized = normalizeAccessPath(item.path);
+            const includeSelf = allowedSet.has(normalized);
+            if (!includeSelf && !children.length) return null;
+            return { ...item, children };
+        })
+        .filter(Boolean);
+    const finalGroups = filterGroups(groups);
+
+    const makeGroupHtml = (group) => {
+        const children = Array.isArray(group.children) ? group.children : [];
+        if (!children.length) {
+            return `<li><a href="${toMenuHref(group.path)}">${group.label}</a></li>`;
+        }
+        const childContainsCurrent = children.some((c) => normalizedPath.endsWith(normalizeAccessPath(c.path)));
+        const selfActive = normalizedPath.endsWith(normalizeAccessPath(group.path));
+        const openClass = (childContainsCurrent || selfActive) ? " open" : "";
+        return `
+            <li class="nav-group${openClass}">
+                <button type="button" class="nav-group-toggle" data-group-toggle="1" aria-expanded="${openClass ? "true" : "false"}">
+                    <span>${group.label}</span>
+                    <span class="nav-group-caret">?</span>
+                </button>
+                <ul class="nav-submenu">
+                    ${children.map((c) => `<li><a href="${toMenuHref(c.path)}">${c.label}</a></li>`).join("")}
+                </ul>
+            </li>
+        `;
+    };
+
     window.__accessMenuRenderLock = true;
     document.querySelectorAll(".sidebar .nav-links, .sidebar ul").forEach((nav) => {
-        nav.innerHTML = finalMenu
-            .map((entry) => `<li><a href="${toMenuHref(entry.path)}">${entry.label}</a></li>`)
-            .join("");
+        nav.innerHTML = finalGroups.map(makeGroupHtml).join("");
+        nav.querySelectorAll("[data-group-toggle='1']").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const li = btn.closest(".nav-group");
+                if (!li) return;
+                const isOpen = li.classList.toggle("open");
+                btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+            });
+        });
     });
     window.__accessMenuRenderLock = false;
 }
@@ -378,10 +605,13 @@ function applyAdminUsersNav(){
                                                                                                  
 }
 
+<<<<<<< HEAD
 function applyStockNav(){
                                                                                                  
 }
 
+=======
+>>>>>>> 046c6f3 (feat: apply AXIS web updates across backend and frontend)
 function applyAccessGuards(){
     renderSidebarMenuByAccess();
     enforceUserAccess();
@@ -592,8 +822,9 @@ window.cacheUserUiSettings = cacheUserUiSettings;
 function applyMappedBranding(){
     const mappedCompanyName = String(localStorage.getItem(MAPPED_COMPANY_NAME_KEY) || "").trim();
     if(mappedCompanyName){
+        const normalizedMappedCompanyName = normalizeAppName(mappedCompanyName);
         document.querySelectorAll(".sidebar .logo span").forEach((el) => {
-            el.textContent = mappedCompanyName;
+            el.textContent = normalizedMappedCompanyName;
         });
     }
     const mappedLogoPath = String(localStorage.getItem(MAPPED_COMPANY_LOGO_URL_KEY) || "").trim();
@@ -610,8 +841,14 @@ function applyMappedBranding(){
 
 function normalizeAppName(appName){
     const compact = String(appName || "").trim().toLowerCase().replace(/[_\s]+/g, " ");
-    if(compact.includes("ulmotech") || compact.includes("pulmotech") || compact.includes("inhouse")){
-        return "PULMO TECHNOLOGIES";
+    if(
+        compact.includes("axis cms web") ||
+        compact.includes("axis_cms_web") ||
+        compact.includes("axis cms system") ||
+        compact.includes("inhouse") ||
+        compact.includes("axis cms system")
+    ){
+        return "AXIS_CMS_WEB";
     }
     return String(appName).replace(/_/g, " ").toUpperCase();
 }
@@ -677,7 +914,7 @@ async function loadUserAccessPermissions(){
             try{
                 const cached = JSON.parse(cachedRaw);
                 if(Array.isArray(cached) && cached.length){
-                    USER_ALLOWED_PATHS_RUNTIME = Array.from(new Set(cached.map((x)=>String(x || "").trim()).filter(Boolean)));
+                    USER_ALLOWED_PATHS_RUNTIME = ensureCoreAllowedPaths(cached);
                 }
             }catch(_e){}
         }
@@ -751,10 +988,10 @@ async function loadUserAccessPermissions(){
         }
         const merged = new Set([
             "/login.html",
-            "/dashboard.html",
+            ...BASELINE_LEFT_PANEL_PATHS,
             ...dynamicPages
         ]);
-        USER_ALLOWED_PATHS_RUNTIME = Array.from(merged);
+        USER_ALLOWED_PATHS_RUNTIME = ensureCoreAllowedPaths(Array.from(merged));
         USER_ALLOWED_ACTIONS_RUNTIME = Array.from(new Set(normalizedActionKeys));
         localStorage.setItem(USER_ALLOWED_CACHE_KEY, JSON.stringify(USER_ALLOWED_PATHS_RUNTIME));
         localStorage.setItem(USER_ALLOWED_ACTIONS_CACHE_KEY, JSON.stringify(USER_ALLOWED_ACTIONS_RUNTIME));
@@ -773,6 +1010,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     startIdleTimeoutWatcher();
     if(!enforceIdleTimeout()) return;
     if(!enforceAuthentication()) return;
+    ensureSidebarScaffold();
     setSidebarReadyState(false);
     await loadUserAccessPermissions();
     window.__userAccessPermissionsLoaded = true;
@@ -788,6 +1026,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 window.addEventListener("pageshow", () => {
     if(!enforceIdleTimeout()) return;
     enforceAuthentication();
+    ensureSidebarScaffold();
     if(window.__userAccessPermissionsLoaded){
         applyAccessGuards();
     }else{
@@ -1003,6 +1242,11 @@ async function login(){
         }else{
             localStorage.removeItem(MAPPED_COMPANY_LOGO_URL_KEY);
         }
+        if(res.user && res.user.user_profile_picture_url){
+            localStorage.setItem("userProfilePictureUrl", String(res.user.user_profile_picture_url).trim());
+        }else{
+            localStorage.removeItem("userProfilePictureUrl");
+        }
         window.location.href = "dashboard.html";
     }catch(err){
         alert(err.message);
@@ -1034,12 +1278,30 @@ function hasUserActionPermission(path, action){
     if(role !== "admin" && role !== "manager" && role !== "user"){
         return false;
     }
+    if(role === "admin"){
+        return true;
+    }
     const selectedDb = String(localStorage.getItem("selectedDatabaseName") || "").trim().toLowerCase();
     if(role === "user" && selectedDb === "demo"){
         return true;
     }
 
     const actionKey = `${String(path || "").trim().toLowerCase()}::${String(action || "").trim().toLowerCase()}`;
-    return USER_ALLOWED_ACTIONS_RUNTIME.includes(actionKey);
+    if(USER_ALLOWED_ACTIONS_RUNTIME.includes(actionKey)){
+        return true;
+    }
+    // Admin/manager without explicit restrictions should not lose action buttons.
+    if(role === "manager" && getAccessConfigState() !== true){
+        return true;
+    }
+    // Fallback: if view access for the path exists, allow action-level controls for admin/manager.
+    if(role === "manager" && hasUserGrantedPath(path)){
+        return true;
+    }
+    return false;
 }
 window.hasUserActionPermission = hasUserActionPermission;
+
+
+
+

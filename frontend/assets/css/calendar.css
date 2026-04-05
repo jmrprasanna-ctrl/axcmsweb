@@ -1,0 +1,432 @@
+.calendar-header-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 14px;
+}
+
+.calendar-header-card h2 {
+  margin: 0;
+}
+
+.calendar-header-card p {
+  margin: 4px 0 0;
+}
+
+.calendar-layout {
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) minmax(320px, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.calendar-card,
+.todo-calendar-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+  padding: 14px;
+}
+
+.calendar-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.calendar-toolbar h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
+}
+
+.calendar-nav-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+}
+
+.calendar-nav-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.weekday-row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.weekday-row span {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #6e8198;
+  text-align: center;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.calendar-day {
+  min-height: 66px;
+  border: 1px solid #e7eef7;
+  border-radius: 10px;
+  background: #fff;
+  padding: 7px 6px 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.calendar-day:hover {
+  border-color: #bfd8ef;
+  box-shadow: 0 8px 16px rgba(15, 106, 191, 0.08);
+}
+
+.calendar-day.day-out {
+  color: #a8b4c4;
+  background: #f9fbfe;
+}
+
+.calendar-day.day-today .day-number {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #e9f3ff;
+  color: #0f6abf;
+  font-weight: 700;
+}
+
+.calendar-day.day-selected {
+  border-color: #0f6abf;
+  box-shadow: 0 10px 18px rgba(15, 106, 191, 0.16);
+}
+
+.calendar-day.day-selected .day-number {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #0f6abf;
+  color: #fff;
+  font-weight: 700;
+}
+
+.day-number {
+  font-size: 0.96rem;
+  color: #2a4562;
+}
+
+.day-dots {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 8px;
+}
+
+.day-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.todo-calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid #e6eef8;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+
+.todo-calendar-head > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.todo-calendar-head h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  letter-spacing: 0.08em;
+  color: #6e8198;
+}
+
+.todo-count {
+  font-size: 0.82rem;
+  color: #5d738e;
+  font-weight: 600;
+}
+
+.calendar-add-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+}
+
+.calendar-add-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.todo-add-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.todo-add-form.hidden {
+  display: none;
+}
+
+.todo-add-form input,
+.todo-add-form select {
+  width: 100%;
+  margin: 0;
+}
+
+.todo-add-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.todo-add-error {
+  color: #b4232f;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.todo-add-error.hidden {
+  display: none;
+}
+
+.todo-calendar-head-sep {
+  height: 1px;
+  background: #e6eef8;
+  margin: 0 0 8px;
+}
+
+.todo-calendar-head-inline {
+  margin-bottom: 8px;
+}
+
+.todo-date-inline {
+  font-size: 0.82rem;
+  color: #6f839b;
+  font-weight: 700;
+}
+
+.todo-calendar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 530px;
+  overflow: auto;
+}
+
+.todo-row {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+  border: 1px solid #e7eef7;
+  border-radius: 12px;
+  padding: 9px;
+  background: #fbfdff;
+}
+
+.todo-row.case-row {
+  border-color: #e3d7f6;
+  background: #faf7ff;
+}
+
+.todo-marker {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #cad7e6;
+  background: transparent;
+}
+
+.todo-marker.done {
+  border-color: #f5c000;
+  background: #f5c000;
+}
+
+.todo-marker.case {
+  border-color: #7a4cc9;
+  background: #7a4cc9;
+}
+
+.todo-toggle {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  min-height: 14px;
+  max-width: 14px;
+  max-height: 14px;
+  aspect-ratio: 1 / 1;
+  border-width: 2px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  display: block;
+  line-height: 0;
+  font-size: 0;
+  flex: 0 0 14px;
+  justify-self: center;
+  cursor: pointer;
+  padding: 0;
+  outline: none;
+  box-shadow: none;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.todo-toggle:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 3px rgba(245, 192, 0, 0.2);
+}
+
+.todo-text {
+  min-width: 0;
+}
+
+.todo-title-line {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 620;
+  color: #1f3851;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.todo-sub-line {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+  color: #7b8fa6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.todo-time {
+  font-size: 0.82rem;
+  color: #8395aa;
+  font-weight: 600;
+}
+
+.todo-time.case-label {
+  color: #6f46b7;
+  font-weight: 700;
+}
+
+.todo-empty {
+  border: 1px dashed #d5e3f1;
+  border-radius: 12px;
+  padding: 18px;
+  text-align: center;
+  color: #6f839b;
+  font-weight: 600;
+}
+
+@media (max-width: 1080px) {
+  .calendar-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .calendar-header-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .calendar-day {
+    min-height: 58px;
+    padding: 6px 5px;
+  }
+
+  .day-number {
+    font-size: 0.9rem;
+  }
+}
+
+body.theme-dark .calendar-header-card,
+body.theme-dark .calendar-card,
+body.theme-dark .todo-calendar-card {
+  background: #1f2d3a;
+}
+
+body.theme-dark .weekday-row span,
+body.theme-dark .todo-calendar-head h3,
+body.theme-dark .todo-count {
+  color: #b7cade;
+}
+
+body.theme-dark .calendar-day {
+  background: #253646;
+  border-color: #3a4f64;
+}
+
+body.theme-dark .calendar-day.day-out {
+  background: #223140;
+  color: #879ab1;
+}
+
+body.theme-dark .day-number {
+  color: #dbe8f6;
+}
+
+body.theme-dark .todo-row {
+  background: #253646;
+  border-color: #3a4f64;
+}
+
+body.theme-dark .todo-row.case-row {
+  background: #2d2640;
+  border-color: #5e4a87;
+}
+
+body.theme-dark .todo-time.case-label {
+  color: #c4afe7;
+}
+
+body.theme-dark .todo-calendar-head-sep {
+  background: #37506a;
+}
+
+body.theme-dark .todo-date-inline {
+  color: #abc0d5;
+}
+
+body.theme-dark .todo-title-line {
+  color: #e1edf9;
+}
+
+body.theme-dark .todo-sub-line,
+body.theme-dark .todo-time {
+  color: #a6bad0;
+}

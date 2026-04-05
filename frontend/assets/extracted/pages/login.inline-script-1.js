@@ -1,11 +1,127 @@
+const COMPANY_CODE_CACHE_KEY = "axisLoginCompanyCodeByUser";
+const LOGIN_DEFAULT_LOGO_SRC = "../assets/images/logo.png";
+let companyBrandingDebounce = null;
+let companyBrandingRequestId = 0;
+
+function loadCompanyCodeCache(){
+    try{
+        const raw = localStorage.getItem(COMPANY_CODE_CACHE_KEY);
+        if(!raw) return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : {};
+    }catch(_err){
+        return {};
+    }
+}
+
+function saveCompanyCodeCache(cache){
+    try{
+        localStorage.setItem(COMPANY_CODE_CACHE_KEY, JSON.stringify(cache || {}));
+    }catch(_err){
+    }
+}
+
+function normalizeUserKey(value){
+    return String(value || "").trim().toLowerCase();
+}
+
+function getRememberedCompanyCode(userInput){
+    const key = normalizeUserKey(userInput);
+    if(!key) return "";
+    const cache = loadCompanyCodeCache();
+    return String(cache[key] || "").trim().toUpperCase();
+}
+
+function rememberCompanyCode(userInput, companyCode){
+    const key = normalizeUserKey(userInput);
+    const code = String(companyCode || "").trim().toUpperCase();
+    if(!key || !code) return;
+    const cache = loadCompanyCodeCache();
+    cache[key] = code;
+    saveCompanyCodeCache(cache);
+}
+
+function applyRememberedCompanyCode(){
+    const userInputEl = document.getElementById("email");
+    const companyCodeEl = document.getElementById("companyCode");
+    if(!userInputEl || !companyCodeEl) return;
+    if(String(companyCodeEl.value || "").trim()) return;
+    const remembered = getRememberedCompanyCode(userInputEl.value);
+    if(remembered){
+        companyCodeEl.value = remembered;
+    }
+}
+
+function getLoginLogoElement(){
+    return document.getElementById("loginCompanyLogo");
+}
+
+function toAbsoluteLogoUrl(rawPath){
+    const logoPath = String(rawPath || "").trim();
+    if(!logoPath) return "";
+    if(/^https?:\/\//i.test(logoPath)) return logoPath;
+    const apiOrigin = String(BASE_URL || "").replace(/\/api\/?$/i, "");
+    return `${apiOrigin}${logoPath.startsWith("/") ? "" : "/"}${logoPath}`;
+}
+
+function applyLoginLogo(logoPath){
+    const el = getLoginLogoElement();
+    if(!el) return;
+    const abs = toAbsoluteLogoUrl(logoPath);
+    el.src = abs || LOGIN_DEFAULT_LOGO_SRC;
+}
+
+function applyCachedLoginLogo(){
+    const cached = String(localStorage.getItem("mappedCompanyLogoUrl") || "").trim();
+    if(cached){
+        applyLoginLogo(cached);
+        return;
+    }
+    applyLoginLogo("");
+}
+
+async function fetchCompanyBrandingByCode(companyCode){
+    const normalized = String(companyCode || "").trim().toUpperCase();
+    if(!normalized){
+        applyCachedLoginLogo();
+        return;
+    }
+    const requestId = ++companyBrandingRequestId;
+    try{
+        const res = await request(`/auth/company-branding?company_code=${encodeURIComponent(normalized)}`, "GET");
+        if(requestId !== companyBrandingRequestId) return;
+        const logoUrl = String(res?.logo_url || "").trim();
+        if(logoUrl){
+            applyLoginLogo(logoUrl);
+            return;
+        }
+        applyLoginLogo("");
+    }catch(_err){
+        if(requestId !== companyBrandingRequestId) return;
+        applyLoginLogo("");
+    }
+}
+
 async function login(){
-    const email = document.getElementById("email").value;
+    const companyCodeInput = document.getElementById("companyCode");
+    const emailInputEl = document.getElementById("email");
+    const email = String(emailInputEl && emailInputEl.value ? emailInputEl.value : "").trim();
+    let company_code = String(companyCodeInput && companyCodeInput.value ? companyCodeInput.value : "")
+        .trim()
+        .toUpperCase();
     const password = document.getElementById("password").value;
 
-    if(!email || !password){ alert("Please fill all fields"); return; }
+    if(!company_code){
+        const remembered = getRememberedCompanyCode(email);
+        if(remembered){
+            company_code = remembered;
+            if(companyCodeInput) companyCodeInput.value = remembered;
+        }
+    }
+    if(!company_code || !email || !password){ alert("Please fill all fields"); return; }
 
     try{
-        const res = await request("/auth/login","POST",{email,password});
+        const res = await request("/auth/login","POST",{ company_code, email, password });
         localStorage.setItem("token",res.token);
         localStorage.setItem("role",res.user.role);
         if (res.user && res.user.database_name) {
@@ -26,9 +142,18 @@ async function login(){
             localStorage.removeItem("mappedCompanyName");
         }
         if (res.user && res.user.mapped_company_code) {
-            localStorage.setItem("mappedCompanyCode", String(res.user.mapped_company_code).trim().toUpperCase());
+            const mappedCode = String(res.user.mapped_company_code).trim().toUpperCase();
+            localStorage.setItem("mappedCompanyCode", mappedCode);
+            rememberCompanyCode(email, mappedCode);
+            if(res.user && res.user.username){
+                rememberCompanyCode(String(res.user.username), mappedCode);
+            }
+            if(res.user && res.user.email){
+                rememberCompanyCode(String(res.user.email), mappedCode);
+            }
         } else {
             localStorage.removeItem("mappedCompanyCode");
+            rememberCompanyCode(email, company_code);
         }
         if (res.user && res.user.mapped_company_email) {
             localStorage.setItem("mappedCompanyEmail", String(res.user.mapped_company_email).trim().toLowerCase());
@@ -39,6 +164,11 @@ async function login(){
             localStorage.setItem("mappedCompanyLogoUrl", String(res.user.mapped_company_logo_url).trim());
         } else {
             localStorage.removeItem("mappedCompanyLogoUrl");
+        }
+        if (res.user && res.user.user_profile_picture_url) {
+            localStorage.setItem("userProfilePictureUrl", String(res.user.user_profile_picture_url).trim());
+        } else {
+            localStorage.removeItem("userProfilePictureUrl");
         }
         window.location.href = "dashboard.html";
     }catch(err){
@@ -90,7 +220,23 @@ const passwordToggle = document.getElementById("passwordToggle");
 if(passwordToggle){
     passwordToggle.addEventListener("click", togglePassword);
 }
-["email", "password"].forEach((id) => {
+const companyCodeEl = document.getElementById("companyCode");
+if(companyCodeEl){
+    companyCodeEl.addEventListener("input", () => {
+        const raw = String(companyCodeEl.value || "");
+        companyCodeEl.value = raw.toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+        if(companyBrandingDebounce){
+            clearTimeout(companyBrandingDebounce);
+        }
+        companyBrandingDebounce = setTimeout(() => {
+            fetchCompanyBrandingByCode(companyCodeEl.value);
+        }, 250);
+    });
+    companyCodeEl.addEventListener("blur", () => {
+        fetchCompanyBrandingByCode(companyCodeEl.value);
+    });
+}
+["companyCode", "email", "password"].forEach((id) => {
     const el = document.getElementById(id);
     if(!el) return;
     el.addEventListener("keydown", (e) => {
@@ -100,3 +246,18 @@ if(passwordToggle){
         }
     });
 });
+const loginUserInput = document.getElementById("email");
+if(loginUserInput){
+    loginUserInput.addEventListener("blur", applyRememberedCompanyCode);
+    loginUserInput.addEventListener("input", () => {
+        const companyInput = document.getElementById("companyCode");
+        if(companyInput && !String(companyInput.value || "").trim()){
+            applyRememberedCompanyCode();
+        }
+    });
+}
+applyRememberedCompanyCode();
+applyCachedLoginLogo();
+if(companyCodeEl && String(companyCodeEl.value || "").trim()){
+    fetchCompanyBrandingByCode(companyCodeEl.value);
+}

@@ -1,4 +1,23 @@
-.form-actions{
+.user-list-page-header{
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .user-list-page-header header{
+            margin: 0;
+        }
+        .user-list-page-header .muted{
+            margin-top: 4px;
+            color: #5f7388;
+            font-size: 0.95rem;
+        }
+        .user-list-page-header .back-icon-btn{
+            margin-left: auto;
+            flex: 0 0 auto;
+        }
+        .form-actions{
             display: flex;
             gap: 12px;
             flex-wrap: wrap;
@@ -10,7 +29,16 @@
         .health-updated{
             margin:10px 0 0 0;
         }
+        #user-table-body tr.user-row-open{
+            transition: background-color .15s ease;
+        }
+        #user-table-body tr.user-row-open:hover{
+            background: #f4f9ff;
+        }
         @media (max-width: 900px){
+            .user-list-page-header{
+                align-items: center;
+            }
             .form-actions{
                 flex-direction: row !important;
                 align-items: center !important;

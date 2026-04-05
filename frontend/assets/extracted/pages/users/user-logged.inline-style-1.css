@@ -1,4 +1,23 @@
-.log-shell{
+.user-logged-page-header{
+            display:flex;
+            align-items:flex-start;
+            justify-content:space-between;
+            gap:10px;
+            margin-bottom:14px;
+        }
+        .user-logged-page-header header{
+            margin:0;
+        }
+        .user-logged-page-header .muted{
+            margin-top:4px;
+            color:#5f7388;
+            font-size:0.95rem;
+        }
+        .user-logged-page-header .back-icon-btn{
+            margin-left:auto;
+            flex:0 0 auto;
+        }
+        .log-shell{
             overflow: visible !important;
         }
         .log-toolbar{
@@ -25,6 +44,38 @@
             align-items:center;
             margin-left:auto;
         }
+        .log-actions .icon-btn{
+            width:44px;
+            height:44px;
+            min-width:44px;
+            min-height:44px;
+            margin-top:0;
+            display:inline-grid;
+            place-items:center;
+            line-height:1;
+        }
+        .log-actions .icon-btn svg{
+            width:21px;
+            height:21px;
+        }
+        .log-actions .clear-icon-btn{
+            background:#fff3f4;
+            color:#b4232f;
+            border-color:#f2c6cb;
+        }
+        .log-actions .clear-icon-btn:hover{
+            border-color:#e59aa3;
+            box-shadow:0 10px 20px rgba(180, 35, 47, 0.14);
+        }
+        .log-actions .pdf-icon-btn{
+            background:#eef8ff;
+            color:#0a67b2;
+            border-color:#c7e2f8;
+        }
+        .log-actions .pdf-icon-btn:hover{
+            border-color:#9ac8ec;
+            box-shadow:0 10px 20px rgba(15, 106, 191, 0.16);
+        }
         .log-table-wrap{
             width:100%;
             overflow-x:auto;
@@ -38,6 +89,9 @@
             padding: 11px 12px;
         }
         @media (max-width: 900px){
+            .user-logged-page-header{
+                align-items:center;
+            }
             .log-toolbar{
                 flex-direction:column;
                 align-items:stretch;
@@ -50,7 +104,7 @@
                 min-width: 0;
             }
             .log-actions > *{
-                width:100%;
+                width:auto;
                 margin-left:0 !important;
             }
         }

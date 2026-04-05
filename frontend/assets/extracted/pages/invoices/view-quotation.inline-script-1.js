@@ -94,18 +94,18 @@ const POS = {
 };
 const ADDRESS_TEXTS = {
     colombo: [
-        "PULMO TECHNOLOGIES",
+        "AXIS_CMS_WEB",
         "No 528/48, 2nd Maradana, Colombo 10.",
         "TEL : 0770 3000 80",
-        "pulmotechnologies@gmail.com",
-        "www.pulmotech.lk"
+        "axiscmssystem@gmail.com",
+        "www.axiscmssystem.lk"
     ],
     v: [
-        "PULMO TECHNOLOGIES",
+        "AXIS_CMS_WEB",
         "No 30/1, Muddaragama, Veyangoda.",
         "TEL : 0770 3000 80",
-        "pulmotechnologies@gmail.com",
-        "www.pulmotech.lk"
+        "axiscmssystem@gmail.com",
+        "www.axiscmssystem.lk"
     ]
 };
 let selectedAddressKey = "v";
@@ -769,7 +769,7 @@ async function drawInvoice(data, mimeType="image/png", renderSize=null){
             );
         }else if(!sign1LoadFailedNotified){
             sign1LoadFailedNotified = true;
-            alert("Sign 1 image not found. Expected file: frontend/assets/images/pulmo-sign-1.png");
+            alert("Sign 1 image not found. Expected file: frontend/assets/images/axis-sign-1.png");
         }
     }
 
@@ -787,7 +787,7 @@ async function drawInvoice(data, mimeType="image/png", renderSize=null){
             );
         }else if(!signVLoadFailedNotified){
             signVLoadFailedNotified = true;
-            alert("SIGN V image not found. Expected file: frontend/assets/images/pulmo-sign-v.png");
+            alert("SIGN V image not found. Expected file: frontend/assets/images/axis-sign-v.png");
         }
     }
 
@@ -805,7 +805,7 @@ async function drawInvoice(data, mimeType="image/png", renderSize=null){
             );
         }else if(!seal1LoadFailedNotified){
             seal1LoadFailedNotified = true;
-            alert("SEAL 1 image not found. Expected file: frontend/assets/images/pulmo-seal-1.png");
+            alert("SEAL 1 image not found. Expected file: frontend/assets/images/axis-seal-1.png");
         }
     }
 
@@ -823,7 +823,7 @@ async function drawInvoice(data, mimeType="image/png", renderSize=null){
             );
         }else if(!sealVLoadFailedNotified){
             sealVLoadFailedNotified = true;
-            alert("SEAL V image not found. Expected file: frontend/assets/images/pulmo-seal-v.png");
+            alert("SEAL V image not found. Expected file: frontend/assets/images/axis-seal-v.png");
         }
     }
 

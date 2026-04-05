@@ -1,4 +1,4 @@
-# pulmotech_inhouse
+# AXIS_CMS_WEB
 
 A **Full-Stack IT Inventory and POS Management System** with modern Franchised UI, including:
 
@@ -15,7 +15,7 @@ A **Full-Stack IT Inventory and POS Management System** with modern Franchised U
 ## 📂 Project Structure
 
 
-pulmotech_inhouse/
+AXIS_CMS_WEB/
 │
 ├── backend/
 │ ├── config/
@@ -61,7 +61,7 @@ pulmotech_inhouse/
 │ navbar.html
 │
 ├── database/
-│ inventory.sql
+│ axiscmsdb.sql
 ├── package.json
 └── README.md
 
@@ -103,8 +103,8 @@ pulmotech_inhouse/
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/jmrprasanna-ctrl/pulmo_web.git
-cd pulmo_web
+git clone https://github.com/jmrprasanna-ctrl/AXIS_CMS_WEB.git
+cd AXIS_CMS_WEB
 
 ## AWS Server Commands
 

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calendar - AXIS_CMS_WEB</title>
+<link rel="stylesheet" href="../assets/css/style.css?v=20260404p09">
+<link rel="stylesheet" href="../assets/css/dashboard.css?v=20260404p09">
+<link rel="stylesheet" href="../assets/css/calendar.css?v=20260404p09">
+</head>
+<body>
+<div class="sidebar">
+    <div class="logo">
+        <img src="../assets/images/logo.png" alt="Company Logo">
+        <span>AXIS_CMS_WEB</span>
+    </div>
+    <ul class="nav-links" style="visibility:hidden;">
+        <li><a href="dashboard.html">Dashboard</a></li>
+        <li><a href="calendar.html">Calender</a></li>
+        <li><a href="customers/client-list.html">Client</a></li>
+        <li><a href="cases/case-list.html">Cases</a></li>
+        <li><a href="cases/finished.html">Finished</a></li>
+        <li><a href="invoices/Payments-list.html">Payments</a></li>
+        <li><a href="expenses/expense-list.html">Expenses</a></li>
+        <li><a href="finance/finance.html">Finance</a></li>
+        <li><a href="users/user-list.html">Users</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header class="calendar-header-card">
+        <div>
+            <h2>Calendar</h2>
+            <p class="muted">Monthly view with case schedules</p>
+        </div>
+        <a class="icon-btn back-icon-btn" href="dashboard.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+    </header>
+
+    <section class="calendar-layout">
+        <div class="calendar-card">
+            <div class="calendar-toolbar">
+                <button class="icon-btn calendar-nav-btn" type="button" id="prevMonthBtn" aria-label="Previous month">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M14.8 6.8 9.6 12l5.2 5.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <h3 id="calendarMonthLabel">Month</h3>
+                <button class="icon-btn calendar-nav-btn" type="button" id="nextMonthBtn" aria-label="Next month">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M9.2 6.8 14.4 12l-5.2 5.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="weekday-row">
+                <span>MON</span>
+                <span>TUE</span>
+                <span>WED</span>
+                <span>THU</span>
+                <span>FRI</span>
+                <span>SAT</span>
+                <span>SUN</span>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+
+        <div class="todo-calendar-card">
+            <div class="todo-calendar-head">
+                <div>
+                    <h3 id="selectedDateTitle">TODAY</h3>
+                    <span class="todo-count" id="selectedDateCount">0 items</span>
+                </div>
+                <button class="icon-btn calendar-add-btn" type="button" id="addTodoBtn" aria-label="Add to-do">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+            <form class="todo-add-form hidden" id="addTodoForm">
+                <input type="text" id="addTodoInput" placeholder="Add a new to-do" maxlength="200">
+                <select id="addTodoAssign">
+                    <option value="">Assign to me</option>
+                </select>
+                <div class="todo-add-actions">
+                    <button class="btn btn-primary" type="submit">Save</button>
+                    <button class="btn btn-secondary" type="button" id="cancelTodoBtn">Cancel</button>
+                </div>
+            </form>
+            <div class="todo-add-error hidden" id="addTodoError"></div>
+            <div class="todo-calendar-head-sep"></div>
+            <div class="todo-calendar-head-inline">
+                <span class="todo-date-inline" id="selectedDateInline">-</span>
+            </div>
+            <div class="todo-calendar-list" id="todoCalendarList"></div>
+        </div>
+    </section>
+</div>
+
+<script src="../assets/js/api.js?v=20260404p12"></script>
+<script src="../assets/js/calendar.js?v=20260404p12"></script>
+</body>
+</html>
+
+

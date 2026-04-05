@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edit Witness - AXIS_CMS_WEB</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<link rel="stylesheet" href="../../assets/css/cases.css">
+</head>
+<body>
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>AXIS_CMS_WEB</span>
+    </div>
+    <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="case-list.html">Cases</a></li>
+        <li><a href="new-case.html">New Case</a></li>
+        <li><a href="plaint.html">Plaint</a></li>
+        <li><a href="answer.html">Answer</a></li>
+        <li><a href="witness-list.html">List of witnesses</a></li>
+        <li><a href="judgment-list.html">Dugement</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header><h2>Edit L/witnesses</h2></header>
+    <div class="form-container">
+        <form id="witnessForm" class="form-grid">
+            <input type="hidden" id="witnessId">
+            <div class="full edit-lock-row">
+                <label class="checkbox-inline" for="edit_enabled">
+                    <input type="checkbox" id="edit_enabled">
+                    Edit
+                </label>
+            </div>
+            <div>
+                <label for="witness_date">Date</label>
+                <input type="date" id="witness_date" required>
+            </div>
+            <div>
+                <label for="case_search">Case Selection Text</label>
+                <input type="text" id="case_search" class="readonly-field" readonly>
+            </div>
+            <div>
+                <label for="customer_name">Customer Name</label>
+                <input type="text" id="customer_name" class="readonly-field" readonly>
+            </div>
+            <div>
+                <label for="case_no">Case No</label>
+                <input type="text" id="case_no" class="readonly-field" readonly>
+            </div>
+            <div>
+                <label for="court">Court</label>
+                <input type="text" id="court" class="readonly-field" readonly>
+            </div>
+            <div>
+                <label for="attend_lawyer">Attend Lawyer</label>
+                <input type="text" id="attend_lawyer" class="readonly-field" readonly>
+            </div>
+            <div class="full">
+                <label for="witness_list">List of witnesses</label>
+                <textarea id="witness_list" rows="5" placeholder="Enter list of witnesses"></textarea>
+            </div>
+            <div>
+                <label for="witness_step">L/witnesses Step</label>
+                <select id="witness_step">
+                    <option value="STEP">Step</option>
+                    <option value="NEXT_STEP">Next Step</option>
+                </select>
+            </div>
+            <div class="full">
+                <label for="comment">Comment</label>
+                <textarea id="comment" rows="6" placeholder="Witness comment (up to 1000 words)"></textarea>
+                <div class="word-hint" id="commentWords">0/1000 words</div>
+            </div>
+            <div>
+                <label for="upload_method">Upload Option</label>
+                <select id="upload_method">
+                    <option value="local">Upload photos on local machine</option>
+                    <option value="take-photo">Take a photo</option>
+                </select>
+            </div>
+            <div>
+                <label for="uploads">Upload Photos</label>
+                <input type="file" id="uploads" accept="image/*" multiple>
+            </div>
+            <div class="full upload-preview" id="uploadPreview"></div>
+            <div class="full cases-actions">
+                <button type="submit" class="btn btn-primary">Update L/witnesses</button>
+                <button type="button" class="btn btn-danger" id="deleteWitnessBtn">Delete</button>
+                <a class="icon-btn back-icon-btn" href="witness-list.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+            </div>
+        </form>
+        <div class="history-panel">
+            <h3>Case History</h3>
+            <div class="customer-table-wrap">
+                <table>
+                    <thead>
+                        <tr><th>Date</th><th>Step</th><th>Next Date</th><th>Comment</th></tr>
+                    </thead>
+                    <tbody id="caseHistoryBody"><tr><td colspan="4">Loading history...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js?v=20260402p03"></script>
+<script src="../../assets/js/case-history.js?v=20260403p01"></script>
+<script src="../../assets/js/edit-witness.js?v=20260403p04"></script>
+</body>
+</html>
+
+
+
+
+
+

@@ -7,20 +7,18 @@ function fileToDataUrl(file){
             });
         }
 
+        function setStatusText(elementId, text){
+            const el = document.getElementById(elementId);
+            if(el){
+                el.textContent = text;
+            }
+        }
+
         function setStatuses(pref){
-            document.getElementById("logoStatus").textContent = `Current: ${pref.logo_file_name || "-"}`;
-            document.getElementById("invoiceStatus").textContent = `Current: ${pref.invoice_template_pdf_file_name || "-"}`;
-            document.getElementById("quotationStatus").textContent = `Current: ${pref.quotation_template_pdf_file_name || "-"}`;
-            document.getElementById("quotation2Status").textContent = `Current: ${pref.quotation2_template_pdf_file_name || "-"}`;
-            document.getElementById("quotation3Status").textContent = `Current: ${pref.quotation3_template_pdf_file_name || "-"}`;
-            document.getElementById("signCStatus").textContent = `Current: ${pref.sign_c_file_name || "-"} | Path: ${pref.sign_c_path || "-"}`;
-            document.getElementById("signVStatus").textContent = `Current: ${pref.sign_v_file_name || "-"} | Path: ${pref.sign_v_path || "-"}`;
-            document.getElementById("sealCStatus").textContent = `Current: ${pref.seal_c_file_name || "-"} | Path: ${pref.seal_c_path || "-"}`;
-            document.getElementById("sealVStatus").textContent = `Current: ${pref.seal_v_file_name || "-"} | Path: ${pref.seal_v_path || "-"}`;
-            document.getElementById("signQ2Status").textContent = `Current: ${pref.sign_q2_file_name || "-"} | Path: ${pref.sign_q2_path || "-"}`;
-            document.getElementById("sealQ2Status").textContent = `Current: ${pref.seal_q2_file_name || "-"} | Path: ${pref.seal_q2_path || "-"}`;
-            document.getElementById("signQ3Status").textContent = `Current: ${pref.sign_q3_file_name || "-"} | Path: ${pref.sign_q3_path || "-"}`;
-            document.getElementById("sealQ3Status").textContent = `Current: ${pref.seal_q3_file_name || "-"} | Path: ${pref.seal_q3_path || "-"}`;
+            setStatusText("logoStatus", `Current: ${pref.logo_file_name || "-"}`);
+            setStatusText("invoiceStatus", `Current: ${pref.invoice_template_pdf_file_name || "-"}`);
+            setStatusText("signCStatus", `Current: ${pref.sign_c_file_name || "-"} | Path: ${pref.sign_c_path || "-"}`);
+            setStatusText("sealCStatus", `Current: ${pref.seal_c_file_name || "-"} | Path: ${pref.seal_c_path || "-"}`);
         }
 
         function setMappedStatusText(elementId, labels){
@@ -46,17 +44,8 @@ function fileToDataUrl(file){
             const labelsByFeature = {
                 logo: [],
                 invoice: [],
-                quotation: [],
-                quotation2: [],
-                quotation3: [],
                 sign_c: [],
-                sign_v: [],
-                seal_c: [],
-                seal_v: [],
-                sign_q2: [],
-                seal_q2: [],
-                sign_q3: [],
-                seal_q3: []
+                seal_c: []
             };
 
             rows.forEach((entry) => {
@@ -77,17 +66,8 @@ function fileToDataUrl(file){
 
             setMappedStatusText("logoMappedStatus", labelsByFeature.logo);
             setMappedStatusText("invoiceMappedStatus", labelsByFeature.invoice);
-            setMappedStatusText("quotationMappedStatus", labelsByFeature.quotation);
-            setMappedStatusText("quotation2MappedStatus", labelsByFeature.quotation2);
-            setMappedStatusText("quotation3MappedStatus", labelsByFeature.quotation3);
             setMappedStatusText("signCMappedStatus", labelsByFeature.sign_c);
-            setMappedStatusText("signVMappedStatus", labelsByFeature.sign_v);
             setMappedStatusText("sealCMappedStatus", labelsByFeature.seal_c);
-            setMappedStatusText("sealVMappedStatus", labelsByFeature.seal_v);
-            setMappedStatusText("signQ2MappedStatus", labelsByFeature.sign_q2);
-            setMappedStatusText("sealQ2MappedStatus", labelsByFeature.seal_q2);
-            setMappedStatusText("signQ3MappedStatus", labelsByFeature.sign_q3);
-            setMappedStatusText("sealQ3MappedStatus", labelsByFeature.seal_q3);
         }
 
         function getActiveDatabaseName(){
@@ -178,13 +158,15 @@ function fileToDataUrl(file){
 
         function getTemplateInput(templateType){
             if(templateType === "invoice") return document.getElementById("invoiceTemplateFile");
-            if(templateType === "quotation") return document.getElementById("quotationTemplateFile");
-            if(templateType === "quotation2") return document.getElementById("quotation2TemplateFile");
-            return document.getElementById("quotation3TemplateFile");
+            return null;
         }
 
         async function uploadTemplate(templateType){
             const input = getTemplateInput(templateType);
+            if(!input){
+                alert("Invalid template type.");
+                return;
+            }
             const file = input.files && input.files[0];
             if(!file){
                 alert("Please choose a PDF file.");
@@ -207,17 +189,16 @@ function fileToDataUrl(file){
 
         function getBrandImageInput(imageType){
             if(imageType === "sign_c") return document.getElementById("signCFile");
-            if(imageType === "sign_v") return document.getElementById("signVFile");
             if(imageType === "seal_c") return document.getElementById("sealCFile");
-            if(imageType === "sign_q2") return document.getElementById("signQ2File");
-            if(imageType === "seal_q2") return document.getElementById("sealQ2File");
-            if(imageType === "sign_q3") return document.getElementById("signQ3File");
-            if(imageType === "seal_q3") return document.getElementById("sealQ3File");
-            return document.getElementById("sealVFile");
+            return null;
         }
 
         async function uploadBrandImage(imageType){
             const input = getBrandImageInput(imageType);
+            if(!input){
+                alert("Invalid image type.");
+                return;
+            }
             const file = input.files && input.files[0];
             if(!file){
                 alert("Please choose an image file.");

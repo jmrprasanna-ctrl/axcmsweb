@@ -3,19 +3,13 @@ const Invoice = require("../models/Invoice");
 const InvoiceItem = require("../models/InvoiceItem");
 const Customer = require("../models/Customer");
 const Expense = require("../models/Expense");
-const Product = require("../models/Product");
-const Vendor = require("../models/Vendor");
-const Category = require("../models/Category");
 const Technician = require("../models/Technician");
-const RentalMachineConsumable = require("../models/RentalMachineConsumable");
-const RentalMachine = require("../models/RentalMachine");
-const RentalMachineCount = require("../models/RentalMachineCount");
 const Sequelize = require("sequelize");
 
 function classifyVendorSource(vendorName){
     const name = String(vendorName || "").trim().toLowerCase();
     if(!name) return "VENDER";
-    if(name.includes("pulmo")) return "PULMO";
+    if(name.includes("axis")) return "AXIS CMS SYSTEM";
     if(name.includes("other")) return "OTHER";
     return "VENDER";
 }
@@ -27,14 +21,7 @@ function normalizeTechnicianPercentage(rawValue){
 }
 
 function sumVendorProductValueFromInvoiceItems(items){
-    return (Array.isArray(items) ? items : []).reduce((sum, item) => {
-        const qty = Number(item?.qty || 0);
-        const dealer = Number(item?.Product?.dealer_price || 0);
-        if(!Number.isFinite(qty) || !Number.isFinite(dealer) || qty <= 0 || dealer <= 0){
-            return sum;
-        }
-        return sum + (qty * dealer);
-    }, 0);
+    return 0;
 }
 
 function computeTechnicianPayableAmount(totalAmount, vendorProductValue, percentage){
@@ -206,8 +193,7 @@ exports.technicianInvoicesMonthlyReport = async (req,res)=>{
                 {
                     model: InvoiceItem,
                     attributes: ["qty"],
-                    required: false,
-                    include: [{ model: Product, attributes: ["dealer_price"], required: false }]
+                    required: false
                 }
             ],
             order: [["invoice_date", "DESC"], ["createdAt", "DESC"]]
@@ -890,128 +876,9 @@ exports.financeOverview = async (req,res)=>{
             date: e.date
         }));
 
-        const soldProductSellingPriceByPeriod = [];
-        const vendorDealerPriceByPeriod = [];
-        const vendorDealerDetailsByPeriod = {};
-
-        for(const key of periodKeys){
-            const range = periods[key];
-            const items = await InvoiceItem.findAll({
-                include: [
-                    {
-                        model: Invoice,
-                        required: true,
-                        attributes: ["id", "invoice_date"],
-                        where: { invoice_date: { [Op.between]: [range.start, range.end] } }
-                    },
-                    {
-                        model: Product,
-                        required: false,
-                        attributes: ["id", "dealer_price", "vendor_id"],
-                        include: [{ model: Vendor, attributes: ["id", "name"] }]
-                    }
-                ]
-            });
-
-            let soldTotal = 0;
-            let dealerTotal = 0;
-            const vendorMap = new Map();
-
-            items.forEach((item) => {
-                const qty = Number(item.qty || 0);
-                const rate = Number(item.rate || 0);
-                soldTotal += qty * rate;
-
-                const dealer = Number((item.Product && item.Product.dealer_price) || 0);
-                const dealerAmount = qty * dealer;
-                dealerTotal += dealerAmount;
-
-                const vendorName = item.Product && item.Product.Vendor ? item.Product.Vendor.name : "Unassigned";
-                if(!vendorMap.has(vendorName)){
-                    vendorMap.set(vendorName, {
-                        vendor: vendorName,
-                        qty: 0,
-                        total_dealer_amount: 0
-                    });
-                }
-                const v = vendorMap.get(vendorName);
-                v.qty += qty;
-                v.total_dealer_amount += dealerAmount;
-            });
-
-            soldProductSellingPriceByPeriod.push({
-                period: periodLabel(key),
-                total_amount: Number(soldTotal.toFixed(2))
-            });
-            vendorDealerPriceByPeriod.push({
-                period: periodLabel(key),
-                total_amount: Number(dealerTotal.toFixed(2))
-            });
-            vendorDealerDetailsByPeriod[key] = Array.from(vendorMap.values())
-                .map((v) => ({
-                    vendor: v.vendor,
-                    qty: Number(v.qty || 0),
-                    total_dealer_amount: Number((v.total_dealer_amount || 0).toFixed(2))
-                }))
-                .sort((a, b) => b.total_dealer_amount - a.total_dealer_amount);
-        }
-
-        const rentalConsumablesRows = await RentalMachineConsumable.findAll({
-            include: [
-                { model: Product, attributes: ["id", "dealer_price"] },
-                { model: Customer, attributes: ["id", "name"] }
-            ],
-            order: [["createdAt", "DESC"]]
-        });
-
-        const rcMonthMap = new Map();
-        const rcYearMap = new Map();
-        const rcCustomerMap = new Map();
-
-        rentalConsumablesRows.forEach((row) => {
-            const qty = Number(row.quantity || 0);
-            const dealer = Number((row.Product && row.Product.dealer_price) || 0);
-            const amount = qty * dealer;
-            const dateSource = row.entry_date || row.createdAt;
-            const date = new Date(dateSource);
-            if(Number.isNaN(date.getTime())) return;
-            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-            const yearKey = String(date.getFullYear());
-            const customerName = row.Customer ? row.Customer.name : "Unknown";
-
-            rcMonthMap.set(monthKey, (rcMonthMap.get(monthKey) || 0) + amount);
-            rcYearMap.set(yearKey, (rcYearMap.get(yearKey) || 0) + amount);
-            if(!rcCustomerMap.has(customerName)){
-                rcCustomerMap.set(customerName, { customer_name: customerName, total_qty: 0, total_amount: 0 });
-            }
-            const c = rcCustomerMap.get(customerName);
-            c.total_qty += qty;
-            c.total_amount += amount;
-        });
-
-        const rentalConsumables = {
-            month_wise: Array.from(rcMonthMap.entries())
-                .map(([month_name, total_amount]) => ({ month_name, total_amount: Number(total_amount.toFixed(2)) }))
-                .sort((a, b) => a.month_name.localeCompare(b.month_name)),
-            year_wise: Array.from(rcYearMap.entries())
-                .map(([year_name, total_amount]) => ({ year_name, total_amount: Number(total_amount.toFixed(2)) }))
-                .sort((a, b) => a.year_name.localeCompare(b.year_name)),
-            customer_wise: Array.from(rcCustomerMap.values())
-                .map((r) => ({
-                    customer_name: r.customer_name,
-                    total_qty: Number(r.total_qty || 0),
-                    total_amount: Number((r.total_amount || 0).toFixed(2))
-                }))
-                .sort((a, b) => b.total_amount - a.total_amount)
-        };
-
         res.json({
             summary_by_period: summaryByPeriod,
-            month_expense_rows: monthExpenseRows,
-            sold_product_selling_price_by_period: soldProductSellingPriceByPeriod,
-            vendor_dealer_price_by_period: vendorDealerPriceByPeriod,
-            vendor_dealer_details_by_period: vendorDealerDetailsByPeriod,
-            rental_consumables: rentalConsumables
+            month_expense_rows: monthExpenseRows
         });
     }catch(err){
         res.status(500).json({ message: err.message || "Failed to load finance overview." });

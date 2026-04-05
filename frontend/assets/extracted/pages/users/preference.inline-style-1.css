@@ -1,4 +1,23 @@
-.preference-grid{
+.preference-page-header{
+            display:flex;
+            align-items:flex-start;
+            justify-content:space-between;
+            gap:10px;
+            margin-bottom:14px;
+        }
+        .preference-page-header header{
+            margin:0;
+        }
+        .preference-page-header .muted{
+            margin-top:4px;
+            color:#5f7388;
+            font-size:0.95rem;
+        }
+        .preference-page-header .back-icon-btn{
+            margin-left:auto;
+            flex:0 0 auto;
+        }
+        .preference-grid{
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 16px;
@@ -38,4 +57,9 @@
             color: #0b4f93;
             border: 1px solid #cfe1f5;
             text-decoration: none;
+        }
+        @media (max-width: 700px){
+            .preference-page-header{
+                align-items:center;
+            }
         }

@@ -11,7 +11,7 @@ function getDbConfig(database) {
     host: process.env.DB_HOST || "localhost",
     port: Number(process.env.DB_PORT || 5432),
     user: process.env.DB_USER || "postgres",
-    password: process.env.DB_PASSWORD || "",
+    password: String(process.env.DB_PASSWORD || ""),
     database,
   };
 }
@@ -24,16 +24,17 @@ function normalizeDatabaseName(name) {
 }
 
 async function listTargetDatabases() {
+  const mainDbName = normalizeDatabaseName(process.env.DB_NAME || "axiscmsdb") || "axiscmsdb";
   const admin = new Client(getDbConfig("postgres"));
   await admin.connect();
   try {
     const rs = await admin.query("SELECT datname FROM pg_database WHERE datistemplate = false");
     const existing = new Set((rs.rows || []).map((r) => normalizeDatabaseName(r.datname)).filter(Boolean));
     const requested = new Set(
-      ["inventory", "demo", normalizeDatabaseName(process.env.DB_NAME || "inventory")].filter(Boolean)
+      [mainDbName, "inventory", "demo", normalizeDatabaseName(process.env.DB_NAME || mainDbName)].filter(Boolean)
     );
 
-    const inventoryClient = new Client(getDbConfig("inventory"));
+    const inventoryClient = new Client(getDbConfig(existing.has(mainDbName) ? mainDbName : "inventory"));
     try {
       await inventoryClient.connect();
 

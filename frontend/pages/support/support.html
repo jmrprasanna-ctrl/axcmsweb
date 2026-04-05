@@ -3,77 +3,72 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Support - PULMO TECHNOLOGIES</title>
+<title>Support - AXIS_CMS_WEB</title>
 <link rel="stylesheet" href="../../assets/css/style.css">
 <link rel="stylesheet" href="../../assets/css/dashboard.css">
-<link rel="stylesheet" href="../../assets/extracted/pages/support/support.inline-style-1.css">
 </head>
 <body>
+
 <div class="sidebar">
     <div class="logo">
-        <img src="../../assets/images/logo.png" alt="Company Logo">
-        <span>PULMO TECHNOLOGIES</span>
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>AXIS_CMS_WEB</span>
     </div>
-    <ul class="nav-links">
+    <ul class="nav-links" style="visibility:hidden;">
         <li><a href="../dashboard.html">Dashboard</a></li>
-        <li><a href="../products/product-list.html">Products</a></li>
-        <li><a href="../products/general-machine.html">Machines</a></li>
-        <li><a href="../customers/customer-list.html">Customers</a></li>
-        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
-        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../calendar.html">Calender</a></li>
+        <li><a href="../customers/client-list.html">Client</a></li>
+        <li><a href="../cases/case-list.html">Cases</a></li>
+        <li><a href="../cases/finished.html">Finished</a></li>
+        <li><a href="../invoices/Payments-list.html">Payments</a></li>
         <li><a href="../expenses/expense-list.html">Expenses</a></li>
-        <li><a href="../reports/sales-report.html">Reports</a></li>
-        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+        <li><a href="../finance/finance.html">Finance</a></li>
+        <li><a href="support.html">Support</a></li>
+        <li><a href="../users/user-list.html">Users</a></li>
     </ul>
 </div>
 
 <div class="main-content">
     <header><h2>Support</h2></header>
 
-    <div class="card card-mb-12">
-        <div class="support-link-row">
-            <a id="addTechnicianBtn" class="btn btn-primary" href="../users/technician-list.html">Support Technician</a>
-            <a id="warrentyBtn" class="btn btn-secondary is-hidden" href="warrenty.html">Warrenty</a>
-        </div>
+    <div class="form-actions">
+        <a class="btn btn-primary" href="add-lawyer.html">Add Lawyer</a>
+        <a class="btn btn-primary" href="add-court.html">Add Court</a>
+        <a class="icon-btn back-icon-btn" href="../dashboard.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
     </div>
 
-    <div class="card">
-        <h3>Add Important</h3>
-        <form id="supportImportantForm">
-            <label for="importantText">Important</label>
-            <input id="importantText" type="text" required placeholder="Enter important note">
-            <label for="warrantyPeriod">Warranty Period</label>
-            <select id="warrantyPeriod" required>
-                <option value="3 month">3 month</option>
-                <option value="6 month">6 month</option>
-                <option value="1 year">1 year</option>
-                <option value="2 year">2 year</option>
-            </select>
+    <div class="cards" style="grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px;">
+        <section class="card-block" id="lawyers" style="padding: 18px;">
+            <h3 style="margin-bottom: 10px;">Lawyer List</h3>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Lawyer Name</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="lawyerTableBody"></tbody>
+            </table>
+        </section>
 
-            <div class="support-form-actions">
-                <button class="btn btn-primary" type="submit">Add Important</button>
-                <a class="btn btn-secondary" href="../dashboard.html">Back</a>
-            </div>
-        </form>
-    </div>
-
-    <div class="card card-mt-12">
-        <h3>Important Library</h3>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Important</th>
-                    <th>Warranty</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="support-important-body"></tbody>
-        </table>
+        <section class="card-block" id="courts" style="padding: 18px;">
+            <h3 style="margin-bottom: 10px;">Court List</h3>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Court Name</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="courtTableBody"></tbody>
+            </table>
+        </section>
     </div>
 </div>
 
-<script src="../../assets/js/api.js"></script>
-<script src="../../assets/extracted/pages/support/support.inline-script-1.js"></script>
+<script src="../../assets/js/api.js?v=20260404p12"></script>
+<script src="../../assets/js/support.js?v=20260404p12"></script>
 </body>
 </html>

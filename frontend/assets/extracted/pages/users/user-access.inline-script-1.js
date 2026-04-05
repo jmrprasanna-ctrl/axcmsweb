@@ -3,7 +3,7 @@ const userSelectEl = document.getElementById("userSelect");
         const superUserCheckboxEl = document.getElementById("superUserCheckbox");
         const accessMatrixEl = document.getElementById("accessMatrix");
         let moduleOptions = [];
-        let defaultDatabaseName = "inventory";
+        let defaultDatabaseName = "axiscmsdb";
 
         function toActionKey(path, action){
             return `${String(path || "").trim().toLowerCase()}::${String(action || "").trim().toLowerCase()}`;
@@ -103,6 +103,7 @@ const userSelectEl = document.getElementById("userSelect");
                     const opt = document.createElement("option");
                     opt.value = u.selection_key;
                     opt.textContent = u.label || `${u.username} (${u.email})`;
+                    opt.dataset.databaseName = String(u.database_name || "").trim().toLowerCase();
                     userSelectEl.appendChild(opt);
                 });
             }catch(err){
@@ -143,8 +144,8 @@ const userSelectEl = document.getElementById("userSelect");
                     opt.textContent = entry.label;
                     databaseSelectEl.appendChild(opt);
                 });
-                if(normalizedRows.some((x) => x.name === "inventory")){
-                    defaultDatabaseName = "inventory";
+                if(normalizedRows.some((x) => x.name === "axiscmsdb")){
+                    defaultDatabaseName = "axiscmsdb";
                 }else if(currentDb){
                     defaultDatabaseName = currentDb;
                 }else if(normalizedRows.length){
@@ -224,6 +225,11 @@ const userSelectEl = document.getElementById("userSelect");
 
         userSelectEl.addEventListener("change", async () => {
             if(userSelectEl.value){
+                const selectedOption = userSelectEl.options[userSelectEl.selectedIndex];
+                const mappedDb = String(selectedOption?.dataset?.databaseName || "").trim().toLowerCase();
+                if(mappedDb){
+                    databaseSelectEl.value = mappedDb;
+                }
                 await editAccess();
             }else{
                 clearAccess();
@@ -264,8 +270,8 @@ const userSelectEl = document.getElementById("userSelect");
             superUserCheckboxEl.disabled = true;
             const queryUserId = new URLSearchParams(window.location.search).get("userId");
             if(queryUserId){
-                const inventoryRef = `inventory:${queryUserId}`;
-                userSelectEl.value = inventoryRef;
+                const mainRef = `axiscmsdb:${queryUserId}`;
+                userSelectEl.value = mainRef;
                 if(userSelectEl.value){
                     await editAccess();
                 }

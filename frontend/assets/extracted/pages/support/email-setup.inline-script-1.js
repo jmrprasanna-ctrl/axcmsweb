@@ -32,10 +32,10 @@ function setForm(setup){
     const hasPass = !!setup.has_smtp_pass;
     document.getElementById("smtpPassState").textContent = `Saved Password: ${hasPass ? "Yes" : "No"}`;
     document.getElementById("smtp_secure").checked = !!setup.smtp_secure;
-    document.getElementById("from_name").value = setup.from_name || "PULMO TECHNOLOGIES";
+    document.getElementById("from_name").value = setup.from_name || "AXIS_CMS_WEB";
     document.getElementById("from_email").value = setup.from_email || "";
-    document.getElementById("subject_template").value = setup.subject_template || "Invoice {{invoice_no}} - PULMO TECHNOLOGIES";
-    document.getElementById("body_template").value = setup.body_template || "Dear {{customer_name}},\n\nPlease find attached your invoice {{invoice_no}}.\n\nThank you.\nPULMO TECHNOLOGIES";
+    document.getElementById("subject_template").value = setup.subject_template || "Invoice {{invoice_no}} - AXIS_CMS_WEB";
+    document.getElementById("body_template").value = setup.body_template || "Dear {{customer_name}},\n\nPlease find attached your invoice {{invoice_no}}.\n\nThank you.\nAXIS_CMS_WEB";
 }
 
 async function loadSetup(){
@@ -50,7 +50,7 @@ async function loadSetup(){
 window.addEventListener("DOMContentLoaded", () => {
     if(!canManageEmailSetup()){
         alert("Access denied.");
-        window.location.href = "support.html";
+        window.location.href = "../finance/finance.html";
         return;
     }
 

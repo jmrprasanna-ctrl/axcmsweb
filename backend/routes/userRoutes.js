@@ -1,5 +1,19 @@
 const express = require("express");
-const { getUsers, getUserById, addUser, updateUser, deleteUser } = require("../controllers/userController");
+const {
+  getUsers,
+  getUserById,
+  addUser,
+  updateUser,
+  deleteUser,
+  getProfiles,
+  getProfileById,
+  addProfile,
+  updateProfile,
+  deleteProfile,
+  getProfileUserByEmail,
+  getProfileUserOptions,
+  getMyMappedCompanies
+} = require("../controllers/userController");
 const {
   getAccessUsers,
   getAccessPages,
@@ -35,10 +49,14 @@ const router = express.Router();
 router.use(authMiddleware);
 
 router.get("/assignable", roleMiddleware(["admin","manager","user"]), getUsers);
+router.get("/profiles/user-options", roleMiddleware(["admin","manager","user"]), getProfileUserOptions);
+router.get("/profiles/user-by-email", roleMiddleware(["admin","manager","user"]), getProfileUserByEmail);
+router.get("/my-companies", roleMiddleware(["admin","manager","user"]), getMyMappedCompanies);
 router.get("/access/me", getMyAccess);
 router.get("/inv-map/me", roleMiddleware(["admin","manager","user"]), getMyInvMap);
 router.put("/inv-map/me/quotation2-render-inputs", roleMiddleware(["admin","manager","user"]), saveMyQuotation2RenderVisibility);
 router.put("/inv-map/me/quotation3-render-inputs", roleMiddleware(["admin","manager","user"]), saveMyQuotation3RenderVisibility);
+router.post("/", roleMiddleware(["admin","manager","user"]), addUser);
 
 router.use(roleMiddleware(["admin"]));
 
@@ -62,11 +80,15 @@ router.post("/inv-map/verify", verifyInvMap);
 router.post("/inv-map/save", saveInvMap);
 router.get("/logs", getLoginLogs);
 router.delete("/logs", clearLoginLogs);
+router.get("/profiles", getProfiles);
+router.get("/profiles/:id", getProfileById);
+router.post("/profiles", addProfile);
+router.put("/profiles/:id", updateProfile);
+router.delete("/profiles/:id", deleteProfile);
 router.get("/access/:userId", getUserAccess);
 router.put("/access/:userId", saveUserAccess);
 router.get("/", getUsers);
 router.get("/:id", getUserById);
-router.post("/", addUser);
 router.put("/:id", updateUser);
 router.delete("/:id", deleteUser);
 

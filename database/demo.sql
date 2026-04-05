@@ -1,6 +1,12 @@
+<<<<<<< HEAD
                              
                             
                              
+=======
+-- ==========================
+-- Database: demo
+-- ==========================
+>>>>>>> 046c6f3 (feat: apply AXIS web updates across backend and frontend)
 
                             
 DROP TABLE IF EXISTS invoice_items CASCADE;
@@ -281,7 +287,7 @@ CREATE TABLE conditions (
                              
 CREATE TABLE IF NOT EXISTS ui_settings (
     id SERIAL PRIMARY KEY,
-    app_name VARCHAR(120) NOT NULL DEFAULT 'PULMO TECHNOLOGIES',
+    app_name VARCHAR(120) NOT NULL DEFAULT 'AXIS_CMS_WEB',
     footer_text VARCHAR(255) NOT NULL DEFAULT '© All Right Recieved with CRONIT SOLLUTIONS - JMR Prasanna.',
     primary_color VARCHAR(24) NOT NULL DEFAULT '#0f6abf',
     accent_color VARCHAR(24) NOT NULL DEFAULT '#11a36f',

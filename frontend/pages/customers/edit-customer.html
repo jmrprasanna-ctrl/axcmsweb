@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Edit Customer - PULMO TECHNOLOGIES</title>
+<title>Edit Customer - AXIS_CMS_WEB</title>
 <link rel="stylesheet" href="../../assets/css/style.css">
 <link rel="stylesheet" href="../../assets/css/dashboard.css">
 <link rel="stylesheet" href="../../assets/extracted/pages/customers/edit-customer.inline-style-1.css">
@@ -14,18 +14,18 @@
 <div class="sidebar">
     <div class="logo">
         <img src="../../assets/images/logo.png" alt="Logo">
-        <span>PULMO TECHNOLOGIES</span>
+        <span>AXIS_CMS_WEB</span>
     </div>
-        <ul class="nav-links">
+    <ul class="nav-links" style="visibility:hidden;">
         <li><a href="../dashboard.html">Dashboard</a></li>
-        <li><a href="../products/product-list.html">Products</a></li>
-        <li><a href="../products/general-machine.html">Machines</a></li>
-        <li><a href="../customers/customer-list.html">Customers</a></li>
-        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
-        <li><a href="../vendors/list-vendor.html">Vendors</a></li>
+        <li><a href="../calendar.html">Calender</a></li>
+        <li><a href="../customers/client-list.html">Client</a></li>
+        <li><a href="../cases/case-list.html">Cases</a></li>
+        <li><a href="../cases/finished.html">Finished</a></li>
+        <li><a href="../invoices/Payments-list.html">Payments</a></li>
         <li><a href="../expenses/expense-list.html">Expenses</a></li>
-        <li><a href="../reports/sales-report.html">Reports</a></li>
-        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+        <li><a href="../finance/finance.html">Finance</a></li>
+        <li><a href="../users/user-list.html">Users</a></li>
     </ul>
 </div>
 
@@ -46,39 +46,33 @@
 
             <label>Telephone</label>
             <input type="text" id="tel" placeholder="Telephone">
+
+            <label>Mobile</label>
+            <input type="text" id="mobile" placeholder="Mobile number">
+
             <label>Contact person</label>
             <input type="text" id="contactPerson" placeholder="Contact person">
 
             <label>Email</label>
             <input type="email" id="email" placeholder="Email">
 
-            <label>Customer Type</label>
-            <select id="customerType">
-                <option value="Silver">Silver</option>
-                <option value="Bronze">Bronze</option>
-                <option value="Gold">Gold</option>
-                <option value="Platinum">Platinum</option>
-            </select>
-
-            <label>Customer Mode</label>
-            <select id="customerMode">
-                <option value="General">General</option>
-                <option value="Rental">Rental</option>
-            </select>
-
-            <label>VAT Number</label>
-            <input type="text" id="vatNumber" placeholder="VAT Number (Optional)">
+            <label>Comment</label>
+            <textarea id="comment" class="uppercase-input" rows="8" placeholder="Comment (supports at least 1000 words)"></textarea>
 
             <div class="form-actions">
                 <button type="submit">Update Customer</button>
-                <a class="btn btn-secondary" href="customer-list.html">Back</a>
+                <button type="button" class="btn btn-danger" id="deleteCustomerBtn">Delete</button>
+                <a class="icon-btn back-icon-btn" href="client-list.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
             </div>
         </form>
     </div>
 </div>
 
-<script src="../../assets/js/api.js"></script>
+<script src="../../assets/js/api.js?v=20260404p12"></script>
 <script src="../../assets/extracted/pages/customers/edit-customer.inline-script-1.js"></script>
 </body>
 </html>
+
+
+
 

@@ -7,70 +7,71 @@ const db = require("./config/database");
 const { getRuntimeChecks, summarizeStatus } = require("./utils/startupChecks");
 const { extractCustomerPrefix } = require("./utils/customerCodeGenerator");
 
+<<<<<<< HEAD
          
 const Product = require("./models/Product");
 const Category = require("./models/Category");
+=======
+// Models
+>>>>>>> 046c6f3 (feat: apply AXIS web updates across backend and frontend)
 const Customer = require("./models/Customer");
-const Vendor = require("./models/Vendor");
 const Invoice = require("./models/Invoice");
 const InvoiceItem = require("./models/InvoiceItem");
 const InvoiceImportant = require("./models/InvoiceImportant");
 const Expense = require("./models/Expense");
-const Stock = require("./models/Stock");
-const Condition = require("./models/Condition");
 const Message = require("./models/Message");
 const Notification = require("./models/Notification");
 const Todo = require("./models/Todo");
-const RentalMachine = require("./models/RentalMachine");
-const GeneralMachine = require("./models/GeneralMachine");
-const RentalMachineConsumable = require("./models/RentalMachineConsumable");
-const RentalMachineCount = require("./models/RentalMachineCount");
 const Technician = require("./models/Technician");
 const SupportImportant = require("./models/SupportImportant");
-const CategoryModelOption = require("./models/CategoryModelOption");
+const Lawyer = require("./models/Lawyer");
+const Court = require("./models/Court");
 const UiSetting = require("./models/UiSetting");
 const EmailSetup = require("./models/EmailSetup");
 const UserAccess = require("./models/UserAccess");
 const UserLoginLog = require("./models/UserLoginLog");
+const LegalCase = require("./models/Case");
+const Plaint = require("./models/Plaint");
+const Answer = require("./models/Answer");
+const Witness = require("./models/Witness");
+const Judgment = require("./models/Judgment");
 
          
 const dashboardRoutes = require("./routes/dashboardRoutes");
-const productRoutes = require("./routes/productRoutes");
 const customerRoutes = require("./routes/customerRoutes");
-const vendorRoutes = require("./routes/vendorRoutes");
 const invoiceRoutes = require("./routes/invoiceRoutes");
-const conditionRoutes = require("./routes/conditionRoutes");
-const categoryRoutes = require("./routes/categoryRoutes");
 const expenseRoutes = require("./routes/expenseRoutes");
-const stockRoutes = require("./routes/stockRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
-const analyticsRoutes = require("./routes/analyticsRoutes");
 const todoRoutes = require("./routes/todoRoutes");
-const rentalMachineRoutes = require("./routes/rentalMachineRoutes");
-const generalMachineRoutes = require("./routes/generalMachineRoutes");
-const rentalMachineConsumableRoutes = require("./routes/rentalMachineConsumableRoutes");
-const rentalMachineCountRoutes = require("./routes/rentalMachineCountRoutes");
 const technicianRoutes = require("./routes/technicianRoutes");
 const supportImportantRoutes = require("./routes/supportImportantRoutes");
-const categoryModelOptionRoutes = require("./routes/categoryModelOptionRoutes");
+const supportRoutes = require("./routes/supportRoutes");
 const uiSettingsRoutes = require("./routes/uiSettingsRoutes");
 const emailSetupRoutes = require("./routes/emailSetupRoutes");
 const systemBackupRoutes = require("./routes/systemBackupRoutes");
 const preferenceRoutes = require("./routes/preferenceRoutes");
+const caseRoutes = require("./routes/caseRoutes");
+const plaintRoutes = require("./routes/plaintRoutes");
+const answerRoutes = require("./routes/answerRoutes");
+const witnessRoutes = require("./routes/witnessRoutes");
+const judgmentRoutes = require("./routes/judgmentRoutes");
 
 const authRoutes = require("./routes/authRoutes");                          
 const userRoutes = require("./routes/userRoutes");                              
 
 const app = express();
+let httpServerStarted = false;
 let appHealth = {
   ok: false,
   dbConnected: false,
   checks: null,
   startedAt: null,
 };
-let businessDatabaseNames = ["inventory", "demo"];
+const MAIN_DB_NAME = db.normalizeDatabaseName(process.env.DB_NAME || "axiscmsdb") || "axiscmsdb";
+const LEGACY_MAIN_DB_NAME = "inventory";
+let businessDatabaseNames = [MAIN_DB_NAME, "demo"];
 
 function toDbName(value) {
   return db.normalizeDatabaseName(value);
@@ -87,7 +88,7 @@ function getPgConfig(database) {
 }
 
 async function discoverBusinessDatabases() {
-  const defaults = new Set(["inventory", "demo", toDbName(process.env.DB_NAME || "inventory")].filter(Boolean));
+  const defaults = new Set([MAIN_DB_NAME, LEGACY_MAIN_DB_NAME, "demo", toDbName(process.env.DB_NAME || MAIN_DB_NAME)].filter(Boolean));
   const admin = new Client(getPgConfig("postgres"));
   await admin.connect();
   try {
@@ -95,7 +96,7 @@ async function discoverBusinessDatabases() {
     const existing = new Set((existingRs.rows || []).map((r) => toDbName(r.datname)).filter(Boolean));
     const discovered = new Set(defaults);
 
-    const inventoryClient = new Client(getPgConfig("inventory"));
+    const inventoryClient = new Client(getPgConfig(existing.has(MAIN_DB_NAME) ? MAIN_DB_NAME : LEGACY_MAIN_DB_NAME));
     try {
       await inventoryClient.connect();
 
@@ -152,38 +153,12 @@ async function discoverBusinessDatabases() {
 async function runOnBusinessDatabases(task) {
   const targets = Array.isArray(businessDatabaseNames) && businessDatabaseNames.length
     ? businessDatabaseNames
-    : ["inventory", "demo"];
+    : [MAIN_DB_NAME, "demo"];
   for (const databaseName of targets) {
     await db.withDatabase(databaseName, async () => {
       await task(databaseName);
     });
   }
-}
-
-async function ensureDefaultCategories() {
-  const defaults = [
-    "Photocopier",
-    "Printer",
-    "Plotter",
-    "Computer",
-    "Laptop",
-    "Accessory",
-    "Consumable",
-    "Machine",
-    "CCTV",
-    "Duplo",
-    "Other",
-    "Service",
-  ];
-
-  await runOnBusinessDatabases(async () => {
-    for (const name of defaults) {
-      const existing = await Category.findOne({ where: { name } });
-      if (!existing) {
-        await Category.create({ name });
-      }
-    }
-  });
 }
 
 async function ensureDefaultUiSettings() {
@@ -200,21 +175,35 @@ async function ensureDefaultUiSettings() {
     const first = await UiSetting.findOne({ order: [["id", "ASC"]] });
     if (!first) {
       await UiSetting.create({
-        app_name: "PULMO TECHNOLOGIES",
-        footer_text: "© All Right Recieved with CRONIT SOLLUTIONS - JMRP.",
+        app_name: "AXIS_CMS_WEB",
+        footer_text: "\u00A9 AXIS_CMS_WEB",
         primary_color: "#0f6abf",
         accent_color: "#11a36f",
       });
       return;
     }
 
-    const currentAppName = String(first.app_name || "").trim().toLowerCase();
-    if (currentAppName === "pulmotech_inhouse" || currentAppName === "ulmotech_inhouse") {
-      await first.update({ app_name: "PULMO TECHNOLOGIES" });
+    const currentAppName = String(first.app_name || "").trim().toLowerCase().replace(/[_\s]+/g, " ");
+    const currentFooterText = String(first.footer_text || "").trim();
+    const needsAppNameMigration =
+      currentAppName === "axis cms web" ||
+      currentAppName.includes("axis cms system") ||
+      currentAppName.includes("inhouse") ||
+      currentAppName.includes("axis cms system");
+    const needsFooterMigration =
+      !currentFooterText ||
+      currentFooterText.includes("CRONIT SOLLUTIONS");
+
+    if (needsAppNameMigration || needsFooterMigration) {
+      await first.update({
+        app_name: "AXIS_CMS_WEB",
+        footer_text: "\u00A9 AXIS_CMS_WEB",
+      });
     }
   });
 }
 
+<<<<<<< HEAD
 async function ensureDefaultCategoryModelOptions() {
   const categoryModels = {
     Accessory: ["CANON", "TOSHIBA", "RECOH", "SHARP", "KYOCERA", "SEROX", "SAMSUNG", "HP", "DELL"],
@@ -408,6 +397,8 @@ async function ensureGeneralMachineSchema() {
   });
 }
 
+=======
+>>>>>>> 046c6f3 (feat: apply AXIS web updates across backend and frontend)
 async function ensureCustomerCodeSchema() {
   await runOnBusinessDatabases(async () => {
     await db.query(`
@@ -445,6 +436,213 @@ async function ensureCustomerCodeSchema() {
         await customer.update({ customer_id: finalCode }, { transaction });
       }
     });
+  });
+}
+
+async function ensureCustomerContactSchema() {
+  await runOnBusinessDatabases(async () => {
+    await db.query(`
+      ALTER TABLE customers
+      ADD COLUMN IF NOT EXISTS mobile VARCHAR(50);
+    `);
+    await db.query(`
+      ALTER TABLE customers
+      ADD COLUMN IF NOT EXISTS comment TEXT;
+    `);
+  });
+}
+
+async function ensureCaseCourtTypeCategorySchema() {
+  await runOnBusinessDatabases(async () => {
+    await db.query(`
+      ALTER TABLE cases
+      ADD COLUMN IF NOT EXISTS court_type VARCHAR(40);
+    `);
+    await db.query(`
+      ALTER TABLE cases
+      ADD COLUMN IF NOT EXISTS category VARCHAR(120);
+    `);
+  });
+}
+
+async function ensureCaseStepSchema() {
+  await runOnBusinessDatabases(async () => {
+    await db.query(`
+      ALTER TABLE cases
+      ADD COLUMN IF NOT EXISTS case_step VARCHAR(20);
+    `);
+    await db.query(`
+      ALTER TABLE cases
+      DROP CONSTRAINT IF EXISTS cases_case_step_check;
+    `);
+    await db.query(`
+      UPDATE cases
+      SET case_step = 'STEP'
+      WHERE case_step IS NULL OR TRIM(case_step) = '';
+    `);
+    await db.query(`
+      UPDATE cases
+      SET case_step = CASE
+        WHEN UPPER(REPLACE(TRIM(case_step), ' ', '_')) IN ('NEXT_STEP', 'NEXTSTEP', 'PLAINT_STEP', 'PLAINTSTEP') THEN 'PLAINT_STEP'
+        WHEN UPPER(REPLACE(TRIM(case_step), ' ', '_')) IN ('ANSWER_STEP', 'ANSWERSTEP') THEN 'ANSWER_STEP'
+        WHEN UPPER(REPLACE(TRIM(case_step), ' ', '_')) IN ('LW_STEP', 'LWSTEP', 'L_W_STEP') THEN 'LW_STEP'
+        WHEN UPPER(REPLACE(TRIM(case_step), ' ', '_')) IN ('DUDGMENT_STEP', 'DUDGMENTSTEP', 'JUDGMENT_STEP', 'JUDGMENTSTEP') THEN 'DUDGMENT_STEP'
+        ELSE 'STEP'
+      END;
+    `);
+    await db.query(`
+      ALTER TABLE cases
+      ALTER COLUMN case_step SET DEFAULT 'STEP';
+    `);
+    await db.query(`
+      ALTER TABLE cases
+      ALTER COLUMN case_step SET NOT NULL;
+    `);
+    await db.query(`
+      DO $$
+      BEGIN
+        ALTER TABLE cases
+        ADD CONSTRAINT cases_case_step_check
+        CHECK (case_step IN ('STEP', 'PLAINT_STEP', 'ANSWER_STEP', 'LW_STEP', 'DUDGMENT_STEP'));
+      END $$;
+    `);
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS cases_case_step_idx
+      ON cases(case_step);
+    `);
+  });
+}
+
+async function ensureLegalStageStepsSchema() {
+  await runOnBusinessDatabases(async () => {
+    await db.query(`
+      ALTER TABLE plaints
+      ADD COLUMN IF NOT EXISTS plaint_step VARCHAR(20);
+    `);
+    await db.query(`
+      UPDATE plaints
+      SET plaint_step = 'STEP'
+      WHERE plaint_step IS NULL OR TRIM(plaint_step) = '';
+    `);
+    await db.query(`
+      UPDATE plaints
+      SET plaint_step = CASE
+        WHEN UPPER(REPLACE(TRIM(plaint_step), ' ', '_')) IN ('NEXT_STEP', 'NEXTSTEP') THEN 'NEXT_STEP'
+        ELSE 'STEP'
+      END;
+    `);
+    await db.query(`
+      ALTER TABLE plaints
+      ALTER COLUMN plaint_step SET DEFAULT 'STEP';
+    `);
+    await db.query(`
+      ALTER TABLE plaints
+      ALTER COLUMN plaint_step SET NOT NULL;
+    `);
+    await db.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conname = 'plaints_plaint_step_check'
+            AND conrelid = 'public.plaints'::regclass
+        ) THEN
+          ALTER TABLE plaints
+          ADD CONSTRAINT plaints_plaint_step_check
+          CHECK (plaint_step IN ('STEP', 'NEXT_STEP'));
+        END IF;
+      END $$;
+    `);
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS plaints_plaint_step_idx
+      ON plaints(plaint_step);
+    `);
+
+    await db.query(`
+      ALTER TABLE answers
+      ADD COLUMN IF NOT EXISTS answer_step VARCHAR(20);
+    `);
+    await db.query(`
+      UPDATE answers
+      SET answer_step = 'STEP'
+      WHERE answer_step IS NULL OR TRIM(answer_step) = '';
+    `);
+    await db.query(`
+      UPDATE answers
+      SET answer_step = CASE
+        WHEN UPPER(REPLACE(TRIM(answer_step), ' ', '_')) IN ('NEXT_STEP', 'NEXTSTEP') THEN 'NEXT_STEP'
+        ELSE 'STEP'
+      END;
+    `);
+    await db.query(`
+      ALTER TABLE answers
+      ALTER COLUMN answer_step SET DEFAULT 'STEP';
+    `);
+    await db.query(`
+      ALTER TABLE answers
+      ALTER COLUMN answer_step SET NOT NULL;
+    `);
+    await db.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conname = 'answers_answer_step_check'
+            AND conrelid = 'public.answers'::regclass
+        ) THEN
+          ALTER TABLE answers
+          ADD CONSTRAINT answers_answer_step_check
+          CHECK (answer_step IN ('STEP', 'NEXT_STEP'));
+        END IF;
+      END $$;
+    `);
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS answers_answer_step_idx
+      ON answers(answer_step);
+    `);
+
+    await db.query(`
+      ALTER TABLE witnesses
+      ADD COLUMN IF NOT EXISTS witness_step VARCHAR(20);
+    `);
+    await db.query(`
+      UPDATE witnesses
+      SET witness_step = 'STEP'
+      WHERE witness_step IS NULL OR TRIM(witness_step) = '';
+    `);
+    await db.query(`
+      UPDATE witnesses
+      SET witness_step = CASE
+        WHEN UPPER(REPLACE(TRIM(witness_step), ' ', '_')) IN ('NEXT_STEP', 'NEXTSTEP') THEN 'NEXT_STEP'
+        ELSE 'STEP'
+      END;
+    `);
+    await db.query(`
+      ALTER TABLE witnesses
+      ALTER COLUMN witness_step SET DEFAULT 'STEP';
+    `);
+    await db.query(`
+      ALTER TABLE witnesses
+      ALTER COLUMN witness_step SET NOT NULL;
+    `);
+    await db.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conname = 'witnesses_witness_step_check'
+            AND conrelid = 'public.witnesses'::regclass
+        ) THEN
+          ALTER TABLE witnesses
+          ADD CONSTRAINT witnesses_witness_step_check
+          CHECK (witness_step IN ('STEP', 'NEXT_STEP'));
+        END IF;
+      END $$;
+    `);
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS witnesses_witness_step_idx
+      ON witnesses(witness_step);
+    `);
   });
 }
 
@@ -605,6 +803,36 @@ async function ensureSupportImportantSchema() {
   });
 }
 
+async function ensureSupportDirectorySchema() {
+  await runOnBusinessDatabases(async () => {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS lawyers (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(150) NOT NULL,
+        "createdAt" TIMESTAMP DEFAULT NOW(),
+        "updatedAt" TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    await db.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS lawyers_name_unique_lower_idx
+      ON lawyers ((LOWER(name)));
+    `);
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS courts (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(150) NOT NULL,
+        "createdAt" TIMESTAMP DEFAULT NOW(),
+        "updatedAt" TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    await db.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS courts_name_unique_lower_idx
+      ON courts ((LOWER(name)));
+    `);
+  });
+}
+
 async function ensureInvoiceImportantWarrantySchema() {
   await runOnBusinessDatabases(async () => {
     await db.query(`
@@ -644,43 +872,16 @@ async function ensureInvoiceImportantWarrantySchema() {
   });
 }
 
-async function ensureVendorCategorySchema() {
-  await runOnBusinessDatabases(async () => {
-    await db.query(`
-      ALTER TABLE vendors
-      ALTER COLUMN category TYPE VARCHAR(255);
-    `);
-
-    await db.query(`
-      DO $$
-      DECLARE
-        constraint_name TEXT;
-      BEGIN
-        FOR constraint_name IN
-          SELECT c.conname
-          FROM pg_constraint c
-          JOIN pg_class t ON t.oid = c.conrelid
-          WHERE t.relname = 'vendors'
-            AND c.contype = 'c'
-            AND pg_get_constraintdef(c.oid) ILIKE '%category%'
-        LOOP
-          EXECUTE format('ALTER TABLE vendors DROP CONSTRAINT IF EXISTS %I', constraint_name);
-        END LOOP;
-      END $$;
-    `);
-  });
-}
-
 async function ensureUserAccessSchema() {
   await runOnBusinessDatabases(async () => {
     await db.query(`
       ALTER TABLE user_accesses
-      ADD COLUMN IF NOT EXISTS user_database VARCHAR(20) DEFAULT 'inventory';
+      ADD COLUMN IF NOT EXISTS user_database VARCHAR(20) DEFAULT '${MAIN_DB_NAME}';
     `);
 
     await db.query(`
       UPDATE user_accesses
-      SET user_database = 'inventory'
+      SET user_database = '${MAIN_DB_NAME}'
       WHERE user_database IS NULL OR TRIM(user_database) = '';
     `);
 
@@ -705,7 +906,7 @@ async function ensureUserAccessSchema() {
         SELECT
           id,
           ROW_NUMBER() OVER (
-            PARTITION BY user_id, LOWER(COALESCE(user_database, 'inventory'))
+            PARTITION BY user_id, LOWER(COALESCE(user_database, '${MAIN_DB_NAME}'))
             ORDER BY "updatedAt" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
           ) AS rn
         FROM user_accesses
@@ -722,13 +923,13 @@ async function ensureUserAccessSchema() {
 
     await db.query(`
       CREATE UNIQUE INDEX user_accesses_user_db_unique_idx
-      ON user_accesses(user_id, LOWER(COALESCE(user_database, 'inventory')));
+      ON user_accesses(user_id, LOWER(COALESCE(user_database, '${MAIN_DB_NAME}')));
     `);
   });
 }
 
 async function ensureCompanyProfilesSchema() {
-  await db.withDatabase("inventory", async () => {
+  await db.withDatabase(MAIN_DB_NAME, async () => {
     await db.query(`
       CREATE TABLE IF NOT EXISTS company_profiles (
         id SERIAL PRIMARY KEY,
@@ -760,7 +961,7 @@ async function ensureCompanyProfilesSchema() {
 }
 
 async function ensureUserMappingSchema() {
-  await db.withDatabase("inventory", async () => {
+  await db.withDatabase(MAIN_DB_NAME, async () => {
     await db.query(`
       CREATE TABLE IF NOT EXISTS user_mappings (
         id SERIAL PRIMARY KEY,
@@ -782,7 +983,7 @@ async function ensureUserMappingSchema() {
 }
 
 async function ensureUserInvoiceMappingSchema() {
-  await db.withDatabase("inventory", async () => {
+  await db.withDatabase(MAIN_DB_NAME, async () => {
     await db.query(`
       CREATE TABLE IF NOT EXISTS user_invoice_mappings (
         id SERIAL PRIMARY KEY,
@@ -929,36 +1130,35 @@ app.use("/storage", express.static(path.resolve(__dirname, "storage")));
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/products", productRoutes);
 app.use("/api/customers", customerRoutes);
-app.use("/api/vendors", vendorRoutes);
-app.use("/api/categories", categoryRoutes);
 app.use("/api/invoices", invoiceRoutes);
-app.use("/api/invoices/conditions", conditionRoutes);
 app.use("/api/expenses", expenseRoutes);
-app.use("/api/stocks", stockRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/notifications", notificationRoutes);
-app.use("/api/analytics", analyticsRoutes);
 app.use("/api/todos", todoRoutes);
-app.use("/api/rental-machines", rentalMachineRoutes);
-app.use("/api/general-machines", generalMachineRoutes);
-app.use("/api/rental-machine-consumables", rentalMachineConsumableRoutes);
-app.use("/api/rental-machine-counts", rentalMachineCountRoutes);
 app.use("/api/technicians", technicianRoutes);
 app.use("/api/support-importants", supportImportantRoutes);
-app.use("/api/category-model-options", categoryModelOptionRoutes);
+app.use("/api/support", supportRoutes);
 app.use("/api/ui-settings", uiSettingsRoutes);
 app.use("/api/email-setup", emailSetupRoutes);
 app.use("/api/system-backup", systemBackupRoutes);
 app.use("/api/preferences", preferenceRoutes);
+app.use("/api/cases", caseRoutes);
+app.use("/api/plaints", plaintRoutes);
+app.use("/api/answers", answerRoutes);
+app.use("/api/witnesses", witnessRoutes);
+app.use("/api/judgments", judgmentRoutes);
 
+<<<<<<< HEAD
              
 app.get("/",(req,res)=>res.send("PULMO TECHNOLOGIES is running"));
+=======
+// Test route
+app.get("/",(req,res)=>res.send("AXIS_CMS_WEB is running"));
+>>>>>>> 046c6f3 (feat: apply AXIS web updates across backend and frontend)
 app.get("/api/health", (_req, res) => {
-  const statusCode = appHealth.ok ? 200 : 503;
-  res.status(statusCode).json({
+  res.status(200).json({
     ...appHealth,
     now: new Date().toISOString(),
   });
@@ -966,16 +1166,22 @@ app.get("/api/health", (_req, res) => {
 
                                  
 const PORT = Number(process.env.PORT || 5000);
-const AUTO_DB_SYNC = String(process.env.AUTO_DB_SYNC || "true").toLowerCase() !== "false";
+const AUTO_DB_SYNC = String(process.env.AUTO_DB_SYNC || "false").toLowerCase() !== "false";
 const DB_SYNC_ALTER = String(process.env.DB_SYNC_ALTER || "true").toLowerCase() !== "false";
 const DB_SYNC_FORCE = String(process.env.DB_SYNC_FORCE || "false").toLowerCase() === "true";
+
+function ensureHttpServerRunning() {
+  if (httpServerStarted) return;
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  httpServerStarted = true;
+}
 
 async function startServer() {
   try {
     try {
       businessDatabaseNames = await discoverBusinessDatabases();
     } catch (_err) {
-      businessDatabaseNames = ["inventory", "demo"];
+      businessDatabaseNames = [MAIN_DB_NAME, "demo"];
     }
     for (const databaseName of businessDatabaseNames) {
       await db.registerDatabase(databaseName).catch(() => {});
@@ -990,12 +1196,11 @@ async function startServer() {
       console.log("Database connection verified (AUTO_DB_SYNC=false)");
     }
 
-    await ensureRentalMachineSchema();
-    await ensureGeneralMachineSchema();
-    await ensureRentalConsumableSchema();
-    await ensureRentalMachineCountSchema();
     await ensureCustomerCodeSchema();
-    await ensureVendorCategorySchema();
+    await ensureCustomerContactSchema();
+    await ensureCaseCourtTypeCategorySchema();
+    await ensureCaseStepSchema();
+    await ensureLegalStageStepsSchema();
     await ensureUserAccessSchema();
     await ensureCompanyProfilesSchema();
     await ensureUserMappingSchema();
@@ -1008,9 +1213,8 @@ async function startServer() {
     await ensureInvoiceNumberingSchema();
     await ensureInvoicePaymentSchema();
     await ensureSupportImportantSchema();
+    await ensureSupportDirectorySchema();
     await ensureInvoiceImportantWarrantySchema();
-    await ensureDefaultCategories();
-    await ensureDefaultCategoryModelOptions();
     await ensureDefaultUiSettings();
 
     const checks = await getRuntimeChecks();
@@ -1029,7 +1233,7 @@ async function startServer() {
       console.warn("Startup checks report missing dependencies. Check /api/health for details.");
     }
 
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    ensureHttpServerRunning();
   } catch (err) {
     const checks = await getRuntimeChecks().catch(() => null);
     appHealth = {
@@ -1044,8 +1248,11 @@ async function startServer() {
       },
     };
     console.error("Startup failed:", err);
+    // Keep health endpoint available even on failed boot so frontend can show diagnostics.
+    ensureHttpServerRunning();
   }
 }
 
 startServer();
+
 

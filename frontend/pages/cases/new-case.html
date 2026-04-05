@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Case - AXIS_CMS_WEB</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<link rel="stylesheet" href="../../assets/css/cases.css">
+</head>
+<body>
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>AXIS_CMS_WEB</span>
+    </div>
+    <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="case-list.html">Cases</a></li>
+        <li><a href="new-case.html">New Case</a></li>
+        <li><a href="plaint.html">Plaint</a></li>
+        <li><a href="answer.html">Answer</a></li>
+        <li><a href="witness-list.html">List of witnesses</a></li>
+        <li><a href="judgment-list.html">Dugement</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header><h2 id="formTitle">New Case</h2></header>
+    <div class="form-container">
+        <form id="caseForm" class="form-grid">
+            <input type="hidden" id="caseId">
+            <div>
+                <label for="case_date">Date</label>
+                <input type="date" id="case_date" required>
+            </div>
+            <div>
+                <label for="case_no">Case No</label>
+                <input type="text" id="case_no" required>
+            </div>
+            <div class="full">
+                <label for="customer_search">Customer Name Search</label>
+                <input type="text" id="customer_search" list="customerOptions" placeholder="Search customer name" required>
+                <datalist id="customerOptions"></datalist>
+                <input type="hidden" id="customer_id">
+            </div>
+            <div>
+                <label for="court_type">Court Type</label>
+                <select id="court_type" required>
+                    <option value="">Select Court Type</option>
+                    <option value="DC Court">DC Court</option>
+                    <option value="High Court">High Court</option>
+                    <option value="Supreme Court">Supreme Court</option>
+                </select>
+            </div>
+            <div>
+                <label for="category">Category</label>
+                <select id="category" required>
+                    <option value="">Select Category</option>
+                </select>
+            </div>
+            <div>
+                <label for="court">Court</label>
+                <input type="text" id="court" required>
+            </div>
+            <div>
+                <label for="attend_lawyer">Attend Lawyer</label>
+                <input type="text" id="attend_lawyer" required>
+            </div>
+            <div class="full">
+                <label for="comment">Comment</label>
+                <textarea id="comment" rows="7" placeholder="Case comments (up to 1000 words)"></textarea>
+                <div class="word-hint" id="commentWords">0/1000 words</div>
+            </div>
+            <div class="full">
+                <label>Upload Option</label>
+                <div class="upload-picker">
+                    <button type="button" class="upload-trigger" id="cameraUploadBtn" title="Capture photos using mobile camera">
+                        <span class="upload-icon" aria-hidden="true">??</span>
+                        <span>Camera</span>
+                    </button>
+                    <button type="button" class="upload-trigger" id="folderUploadBtn" title="Upload images, PDF, DOC from local folder">
+                        <span class="upload-icon" aria-hidden="true">??</span>
+                        <span>Folder Upload</span>
+                    </button>
+                </div>
+                <input type="file" id="camera_uploads" accept="image/*" capture="environment" multiple hidden>
+                <input type="file" id="folder_uploads" accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx" multiple hidden>
+            </div>
+            <div class="full upload-preview" id="uploadPreview"></div>
+            <div class="full cases-actions">
+                <button type="submit" class="btn btn-primary" id="saveCaseBtn">Save Case</button>
+                <a class="icon-btn back-icon-btn" href="case-list.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js?v=20260402p03"></script>
+<script src="../../assets/js/new-case.js?v=20260402p01"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+

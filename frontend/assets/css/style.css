@@ -52,6 +52,33 @@ a {
   color: inherit;
 }
 
+.back-icon-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 14px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: #16395b;
+  text-decoration: none;
+  padding: 0;
+  line-height: 1;
+  transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.back-icon-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.back-icon-btn:hover {
+  transform: translateY(-1px);
+  border-color: #adc9e6;
+  box-shadow: 0 10px 20px rgba(15, 106, 191, 0.14);
+}
+
 h1,
 h2,
 h3,
@@ -72,6 +99,7 @@ p {
   position: relative;
   z-index: 1;
   padding: 26px;
+  padding-bottom: 96px;
 }
 
 .main-content > header,
@@ -323,6 +351,9 @@ tbody tr:hover {
   color: #2c4762;
   text-align: center;
   font-size: 0.84rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   z-index: 1100;
   backdrop-filter: blur(8px);
 }
@@ -346,6 +377,7 @@ body.app-has-sidebar-footer .app-global-footer {
 @media (max-width: 900px) {
   .main-content {
     padding: 14px;
+    padding-bottom: 96px;
   }
 
   .card,
@@ -375,6 +407,9 @@ body.app-has-sidebar-footer .app-global-footer {
   body.app-has-sidebar-footer .app-global-footer {
     left: 0;
     width: 100%;
+    font-size: 0.72rem;
+    padding-left: 8px;
+    padding-right: 8px;
   }
 
   .main-content > header,

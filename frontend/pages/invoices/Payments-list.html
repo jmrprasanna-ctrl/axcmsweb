@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payments list - AXIS_CMS_WEB</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../../assets/extracted/pages/invoices/invoice-list.inline-style-1.css">
+</head>
+<body>
+                    
+    <div class="sidebar">
+        <div class="logo">
+            <img src="../../assets/images/logo.png" alt="Logo">
+            <span>AXIS_CMS_WEB</span>
+        </div>
+            <ul class="nav-links">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../customers/client-list.html">Client</a></li>
+        <li><a href="../invoices/Payments-list.html">Invoices</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>`r`n        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+    </ul>
+    </div>
+
+    <div class="main-content">
+        <header><h2>Payments list</h2></header>
+        <button class="btn btn-primary" id="addInvoiceBtn" type="button">Add Invoice</button>
+        <input type="text" id="invoiceSearch" class="search-inline" placeholder="Search Invoice No, Customer, Count, Date, Total">
+        <select id="invoiceYearFilter" class="year-inline"></select>
+        <div class="card">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Invoice No</th>
+                        <th>Customer</th>
+                        <th>Count</th>
+                        <th>Date</th>
+                        <th>Total</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="invoice-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="../../assets/js/api.js"></script>
+    <script src="../../assets/extracted/pages/invoices/invoice-list.inline-script-1.js"></script>
+</body>
+</html>
+
+
+

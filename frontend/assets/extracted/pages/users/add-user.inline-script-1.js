@@ -1,16 +1,31 @@
 window.addEventListener("load", () => {
             const form = document.getElementById('addUserForm');
-            const companyInput = document.getElementById('company');
+            const companySelect = document.getElementById('company');
             const togglePassword = document.getElementById('togglePassword');
             const passwordInput = document.getElementById('password');
             const eyeIcon = document.getElementById('eyeIcon');
 
-            companyInput.style.textTransform = "uppercase";
-            companyInput.addEventListener("input", () => {
-                const pos = companyInput.selectionStart;
-                companyInput.value = companyInput.value.toUpperCase();
-                companyInput.setSelectionRange(pos, pos);
-            });
+            async function loadMappedCompanies() {
+                companySelect.innerHTML = '<option value="">Select company</option>';
+                try {
+                    const res = await request("/users/my-companies", "GET");
+                    const companies = Array.isArray(res?.companies) ? res.companies : [];
+                    companies.forEach((item) => {
+                        const companyName = String(item?.company_name || "").trim();
+                        if (!companyName) return;
+                        const opt = document.createElement("option");
+                        opt.value = companyName;
+                        opt.textContent = companyName;
+                        companySelect.appendChild(opt);
+                    });
+                    if (companySelect.options.length === 2) {
+                        companySelect.selectedIndex = 1;
+                    }
+                } catch (_err) {
+                    // keep default empty option to avoid blocking the page
+                }
+            }
+            loadMappedCompanies();
 
             form.addEventListener('submit', async e => {
                 e.preventDefault();

@@ -2,7 +2,7 @@ const EmailSetup = require("../models/EmailSetup");
 const db = require("../config/database");
 
 function buildDefaults(mappedProfile = {}){
-  const companyName = String(mappedProfile.company_name || "").trim() || "PULMO TECHNOLOGIES";
+  const companyName = String(mappedProfile.company_name || "").trim() || "AXIS_CMS_WEB";
   const companyEmail = String(mappedProfile.email || "").trim().toLowerCase() || "";
   return {
     smtp_user: companyEmail || null,
@@ -73,13 +73,13 @@ function normalizeBody(body = {}, defaults = {}){
     smtp_secure: !!body.smtp_secure,
     smtp_user: smtpUser,
     smtp_pass: smtpPass,
-    from_name: String(body.from_name || defaults.from_name || "").trim() || "PULMO TECHNOLOGIES",
+    from_name: String(body.from_name || defaults.from_name || "").trim() || "AXIS_CMS_WEB",
     from_email: String(body.from_email || defaults.from_email || "").trim() || null,
-    subject_template: String(body.subject_template || defaults.subject_template || "").trim() || "Invoice {{invoice_no}} - PULMO TECHNOLOGIES",
+    subject_template: String(body.subject_template || defaults.subject_template || "").trim() || "Invoice {{invoice_no}} - AXIS_CMS_WEB",
     body_template:
       String(body.body_template || "").trim() ||
       String(defaults.body_template || "").trim() ||
-      "Dear {{customer_name}},\n\nPlease find attached your invoice {{invoice_no}}.\n\nThank you.\nPULMO TECHNOLOGIES"
+      "Dear {{customer_name}},\n\nPlease find attached your invoice {{invoice_no}}.\n\nThank you.\nAXIS_CMS_WEB"
   };
 }
 
