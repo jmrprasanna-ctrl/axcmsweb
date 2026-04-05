@@ -60,8 +60,8 @@
         if (selectedUserId) {
             els.login_user.value = String(selectedUserId);
         }
-        if (data.profile_picture_api_url || data.profile_picture_url) {
-            els.avatar.src = resolveProfileAvatarUrl(data.profile_picture_api_url || data.profile_picture_url);
+        if (data.profile_picture_data_url || data.profile_picture_url || data.profile_picture_api_url) {
+            els.avatar.src = resolveProfileAvatarUrl(data.profile_picture_data_url || data.profile_picture_url || data.profile_picture_api_url);
         } else {
             els.avatar.src = DEFAULT_AVATAR_PLACEHOLDER;
         }
@@ -227,8 +227,8 @@
                 profile_picture_base64: pictureBase64,
                 profile_picture_name: pictureName || "profile",
             });
-            if (res && (res.profile_picture_api_url || res.profile_picture_url)) {
-                els.avatar.src = resolveProfileAvatarUrl(res.profile_picture_api_url || res.profile_picture_url);
+            if (res && (res.profile_picture_data_url || res.profile_picture_url || res.profile_picture_api_url)) {
+                els.avatar.src = resolveProfileAvatarUrl(res.profile_picture_data_url || res.profile_picture_url || res.profile_picture_api_url);
             }
             showMessageBox("Profile picture updated");
         } catch (err) {

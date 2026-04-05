@@ -38,7 +38,7 @@
             }
             const canEdit = typeof hasUserActionPermission === "function" && hasUserActionPermission(PROFILE_PATH, "edit");
             tableBody.innerHTML = list.map((p) => {
-                const avatar = resolveProfileAvatarUrl(p.profile_picture_api_url || p.profile_picture_url);
+                const avatar = resolveProfileAvatarUrl(p.profile_picture_data_url || p.profile_picture_url || p.profile_picture_api_url);
                 const profileId = Number(p.id || 0);
                 return `
                     <tr data-open-id="${profileId}" ${canEdit && profileId ? `style="cursor:pointer;"` : ""}>
