@@ -2,7 +2,6 @@ const userSelectEl = document.getElementById("userSelect");
         const databaseSelectEl = document.getElementById("databaseSelect");
         const companySelectEl = document.getElementById("companySelect");
         const mappingEmailEl = document.getElementById("mappingEmail");
-        const mappingLogoFileEl = document.getElementById("mappingLogoFile");
         const userCompanyNameEl = document.getElementById("userCompanyName");
         const databaseCompanyNameEl = document.getElementById("databaseCompanyName");
         const selectedCompanyNameEl = document.getElementById("selectedCompanyName");
@@ -22,28 +21,7 @@ const userSelectEl = document.getElementById("userSelect");
         let databases = [];
         let companies = [];
         let mappedEntriesCache = [];
-        const ALLOWED_EXT = new Set([".jpg", ".jpeg", ".bmp", ".gif", ".tiff", ".tif", ".png"]);
         const DEFAULT_COMPANY_LOGO = "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='10' fill='%23eef3f9'/%3E%3Cpath d='M16 42l10-11 8 9 7-8 7 10' stroke='%2390a4b8' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='24' cy='23' r='4' fill='%2390a4b8'/%3E%3C/svg%3E";
-
-        function readFileAsDataURL(file){
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(String(reader.result || ""));
-                reader.onerror = () => reject(new Error("Failed to read file."));
-                reader.readAsDataURL(file);
-            });
-        }
-
-        function validateLogoFile(file){
-            if(!file) return "";
-            const name = String(file.name || "").trim();
-            const dot = name.lastIndexOf(".");
-            const ext = dot >= 0 ? name.slice(dot).toLowerCase() : "";
-            if(!ALLOWED_EXT.has(ext)){
-                return "Invalid logo format. Allowed: .jpg, .jpeg, .bmp, .gif, .tiff, .png";
-            }
-            return "";
-        }
 
         function findUser(userId){
             return users.find((u) => Number(u.id) === Number(userId)) || null;
@@ -234,21 +212,8 @@ const userSelectEl = document.getElementById("userSelect");
                 return;
             }
             try{
-                const file = mappingLogoFileEl && mappingLogoFileEl.files ? mappingLogoFileEl.files[0] : null;
-                const logoValidationError = validateLogoFile(file);
-                if(logoValidationError){
-                    alert(logoValidationError);
-                    return;
-                }
-                if(file){
-                    payload.logo_file_name = String(file.name || "").trim();
-                    payload.logo_file_data_base64 = await readFileAsDataURL(file);
-                }
                 const res = await request("/users/mapped/save", "POST", payload);
                 showMessageBox(res.message || "Mapped successfully");
-                if(mappingLogoFileEl){
-                    mappingLogoFileEl.value = "";
-                }
                 upsertMappedEntryFromSave(res && res.mapping ? res.mapping : null);
                 await loadMappedEntries();
             }catch(err){

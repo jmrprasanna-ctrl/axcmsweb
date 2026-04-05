@@ -576,69 +576,6 @@ function deleteCompanyLogoFiles(folderPath) {
   }
 }
 
-async function updateCompanyLogoFromPayload(mainDbClient, companyId, logoFileNameRaw, logoDataUrlRaw) {
-  const fileName = String(logoFileNameRaw || "").trim();
-  const dataUrl = String(logoDataUrlRaw || "").trim();
-  if (!fileName && !dataUrl) {
-    return null;
-  }
-  if (!fileName || !dataUrl) {
-    throw new Error("Both logo file name and logo data are required.");
-  }
-  const ext = path.extname(fileName).toLowerCase();
-  if (!COMPANY_LOGO_EXTENSIONS.has(ext)) {
-    throw new Error("Invalid logo format. Allowed: .jpg, .jpeg, .bmp, .gif, .tiff, .png");
-  }
-  const logoBuffer = parseBase64Payload(dataUrl);
-  if (!logoBuffer || !logoBuffer.length) {
-    throw new Error("Uploaded logo is empty.");
-  }
-
-  const companyRs = await mainDbClient.query(
-    `SELECT id, company_name, folder_name
-     FROM ${COMPANY_REGISTRY_TABLE}
-     WHERE id = $1
-     LIMIT 1`,
-    [Number(companyId || 0)]
-  );
-  if (!companyRs.rowCount) {
-    throw new Error("Selected company not found.");
-  }
-
-  let folderName = String(companyRs.rows[0]?.folder_name || "").trim();
-  let folderPath = "";
-  if (!folderName) {
-    folderPath = resolveCompanyFolder(companyRs.rows[0]?.company_name || "company");
-    let suffix = 1;
-    while (fs.existsSync(folderPath)) {
-      folderPath = path.join(COMPANY_STORAGE_ROOT, `${safeNamePart(companyRs.rows[0]?.company_name || "company")}_${suffix++}`);
-    }
-    folderName = path.basename(folderPath);
-  } else {
-    folderPath = path.resolve(COMPANY_STORAGE_ROOT, folderName);
-  }
-  ensureDir(folderPath);
-  deleteCompanyLogoFiles(folderPath);
-
-  const storedLogoFileName = sanitizeLogoFileName(fileName, ext);
-  const logoPathAbs = path.join(folderPath, storedLogoFileName);
-  fs.writeFileSync(logoPathAbs, logoBuffer);
-  const relativeLogoPath = toRelativeStoragePath(logoPathAbs);
-
-  const updatedRs = await mainDbClient.query(
-    `UPDATE ${COMPANY_REGISTRY_TABLE}
-     SET folder_name = $2,
-         logo_path = $3,
-         logo_file_name = $4,
-         logo_data_url = $5,
-         "updatedAt" = NOW()
-     WHERE id = $1
-     RETURNING id, folder_name, logo_path, logo_file_name, logo_data_url`,
-    [Number(companyId || 0), folderName, relativeLogoPath, storedLogoFileName, dataUrl]
-  );
-  return updatedRs.rowCount ? updatedRs.rows[0] : null;
-}
-
 async function ensureDatabaseRegistryTable(client) {
   await client.query(`
     CREATE TABLE IF NOT EXISTS ${DATABASE_REGISTRY_TABLE} (
@@ -2504,8 +2441,6 @@ exports.saveMapping = async (req, res) => {
   const databaseName = normalizeDatabaseName(req.body?.database_name);
   const companyId = Number(req.body?.company_profile_id || 0);
   const mappedEmail = normalizeEmail(req.body?.email || req.body?.mapped_email);
-  const logoFileName = String(req.body?.logo_file_name || "").trim();
-  const logoData = String(req.body?.logo_file_data_base64 || "").trim();
   if (!Number.isFinite(userId) || userId <= 0 || !databaseName || !Number.isFinite(companyId) || companyId <= 0 || !mappedEmail) {
     return res.status(400).json({ message: "User, database, company and email are required." });
   }
@@ -2523,9 +2458,6 @@ exports.saveMapping = async (req, res) => {
     await ensureDatabaseRegistryTable(mainDbClient);
     await ensureCompanyRegistryTable(mainDbClient);
     await ensureUserMappingTable(mainDbClient);
-    if (logoFileName || logoData) {
-      await updateCompanyLogoFromPayload(mainDbClient, companyId, logoFileName, logoData);
-    }
     const result = await getMappingPieces(mainDbClient, userId, databaseName, companyId, mappedEmail);
     if (!result.verified) {
       return res.status(400).json({
