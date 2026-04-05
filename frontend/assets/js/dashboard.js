@@ -4,6 +4,7 @@ const storedEmail = localStorage.getItem("userEmail") || "";
 const storedName = localStorage.getItem("userName") || "";
 let storedProfilePicturePath = localStorage.getItem("userProfilePictureUrl") || "";
 const displayName = storedName || storedEmail || storedRole || "User";
+const MENU_AVATAR_PLACEHOLDER = "../assets/images/profile-placeholder.svg";
 
 const roleEl = document.getElementById("userRole");
 if (roleEl) roleEl.innerText = storedRole;
@@ -32,20 +33,51 @@ if(menuInitialEl){
 
 function applyUserAvatarImage() {
     const menuAvatarEl = document.getElementById("userMenuInitial");
-    if(!menuAvatarEl) return;
+    const menuBtn = document.getElementById("userMenuBtn");
+    if(!menuAvatarEl || !menuBtn) return;
     const raw = String(storedProfilePicturePath || "").trim();
+    const menuButtonDefaultIcon = `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 12.2a4.1 4.1 0 1 0 0-8.2 4.1 4.1 0 0 0 0 8.2Z" fill="none" stroke="currentColor" stroke-width="1.7"/>
+            <path d="M4.3 20.1a7.7 7.7 0 0 1 15.4 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+    `;
     if(!raw){
         menuAvatarEl.classList.remove("has-image");
         const initialSource = displayName.trim();
         menuAvatarEl.textContent = initialSource ? initialSource[0].toUpperCase() : "U";
+        menuBtn.classList.remove("has-image");
+        menuBtn.innerHTML = menuButtonDefaultIcon;
         return;
     }
-    const apiOrigin = String(BASE_URL || "").replace(/\/api\/?$/i, "");
-    const absolute = /^https?:\/\//i.test(raw)
+    const apiOrigin = String(BASE_URL || "").replace(/\/api\/?$/i, "").replace(/\/+$/, "");
+    const absolute = /^data:image\//i.test(raw)
         ? raw
-        : `${apiOrigin}${raw.startsWith("/") ? "" : "/"}${raw}`;
+        : (/^https?:\/\//i.test(raw)
+            ? raw
+            : `${apiOrigin}${raw.startsWith("/") ? "" : "/"}${raw}`);
+    const safeAvatar = absolute || MENU_AVATAR_PLACEHOLDER;
+
     menuAvatarEl.classList.add("has-image");
-    menuAvatarEl.innerHTML = `<img src="${absolute}" alt="Profile" class="user-menu-head-avatar-img">`;
+    menuAvatarEl.innerHTML = `<img src="${safeAvatar}" alt="Profile" class="user-menu-head-avatar-img">`;
+    const menuHeadImg = menuAvatarEl.querySelector("img");
+    if (menuHeadImg) {
+        menuHeadImg.onerror = () => {
+            menuAvatarEl.classList.remove("has-image");
+            const initialSource = displayName.trim();
+            menuAvatarEl.textContent = initialSource ? initialSource[0].toUpperCase() : "U";
+        };
+    }
+
+    menuBtn.classList.add("has-image");
+    menuBtn.innerHTML = `<img src="${safeAvatar}" alt="Profile" class="user-menu-btn-avatar-img">`;
+    const btnImg = menuBtn.querySelector("img");
+    if (btnImg) {
+        btnImg.onerror = () => {
+            menuBtn.classList.remove("has-image");
+            menuBtn.innerHTML = menuButtonDefaultIcon;
+        };
+    }
 }
 
 async function hydrateAvatarFromProfiles() {
@@ -62,8 +94,11 @@ async function hydrateAvatarFromProfiles() {
             || list.find((p) => String(p.login_user || "").trim().toLowerCase() === username)
             || list.find((p) => String(p.login_user || "").trim().toLowerCase() === email);
 
-        if (match && match.profile_picture_url) {
-            storedProfilePicturePath = String(match.profile_picture_url || "").trim();
+        const bestAvatar = match
+            ? String(match.profile_picture_data_url || match.profile_picture_url || match.profile_picture_api_url || "").trim()
+            : "";
+        if (bestAvatar) {
+            storedProfilePicturePath = bestAvatar;
             localStorage.setItem("userProfilePictureUrl", storedProfilePicturePath);
             applyUserAvatarImage();
         }

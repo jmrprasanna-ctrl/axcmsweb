@@ -1269,8 +1269,11 @@ async function login(){
         }else{
             localStorage.removeItem(MAPPED_COMPANY_LOGO_URL_KEY);
         }
-        if(res.user && res.user.user_profile_picture_url){
-            localStorage.setItem("userProfilePictureUrl", String(res.user.user_profile_picture_url).trim());
+        const loginAvatar = res && res.user
+            ? String(res.user.user_profile_picture_data_url || res.user.user_profile_picture_url || "").trim()
+            : "";
+        if(loginAvatar){
+            localStorage.setItem("userProfilePictureUrl", loginAvatar);
         }else{
             localStorage.removeItem("userProfilePictureUrl");
         }
