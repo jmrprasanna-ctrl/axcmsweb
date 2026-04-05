@@ -535,6 +535,30 @@ function resolveCompanyFolder(companyName) {
   return path.join(COMPANY_STORAGE_ROOT, base);
 }
 
+function sanitizeLogoFileName(fileName, ext) {
+  const fallbackExt = String(ext || "").toLowerCase();
+  const baseRaw = path.basename(String(fileName || ""), path.extname(String(fileName || "")));
+  const safeBase = String(baseRaw || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 80) || "logo";
+  return `${safeBase}_${Date.now()}${fallbackExt}`;
+}
+
+function deleteCompanyLogoFiles(folderPath) {
+  if (!folderPath || !fs.existsSync(folderPath)) return;
+  const files = fs.readdirSync(folderPath);
+  for (const fileName of files) {
+    if (!/\.(png|jpg|jpeg|bmp|gif|tif|tiff)$/i.test(String(fileName || ""))) continue;
+    const abs = path.join(folderPath, fileName);
+    if (fs.existsSync(abs) && fs.statSync(abs).isFile()) {
+      fs.unlinkSync(abs);
+    }
+  }
+}
+
 async function ensureDatabaseRegistryTable(client) {
   await client.query(`
     CREATE TABLE IF NOT EXISTS ${DATABASE_REGISTRY_TABLE} (
@@ -1920,46 +1944,89 @@ exports.createCompany = async (req, res) => {
     await mainDbClient.connect();
     await ensureCompanyRegistryTable(mainDbClient);
 
-    const existsRs = await mainDbClient.query(
-      `SELECT id FROM ${COMPANY_REGISTRY_TABLE} WHERE LOWER(company_name) = LOWER($1) LIMIT 1`,
-      [companyName]
+    const existingRs = await mainDbClient.query(
+      `SELECT id, company_name, company_code, email, folder_name, logo_path, logo_file_name
+       FROM ${COMPANY_REGISTRY_TABLE}
+       WHERE UPPER(COALESCE(company_code, '')) = UPPER($1)
+          OR LOWER(company_name) = LOWER($2)
+       ORDER BY
+         CASE WHEN UPPER(COALESCE(company_code, '')) = UPPER($1) THEN 0 ELSE 1 END ASC,
+         id ASC
+       LIMIT 1`,
+      [companyCode, companyName]
     );
-    if (existsRs.rowCount) {
-      return res.status(409).json({ message: "Company already exists." });
-    }
-    const codeExistsRs = await mainDbClient.query(
-      `SELECT id FROM ${COMPANY_REGISTRY_TABLE} WHERE UPPER(COALESCE(company_code, '')) = UPPER($1) LIMIT 1`,
-      [companyCode]
-    );
-    if (codeExistsRs.rowCount) {
-      return res.status(409).json({ message: "Company code already exists." });
-    }
 
     ensureDir(COMPANY_STORAGE_ROOT);
-    let folderPath = resolveCompanyFolder(companyName);
-    let suffix = 1;
-    while (fs.existsSync(folderPath)) {
-      folderPath = path.join(COMPANY_STORAGE_ROOT, `${safeNamePart(companyName)}_${suffix++}`);
+    let folderPath = "";
+    let folderName = "";
+
+    if (existingRs.rowCount) {
+      folderName = String(existingRs.rows[0]?.folder_name || "").trim();
+      if (!folderName) {
+        folderPath = resolveCompanyFolder(companyName);
+        let suffix = 1;
+        while (fs.existsSync(folderPath)) {
+          folderPath = path.join(COMPANY_STORAGE_ROOT, `${safeNamePart(companyName)}_${suffix++}`);
+        }
+        folderName = path.basename(folderPath);
+      } else {
+        folderPath = path.resolve(COMPANY_STORAGE_ROOT, folderName);
+      }
+      ensureDir(folderPath);
+      deleteCompanyLogoFiles(folderPath);
+    } else {
+      folderPath = resolveCompanyFolder(companyName);
+      let suffix = 1;
+      while (fs.existsSync(folderPath)) {
+        folderPath = path.join(COMPANY_STORAGE_ROOT, `${safeNamePart(companyName)}_${suffix++}`);
+      }
+      ensureDir(folderPath);
+      folderName = path.basename(folderPath);
     }
-    ensureDir(folderPath);
 
-    const logoPath = path.join(folderPath, `logo${ext}`);
+    const storedLogoFileName = sanitizeLogoFileName(fileName, ext);
+    const logoPath = path.join(folderPath, storedLogoFileName);
     fs.writeFileSync(logoPath, logoBuffer);
-    const folderName = path.basename(folderPath);
     const relativeLogoPath = toRelativeStoragePath(logoPath);
-
-    const rs = await mainDbClient.query(
-      `INSERT INTO ${COMPANY_REGISTRY_TABLE}
-       (company_name, company_code, email, folder_name, logo_path, logo_file_name, created_by, "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-       RETURNING id, company_name, company_code, email, folder_name, logo_path, logo_file_name, "createdAt", "updatedAt"`,
-      [companyName, companyCode, companyEmail, folderName, relativeLogoPath, path.basename(logoPath), Number(req.user?.id || 0) || null]
-    );
+    let rs;
+    let message = "Company created successfully.";
+    if (existingRs.rowCount) {
+      rs = await mainDbClient.query(
+        `UPDATE ${COMPANY_REGISTRY_TABLE}
+         SET company_name = $1,
+             company_code = $2,
+             email = $3,
+             folder_name = $4,
+             logo_path = $5,
+             logo_file_name = $6,
+             "updatedAt" = NOW()
+         WHERE id = $7
+         RETURNING id, company_name, company_code, email, folder_name, logo_path, logo_file_name, "createdAt", "updatedAt"`,
+        [
+          companyName,
+          companyCode,
+          companyEmail,
+          folderName,
+          relativeLogoPath,
+          storedLogoFileName,
+          Number(existingRs.rows[0]?.id || 0),
+        ]
+      );
+      message = "Company updated successfully.";
+    } else {
+      rs = await mainDbClient.query(
+        `INSERT INTO ${COMPANY_REGISTRY_TABLE}
+         (company_name, company_code, email, folder_name, logo_path, logo_file_name, created_by, "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+         RETURNING id, company_name, company_code, email, folder_name, logo_path, logo_file_name, "createdAt", "updatedAt"`,
+        [companyName, companyCode, companyEmail, folderName, relativeLogoPath, storedLogoFileName, Number(req.user?.id || 0) || null]
+      );
+    }
 
     const row = rs.rows[0];
     const normalizedLogoPath = normalizeCompanyLogoPath(row.logo_path, row.folder_name, row.logo_file_name);
     res.status(201).json({
-      message: "Company created successfully.",
+      message,
       company: {
         id: Number(row.id || 0),
         company_name: normalizeCompanyName(row.company_name),

@@ -160,14 +160,14 @@ const companyNameEl = document.getElementById("companyName");
 
             try{
                 const fileData = await readFileAsDataURL(file);
-                await request("/users/companies/create", "POST", {
+                const saveRes = await request("/users/companies/create", "POST", {
                     company_name: normalizeCompanyUppercase(companyName),
                     company_code: companyCode,
                     email: companyEmail,
                     logo_file_name: String(file.name || "").trim(),
                     logo_file_data_base64: fileData
                 });
-                showMessageBox("Company created");
+                showMessageBox(String(saveRes?.message || "Company saved"));
                 companyNameEl.value = "";
                 companyCodeEl.value = "";
                 companyEmailEl.value = "";
