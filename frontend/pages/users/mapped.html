@@ -59,6 +59,32 @@
                 <button id="mappedBtn" class="btn btn-primary" type="button" onclick="saveMapping()">Mapped</button>
                 <a class="icon-btn back-icon-btn" href="user-access.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
             </div>
+
+            <div class="mapped-table-wrap">
+                <div class="mapped-table-head">
+                    <h3>Mapped Data</h3>
+                </div>
+                <div class="mapped-table-scroll">
+                    <table class="db-table mapped-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>User Email</th>
+                                <th>Database</th>
+                                <th>Company</th>
+                                <th>Company Email</th>
+                                <th>Mapped Email</th>
+                                <th>Verified</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mappedEntriesBody">
+                            <tr>
+                                <td colspan="7">No mapped data yet.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 

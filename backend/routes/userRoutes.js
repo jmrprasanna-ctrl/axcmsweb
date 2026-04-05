@@ -14,6 +14,7 @@ const {
   getMappedByUser,
   verifyMapping,
   saveMapping,
+  listMappedEntries,
   getInvMapByUser,
   listInvMapEntries,
   deleteInvMapEntry,
@@ -53,6 +54,7 @@ router.get("/companies", getCompanies);
 router.post("/companies/create", createCompany);
 router.delete("/companies/:companyId", deleteCompany);
 router.get("/mapped/meta", getMappedMeta);
+router.get("/mapped/entries", listMappedEntries);
 router.get("/mapped/:userId", getMappedByUser);
 router.post("/mapped/verify", verifyMapping);
 router.post("/mapped/save", saveMapping);

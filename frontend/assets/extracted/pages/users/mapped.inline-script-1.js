@@ -10,6 +10,7 @@ const userSelectEl = document.getElementById("userSelect");
         const verifyStatusEl = document.getElementById("verifyStatus");
         const verifyBtnEl = document.getElementById("verifyBtn");
         const mappedBtnEl = document.getElementById("mappedBtn");
+        const mappedEntriesBodyEl = document.getElementById("mappedEntriesBody");
 
         const MAPPED_PATH = "/users/mapped.html";
         let canAddMapped = false;
@@ -169,8 +170,50 @@ const userSelectEl = document.getElementById("userSelect");
             try{
                 const res = await request("/users/mapped/save", "POST", payload);
                 showMessageBox(res.message || "Mapped successfully");
+                await loadMappedEntries();
             }catch(err){
                 alert(err.message || "Failed to save mapping");
+            }
+        }
+
+        function escapeHtml(value){
+            return String(value == null ? "" : value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/\"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function renderMappedEntries(entries){
+            if(!mappedEntriesBodyEl) return;
+            if(!Array.isArray(entries) || !entries.length){
+                mappedEntriesBodyEl.innerHTML = `<tr><td colspan="7">No mapped data yet.</td></tr>`;
+                return;
+            }
+            mappedEntriesBodyEl.innerHTML = entries.map((row) => {
+                const userLabel = row.username
+                    ? `${row.username}${row.company_code ? ` [${row.company_code}]` : ""}`
+                    : `User #${Number(row.user_id || 0) || "-"}`;
+                return `<tr>
+                    <td>${escapeHtml(userLabel)}</td>
+                    <td>${escapeHtml(row.user_email || "-")}</td>
+                    <td>${escapeHtml(row.database_name || "-")}</td>
+                    <td>${escapeHtml(row.company_name || "-")}</td>
+                    <td>${escapeHtml(row.company_email || "-")}</td>
+                    <td>${escapeHtml(row.mapped_email || "-")}</td>
+                    <td>${row.is_verified ? "Yes" : "No"}</td>
+                </tr>`;
+            }).join("");
+        }
+
+        async function loadMappedEntries(){
+            if(!mappedEntriesBodyEl) return;
+            try{
+                const res = await request("/users/mapped/entries", "GET");
+                renderMappedEntries(Array.isArray(res.entries) ? res.entries : []);
+            }catch(err){
+                mappedEntriesBodyEl.innerHTML = `<tr><td colspan="7">${escapeHtml(err.message || "Failed to load mapped data.")}</td></tr>`;
             }
         }
 
@@ -214,4 +257,5 @@ const userSelectEl = document.getElementById("userSelect");
             await applyPermissionState();
             await loadMeta();
             updateNameViews();
+            await loadMappedEntries();
         })();
