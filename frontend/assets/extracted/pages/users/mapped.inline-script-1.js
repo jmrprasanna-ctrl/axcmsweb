@@ -18,6 +18,7 @@ const userSelectEl = document.getElementById("userSelect");
         let users = [];
         let databases = [];
         let companies = [];
+        let mappedEntriesCache = [];
 
         function findUser(userId){
             return users.find((u) => Number(u.id) === Number(userId)) || null;
@@ -170,6 +171,7 @@ const userSelectEl = document.getElementById("userSelect");
             try{
                 const res = await request("/users/mapped/save", "POST", payload);
                 showMessageBox(res.message || "Mapped successfully");
+                upsertMappedEntryFromSave(res && res.mapping ? res.mapping : null);
                 await loadMappedEntries();
             }catch(err){
                 alert(err.message || "Failed to save mapping");
@@ -191,6 +193,7 @@ const userSelectEl = document.getElementById("userSelect");
                 mappedEntriesBodyEl.innerHTML = `<tr><td colspan="7">No mapped data yet.</td></tr>`;
                 return;
             }
+            mappedEntriesCache = entries.slice();
             mappedEntriesBodyEl.innerHTML = entries.map((row) => {
                 const userLabel = row.username
                     ? `${row.username}${row.company_code ? ` [${row.company_code}]` : ""}`
@@ -205,6 +208,31 @@ const userSelectEl = document.getElementById("userSelect");
                     <td>${row.is_verified ? "Yes" : "No"}</td>
                 </tr>`;
             }).join("");
+        }
+
+        function upsertMappedEntryFromSave(mapping){
+            if(!mapping || !mappedEntriesBodyEl) return;
+            const user = findUser(mapping.user_id);
+            const db = findDb(mapping.database_name);
+            const company = findCompany(mapping.company_profile_id);
+            const next = {
+                user_id: Number(mapping.user_id || 0),
+                username: user ? String(user.username || "").trim() : "",
+                user_email: user ? String(user.email || "").trim().toLowerCase() : "",
+                database_name: String(mapping.database_name || "").trim().toLowerCase(),
+                company_name: String(mapping.company_name || (company ? company.company_name : "") || "").trim(),
+                company_code: String(mapping.company_code || (company ? company.company_code : "") || "").trim().toUpperCase(),
+                company_email: String(mapping.email || (company ? company.email : "") || "").trim().toLowerCase(),
+                mapped_email: String(mapping.mapped_email || mapping.email || "").trim().toLowerCase(),
+                is_verified: true,
+            };
+            const idx = mappedEntriesCache.findIndex((x) => Number(x.user_id || 0) === next.user_id);
+            if(idx >= 0){
+                mappedEntriesCache.splice(idx, 1, { ...mappedEntriesCache[idx], ...next });
+            }else{
+                mappedEntriesCache.unshift(next);
+            }
+            renderMappedEntries(mappedEntriesCache);
         }
 
         async function loadMappedEntries(){

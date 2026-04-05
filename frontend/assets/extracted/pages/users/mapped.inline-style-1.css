@@ -1,14 +1,15 @@
-.mapped-wrap{max-width:900px}
-        .mapped-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-        .mapped-info{background:#f7fbff;border:1px solid #d8e8f8;border-radius:10px;padding:10px 12px;margin-top:12px}
+.mapped-wrap{max-width:1180px;width:100%;margin:0 auto}
+        .mapped-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+        .mapped-info{background:#f7fbff;border:1px solid #d8e8f8;border-radius:10px;padding:12px 14px;margin-top:12px}
         .mapped-row{display:grid;grid-template-columns:220px 1fr;gap:10px;padding:4px 0}
-        .mapped-table-wrap{margin-top:16px}
-        .mapped-table-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+        .mapped-table-wrap{margin-top:18px}
+        .mapped-table-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
         .mapped-table-head h3{margin:0;font-size:16px}
         .mapped-table-scroll{overflow:auto;border:1px solid #d8e8f8;border-radius:10px;background:#fff}
-        .mapped-table{min-width:840px}
+        .mapped-table{min-width:920px}
         .mapped-table td, .mapped-table th{white-space:nowrap}
         @media (max-width: 900px){
             .mapped-grid{grid-template-columns:1fr}
             .mapped-row{grid-template-columns:1fr}
+            .mapped-wrap{max-width:100%}
         }
