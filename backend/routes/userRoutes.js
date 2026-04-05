@@ -29,6 +29,7 @@ const {
 const { getLoginLogs, clearLoginLogs } = require("../controllers/userLogController");
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
+const User = require("../models/User");
 
 const router = express.Router();
 
@@ -64,6 +65,78 @@ router.get("/logs", getLoginLogs);
 router.delete("/logs", clearLoginLogs);
 router.get("/access/:userId", getUserAccess);
 router.put("/access/:userId", saveUserAccess);
+
+// Backward-compatible profile endpoints expected by frontend profile pages.
+router.get("/profiles", async (req, res) => {
+  try {
+    const users = await User.findAll({
+      attributes: ["id", "username", "email", "company", "department", "telephone"],
+      order: [["id", "DESC"]],
+    });
+    const rows = (Array.isArray(users) ? users : []).map((u) => ({
+      id: u.id,
+      profile_name: u.username || "",
+      email: u.email || "",
+      login_user: u.username || "",
+      company_name: u.company || "",
+      department: u.department || "",
+      mobile: u.telephone || "",
+      telephone: u.telephone || "",
+      profile_picture_url: null,
+    }));
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.get("/profiles/user-options", async (req, res) => {
+  try {
+    const users = await User.findAll({
+      attributes: ["id", "username", "email"],
+      order: [["id", "DESC"]],
+    });
+    const rows = (Array.isArray(users) ? users : []).map((u) => ({
+      id: u.id,
+      username: u.username || "",
+      email: u.email || "",
+    }));
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.get("/profiles/user-by-email", async (req, res) => {
+  try {
+    const email = String(req.query.email || "").trim();
+    if (!email) return res.status(400).json({ message: "email is required" });
+    const user = await User.findOne({ where: { email } });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json({
+      id: user.id,
+      profile_name: user.username || "",
+      email: user.email || "",
+      login_user: user.username || "",
+      company_name: user.company || "",
+      department: user.department || "",
+      mobile: user.telephone || "",
+      telephone: user.telephone || "",
+      profile_picture_url: null,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.get("/profiles/:id", getUserById);
+router.post("/profiles", addUser);
+router.put("/profiles/:id", updateUser);
+router.delete("/profiles/:id", deleteUser);
+
 router.get("/", getUsers);
 router.get("/:id", getUserById);
 router.post("/", addUser);
