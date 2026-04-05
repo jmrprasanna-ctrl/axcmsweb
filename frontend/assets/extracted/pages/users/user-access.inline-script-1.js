@@ -1,7 +1,8 @@
-const userSelectEl = document.getElementById("userSelect");
+        const userSelectEl = document.getElementById("userSelect");
         const databaseSelectEl = document.getElementById("databaseSelect");
         const superUserCheckboxEl = document.getElementById("superUserCheckbox");
         const accessMatrixEl = document.getElementById("accessMatrix");
+        const userAccessBackBtnEl = document.getElementById("userAccessBackBtn");
         let moduleOptions = [];
         let defaultDatabaseName = "axiscmsdb";
 
@@ -292,6 +293,17 @@ const userSelectEl = document.getElementById("userSelect");
         const clearAccessBtn = document.getElementById("clearAccessBtn");
         if(clearAccessBtn){
             clearAccessBtn.addEventListener("click", clearAccess);
+        }
+        if(userAccessBackBtnEl){
+            userAccessBackBtnEl.addEventListener("click", (ev) => {
+                ev.preventDefault();
+                const target = "user-list.html";
+                try{
+                    window.location.href = target;
+                }catch(_err){
+                    window.location.assign(target);
+                }
+            });
         }
 
         (async function init(){
