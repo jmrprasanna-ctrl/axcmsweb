@@ -98,9 +98,30 @@ const userSelectEl = document.getElementById("userSelect");
             try{
                 const res = await request("/users/access-users", "GET");
                 const users = Array.isArray(res.users) ? res.users : [];
+                const preferredDb = String(localStorage.getItem("selectedDatabaseName") || "").trim().toLowerCase();
+                const dedupedMap = new Map();
+                users.forEach((u) => {
+                    const dbName = String(u.database_name || "").trim().toLowerCase();
+                    const identity = String(u.email || u.username || "").trim().toLowerCase();
+                    const role = String(u.role || "").trim().toLowerCase();
+                    if (!identity) return;
+                    const key = `${identity}::${role}`;
+                    const prev = dedupedMap.get(key);
+                    if (!prev) {
+                        dedupedMap.set(key, u);
+                        return;
+                    }
+                    const prevDb = String(prev.database_name || "").trim().toLowerCase();
+                    const pickCurrentDb = preferredDb && dbName === preferredDb && prevDb !== preferredDb;
+                    const pickAxisAsFallback = !preferredDb && dbName === "axiscmsdb" && prevDb !== "axiscmsdb";
+                    if (pickCurrentDb || pickAxisAsFallback) {
+                        dedupedMap.set(key, u);
+                    }
+                });
+                const finalUsers = Array.from(dedupedMap.values());
                 userSelectEl.innerHTML = `<option value="">Select user</option>`;
                 const seenOptionKeys = new Set();
-                users.forEach((u) => {
+                finalUsers.forEach((u) => {
                     const dbName = String(u.database_name || "").trim().toLowerCase();
                     const identity = String(u.email || u.username || "").trim().toLowerCase();
                     const role = String(u.role || "").trim().toLowerCase();
