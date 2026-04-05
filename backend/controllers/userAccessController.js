@@ -1305,7 +1305,9 @@ exports.getAccessUsers = async (_req, res) => {
           linkedByUserDbKey.get(`${INVENTORY_DB_NAME}:${plain.id}`) ||
           null;
         const mappedLinkedDb = mappedByUserId.get(Number(plain.id || 0)) || null;
-        const linkedDb = normalizeDatabaseName(mappedLinkedDb || accessLinkedDb) || sourceDb;
+        const normalizedMappedDb = normalizeDatabaseName(mappedLinkedDb) || null;
+        const normalizedAccessDb = normalizeDatabaseName(accessLinkedDb) || null;
+        const linkedDb = normalizeDatabaseName(normalizedMappedDb || normalizedAccessDb) || sourceDb;
 
         rows.push({
           selection_key: `${sourceDb}:${plain.id}`,
@@ -1314,6 +1316,9 @@ exports.getAccessUsers = async (_req, res) => {
           email: plain.email || "",
           role,
           user_database: sourceDb,
+          mapped_database_name: normalizedMappedDb,
+          access_database_name: normalizedAccessDb,
+          default_database_name: linkedDb,
           database_name: linkedDb,
           label: `${plain.username || plain.email || `User ${plain.id}`} [${role}] (${linkedDb})`,
         });
@@ -2915,6 +2920,10 @@ exports.getUserAccess = async (req, res) => {
     where: { user_id: ref.user_id, user_database: ref.user_database },
     order: [["updatedAt", "DESC"], ["id", "DESC"]],
   });
+  const mappedProfile = await findMappedUserProfile(ref.user_id);
+  const mappedDatabaseName = normalizeDatabaseName(mappedProfile?.database_name);
+  const accessDatabaseName = normalizeDatabaseName(row?.database_name);
+  const defaultDatabaseName = mappedDatabaseName || accessDatabaseName || normalizeUserDatabase(ref.user_database);
   res.json({
     user: {
       ...(user.toJSON ? user.toJSON() : user),
@@ -2923,7 +2932,10 @@ exports.getUserAccess = async (req, res) => {
     },
     allowed_pages: parseAllowedPages(row),
     allowed_actions: parseAllowedActions(row),
-    database_name: normalizeDatabaseName(row?.database_name),
+    database_name: accessDatabaseName,
+    mapped_database_name: mappedDatabaseName,
+    access_database_name: accessDatabaseName,
+    default_database_name: defaultDatabaseName,
     user_database: ref.user_database,
     super_user: Boolean(userPlain.is_super_user),
     can_edit_super_user: canEditSuperUser,

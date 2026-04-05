@@ -104,6 +104,9 @@ const userSelectEl = document.getElementById("userSelect");
                     opt.value = u.selection_key;
                     opt.textContent = u.label || `${u.username} (${u.email})`;
                     opt.dataset.databaseName = String(u.database_name || "").trim().toLowerCase();
+                    opt.dataset.mappedDatabaseName = String(u.mapped_database_name || "").trim().toLowerCase();
+                    opt.dataset.accessDatabaseName = String(u.access_database_name || "").trim().toLowerCase();
+                    opt.dataset.defaultDatabaseName = String(u.default_database_name || u.database_name || "").trim().toLowerCase();
                     userSelectEl.appendChild(opt);
                 });
             }catch(err){
@@ -171,10 +174,15 @@ const userSelectEl = document.getElementById("userSelect");
                 setCheckedActions(actions);
                 superUserCheckboxEl.checked = !!res.super_user;
                 superUserCheckboxEl.disabled = res.can_edit_super_user === false;
-                if(res.database_name){
-                    databaseSelectEl.value = res.database_name;
-                }else if(defaultDatabaseName){
-                    databaseSelectEl.value = defaultDatabaseName;
+                const selectedOption = userSelectEl.options[userSelectEl.selectedIndex];
+                const optionMappedDb = String(selectedOption?.dataset?.mappedDatabaseName || "").trim().toLowerCase();
+                const optionDefaultDb = String(selectedOption?.dataset?.defaultDatabaseName || "").trim().toLowerCase();
+                const serverMappedDb = String(res.mapped_database_name || "").trim().toLowerCase();
+                const serverDefaultDb = String(res.default_database_name || "").trim().toLowerCase();
+                const serverAccessDb = String(res.database_name || "").trim().toLowerCase();
+                const nextDb = serverMappedDb || optionMappedDb || serverDefaultDb || optionDefaultDb || serverAccessDb || defaultDatabaseName;
+                if(nextDb){
+                    databaseSelectEl.value = nextDb;
                 }
                 showMessageBox("Access loaded");
             }catch(err){
@@ -226,7 +234,7 @@ const userSelectEl = document.getElementById("userSelect");
         userSelectEl.addEventListener("change", async () => {
             if(userSelectEl.value){
                 const selectedOption = userSelectEl.options[userSelectEl.selectedIndex];
-                const mappedDb = String(selectedOption?.dataset?.databaseName || "").trim().toLowerCase();
+                const mappedDb = String(selectedOption?.dataset?.mappedDatabaseName || selectedOption?.dataset?.databaseName || "").trim().toLowerCase();
                 if(mappedDb){
                     databaseSelectEl.value = mappedDb;
                 }
