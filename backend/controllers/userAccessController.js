@@ -384,6 +384,56 @@ function normalizeCompanyLogoPath(logoPathRaw, folderNameRaw = "", logoFileNameR
   return raw.replace(/^\/+/, "");
 }
 
+function resolveCompanyLogoPathForResponse(row) {
+  const folderName = String(row?.folder_name || "").trim();
+  const logoFileName = String(row?.logo_file_name || "").trim();
+  const normalized = normalizeCompanyLogoPath(row?.logo_path, folderName, logoFileName);
+  const toAbs = (relPath) => path.resolve(__dirname, "..", String(relPath || "").replace(/^\/+/, ""));
+
+  if (normalized) {
+    if (/^https?:\/\//i.test(normalized) || /^data:image\//i.test(normalized)) {
+      return normalized;
+    }
+    if (fs.existsSync(toAbs(normalized))) {
+      return normalized;
+    }
+  }
+
+  if (!folderName) return normalized;
+  const folderAbs = path.resolve(COMPANY_STORAGE_ROOT, folderName);
+  if (!folderAbs.startsWith(COMPANY_STORAGE_ROOT) || !fs.existsSync(folderAbs)) {
+    return normalized;
+  }
+
+  const preferredNames = [];
+  if (logoFileName) preferredNames.push(logoFileName);
+  preferredNames.push("logo.png", "logo.jpg", "logo.jpeg", "logo.bmp", "logo.gif", "logo.tif", "logo.tiff");
+
+  for (const fileName of preferredNames) {
+    const abs = path.join(folderAbs, fileName);
+    if (!abs.startsWith(folderAbs)) continue;
+    if (fs.existsSync(abs) && fs.statSync(abs).isFile()) {
+      return `storage/companies/${folderName}/${fileName}`;
+    }
+  }
+
+  try {
+    const files = fs.readdirSync(folderAbs);
+    for (const fileName of files) {
+      const lower = String(fileName || "").toLowerCase();
+      if (!/\.(png|jpg|jpeg|bmp|gif|tif|tiff)$/i.test(lower)) continue;
+      const abs = path.join(folderAbs, fileName);
+      if (fs.existsSync(abs) && fs.statSync(abs).isFile()) {
+        return `storage/companies/${folderName}/${fileName}`;
+      }
+    }
+  } catch (_err) {
+    return normalized;
+  }
+
+  return normalized;
+}
+
 function parseBase64Payload(fileDataBase64) {
   const raw = String(fileDataBase64 || "").trim();
   if (!raw) {
@@ -1721,7 +1771,7 @@ exports.getCompanies = async (_req, res) => {
        ORDER BY LOWER(cp.company_name) ASC, cp.id ASC`
     );
     const rows = (rs.rows || []).map((row) => {
-      const logoPath = normalizeCompanyLogoPath(row.logo_path, row.folder_name, row.logo_file_name);
+      const logoPath = resolveCompanyLogoPathForResponse(row);
       return {
         id: Number(row.id || 0),
         company_name: normalizeCompanyName(row.company_name),
