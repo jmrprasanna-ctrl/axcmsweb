@@ -56,7 +56,7 @@
         return profileUsers.find((u) => Number(u.id || 0) === selectedId) || null;
     }
 
-    function autofillFromSelectedUser() {
+    async function autofillFromSelectedUser() {
         const selected = getSelectedProfileUser();
         if (!selected) return;
         if (selected.email) els.email.value = String(selected.email);
@@ -67,6 +67,16 @@
         if (selected.company_code) els.company_code.value = normalizeUpper(selected.company_code);
         if (selected.department) els.department.value = String(selected.department);
         if (selected.telephone) els.telephone.value = String(selected.telephone);
+        try {
+            const mappedRes = await request(`/users/mapped/${Number(selected.id || 0)}`, "GET");
+            const mapped = mappedRes && mappedRes.mapping ? mappedRes.mapping : null;
+            if (mapped) {
+                if (mapped.email) els.email.value = String(mapped.email).trim().toLowerCase();
+                if (mapped.company_name) els.company_name.value = String(mapped.company_name).trim();
+                if (mapped.company_code) els.company_code.value = normalizeUpper(mapped.company_code);
+            }
+        } catch (_err) {
+        }
     }
 
     function getPayload() {
@@ -94,7 +104,7 @@
         const matched = profileUsers.find((u) => String(u.email || "").trim().toLowerCase() === email);
         if (matched) {
             els.login_user.value = String(Number(matched.id || 0));
-            autofillFromSelectedUser();
+            await autofillFromSelectedUser();
             return;
         }
         try {
@@ -225,7 +235,9 @@
             els.company_code.value = normalizeUpper(els.company_code.value);
         });
         els.email.addEventListener("blur", fillFromEmail);
-        els.login_user.addEventListener("change", autofillFromSelectedUser);
+        els.login_user.addEventListener("change", () => {
+            autofillFromSelectedUser();
+        });
         els.save.addEventListener("click", save);
         if (els.del) {
             els.del.addEventListener("click", removeProfile);
