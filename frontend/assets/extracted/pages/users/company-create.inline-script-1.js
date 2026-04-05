@@ -62,10 +62,11 @@ const companyNameEl = document.getElementById("companyName");
                 return `<span class="company-logo-file">${escapeHtml(fileName || "-")}</span>`;
             }
             const versionTag = row.updated_at ? `?v=${encodeURIComponent(String(row.updated_at))}` : "";
+            const src = /^data:image\//i.test(logoUrl) ? logoUrl : `${logoUrl}${versionTag}`;
             return `
                 <div class="company-logo-cell">
                     <img
-                        src="${escapeHtml(`${logoUrl}${versionTag}`)}"
+                        src="${escapeHtml(src)}"
                         alt="${escapeHtml(fileName || "Company Logo")}"
                         class="company-logo-thumb"
                         loading="lazy"
