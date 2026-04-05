@@ -106,6 +106,10 @@ async function ensureUserProfilesTable() {
   `);
   await db.query(`
     ALTER TABLE user_profiles
+    ALTER COLUMN email DROP NOT NULL;
+  `);
+  await db.query(`
+    ALTER TABLE user_profiles
     ADD COLUMN IF NOT EXISTS linked_user_email VARCHAR(200);
   `);
   await db.query(`
@@ -534,8 +538,8 @@ router.post("/profiles", withMainDb(async (req, res) => {
     const payload = req.body || {};
     const profileName = norm(payload.profile_name);
     const email = normEmail(payload.email);
-    if (!profileName || !email) {
-      return res.status(400).json({ message: "profile_name and email are required" });
+    if (!profileName) {
+      return res.status(400).json({ message: "profile_name is required" });
     }
     const linkedUser = await resolveLinkedUser(payload, req);
     const syncResult = await syncLinkedUserFromProfile(linkedUser, payload, req);
@@ -550,7 +554,7 @@ router.post("/profiles", withMainDb(async (req, res) => {
         bind: [
           linkedUser && linkedUser.user ? Number(linkedUser.user.id || 0) : (Number(payload.user_id || 0) || null),
           profileName,
-          email,
+          email || null,
           norm(payload.login_user),
           normEmail(linkedUser?.user?.email || ""),
           norm(payload.company_name),
@@ -605,8 +609,8 @@ router.put("/profiles/:id", withMainDb(async (req, res) => {
       user_id: Number(payload.user_id || old.user_id || 0) || null,
       linked_database_name: db.normalizeDatabaseName(payload.linked_database_name || old.linked_database_name || req.databaseName || ""),
     };
-    if (!merged.profile_name || !merged.email) {
-      return res.status(400).json({ message: "profile_name and email are required" });
+    if (!merged.profile_name) {
+      return res.status(400).json({ message: "profile_name is required" });
     }
     const linkedUser = await resolveLinkedUser(merged, req);
     const syncResult = await syncLinkedUserFromProfile(linkedUser, merged, req);
@@ -646,7 +650,7 @@ router.put("/profiles/:id", withMainDb(async (req, res) => {
           id,
           linkedUser && linkedUser.user ? Number(linkedUser.user.id || 0) : merged.user_id,
           merged.profile_name,
-          merged.email,
+          merged.email || null,
           merged.login_user,
           normEmail(linkedUser?.user?.email || merged.linked_user_email || ""),
           merged.company_name,

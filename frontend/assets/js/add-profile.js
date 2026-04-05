@@ -76,9 +76,6 @@
     async function autofillFromSelectedUser() {
         const selected = getSelectedProfileUser();
         if (!selected) return;
-        if (selected.email && !String(els.email.value || "").trim()) {
-            els.email.value = String(selected.email);
-        }
         if (selected.username && !String(els.profile_name.value || "").trim()) {
             els.profile_name.value = String(selected.username);
         }
@@ -205,8 +202,8 @@
         }
 
         const payload = getPayload();
-        if (!payload.profile_name || !payload.email) {
-            alert("Name and email are required.");
+        if (!payload.profile_name) {
+            alert("Name is required.");
             return;
         }
         try {
