@@ -57,7 +57,7 @@ const companyNameEl = document.getElementById("companyName");
             const logoDataUrl = String(row.logo_data_url || "").trim();
             const logoSource = logoDataUrl || String(row.logo_url || row.logo_path || "").trim();
             const logoUrl = resolveLogoUrl(logoSource);
-            const fallback = "../../assets/images/logo.png";
+            const fallback = "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='10' fill='%23eef3f9'/%3E%3Cpath d='M16 42l10-11 8 9 7-8 7 10' stroke='%2390a4b8' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='24' cy='23' r='4' fill='%2390a4b8'/%3E%3C/svg%3E";
             if(!logoUrl){
                 return `<span class="company-logo-file">${escapeHtml(fileName || "-")}</span>`;
             }

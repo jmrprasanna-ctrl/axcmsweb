@@ -23,7 +23,7 @@ const userSelectEl = document.getElementById("userSelect");
         let companies = [];
         let mappedEntriesCache = [];
         const ALLOWED_EXT = new Set([".jpg", ".jpeg", ".bmp", ".gif", ".tiff", ".tif", ".png"]);
-        const DEFAULT_COMPANY_LOGO = "../../assets/images/logo.png";
+        const DEFAULT_COMPANY_LOGO = "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='10' fill='%23eef3f9'/%3E%3Cpath d='M16 42l10-11 8 9 7-8 7 10' stroke='%2390a4b8' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='24' cy='23' r='4' fill='%2390a4b8'/%3E%3C/svg%3E";
 
         function readFileAsDataURL(file){
             return new Promise((resolve, reject) => {
