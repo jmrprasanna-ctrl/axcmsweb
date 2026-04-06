@@ -663,6 +663,7 @@ body {
 }
 
 .upcoming-scroll-hint {
+  display: none;
   margin: 8px 2px 0;
   font-size: 0.78rem;
   color: #617a95;
@@ -896,6 +897,10 @@ body {
   .upcoming-cases-table th:first-child {
     z-index: 3;
     background: #eaf3ff;
+  }
+
+  .upcoming-scroll-hint {
+    display: block;
   }
 }
 
