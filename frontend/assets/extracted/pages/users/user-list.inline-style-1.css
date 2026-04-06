@@ -20,8 +20,13 @@
         .form-actions{
             display: flex;
             gap: 12px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
+            align-items: center;
+            overflow-x: auto;
             margin-bottom: 12px;
+        }
+        .form-actions > *{
+            flex: 0 0 auto;
         }
         .is-hidden{
             display:none;
