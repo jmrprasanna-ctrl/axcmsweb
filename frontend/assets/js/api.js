@@ -471,8 +471,6 @@ function renderSidebarMenuByAccess(){
         { path: "/finance/finance.html", label: "Finance" },
         { path: "/support/lawyer-list.html", label: "Lawyer List" },
         { path: "/support/court-list.html", label: "Court List" },
-        { path: "/support/add-lawyer.html", label: "Add Lawyer" },
-        { path: "/support/add-court.html", label: "Add Court" },
         { path: "/users/user-list.html", label: "Users" },
         { path: "/users/preference.html", label: "Preference" },
         { path: "/users/add-user.html", label: "Add User" },
@@ -535,9 +533,7 @@ function renderSidebarMenuByAccess(){
             label: "Support",
             children: [
                 { path: "/support/lawyer-list.html", label: "Lawyer List" },
-                { path: "/support/add-lawyer.html", label: "Add Lawyer" },
                 { path: "/support/court-list.html", label: "Court List" },
-                { path: "/support/add-court.html", label: "Add Court" }
             ]
         },
         {
