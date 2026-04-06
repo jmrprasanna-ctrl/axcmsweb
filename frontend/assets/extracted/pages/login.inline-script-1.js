@@ -144,6 +144,7 @@ function toAbsoluteLogoUrl(rawPath){
     const logoPath = String(rawPath || "").trim();
     if(!logoPath) return "";
     if(/^https?:\/\//i.test(logoPath)) return logoPath;
+    if(/^data:image\//i.test(logoPath)) return logoPath;
     const apiOrigin = String(window.BASE_URL || "").replace(/\/api\/?$/i, "");
     return `${apiOrigin}${logoPath.startsWith("/") ? "" : "/"}${logoPath}`;
 }
@@ -157,6 +158,9 @@ function applyLoginLogo(logoPath){
         // Keep hidden until load event confirms image is valid.
         el.style.display = "none";
         el.src = abs;
+        if(el.complete && Number(el.naturalWidth || 0) > 0){
+            el.style.display = "";
+        }
         return;
     }
     el.removeAttribute("src");
