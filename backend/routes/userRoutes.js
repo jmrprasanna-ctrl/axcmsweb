@@ -387,6 +387,41 @@ async function listUsersAcrossDatabases(req) {
   return listUsersFromDatabase(targetDb).catch(() => []);
 }
 
+async function resolveRequesterMappedEmail(req) {
+  const userId = Number(req?.user?.id || req?.user?.userId || 0);
+  const targetDb = db.normalizeDatabaseName(req?.databaseName || req?.requestedDatabaseName || MAIN_DB_NAME) || MAIN_DB_NAME;
+  if (!userId || !targetDb || targetDb === MAIN_DB_NAME) return "";
+  try {
+    const rows = await db.withDatabase(MAIN_DB_NAME, async () => {
+      return db.query(
+        `SELECT mapped_email
+         FROM user_mappings
+         WHERE user_id = $1
+           AND LOWER(database_name) = LOWER($2)
+         ORDER BY id DESC
+         LIMIT 1`,
+        { bind: [userId, targetDb], type: QueryTypes.SELECT }
+      );
+    });
+    return normEmail(rows?.[0]?.mapped_email || "");
+  } catch (_err) {
+    return "";
+  }
+}
+
+async function filterProfileLoginUsersForRequester(req, users) {
+  const list = Array.isArray(users) ? users : [];
+  const targetDb = db.normalizeDatabaseName(req?.databaseName || req?.requestedDatabaseName || MAIN_DB_NAME) || MAIN_DB_NAME;
+  const requesterId = Number(req?.user?.id || req?.user?.userId || 0);
+  if (!requesterId || !targetDb || targetDb === MAIN_DB_NAME) return list;
+
+  const mappedEmail = await resolveRequesterMappedEmail(req);
+  if (mappedEmail) {
+    return list.filter((u) => normEmail(u?.email) === mappedEmail);
+  }
+  return list.filter((u) => Number(u?.id || 0) === requesterId);
+}
+
 // Profile endpoints (stored in user_profiles and synced to linked users account).
 router.get("/profiles/:id/picture", withMainDb(async (req, res) => {
   try {
@@ -475,7 +510,8 @@ router.get("/profiles", withMainDb(async (req, res) => {
 router.get("/profiles/user-options", withMainDb(async (req, res) => {
   try {
     const users = await listUsersAcrossDatabases(req);
-    const rows = (Array.isArray(users) ? users : []).map((u) => ({
+    const scopedUsers = await filterProfileLoginUsersForRequester(req, users);
+    const rows = (Array.isArray(scopedUsers) ? scopedUsers : []).map((u) => ({
       id: Number(u.id || 0),
       username: String(u.username || "").trim(),
       email: normEmail(u.email),
