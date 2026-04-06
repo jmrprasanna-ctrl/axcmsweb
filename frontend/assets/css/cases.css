@@ -1,3 +1,14 @@
+.cases-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.cases-page-header .back-icon-btn {
+    margin-top: 0;
+}
+
 .cases-toolbar {
     display: flex;
     gap: 12px;
@@ -159,6 +170,10 @@
 }
 
 @media (max-width: 900px) {
+    .cases-page-header {
+        gap: 10px;
+    }
+
     .form-grid {
         grid-template-columns: 1fr;
     }
