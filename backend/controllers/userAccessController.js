@@ -184,6 +184,7 @@ const ACCESS_MODULE_OPTIONS = [
       { path: "/users/user-list.html", label: "User List", actions: ["view", "add", "edit", "delete"] },
       { path: "/users/add-user.html", label: "Add User", actions: ["view", "add"] },
       { path: "/users/edit-user.html", label: "Edit User", actions: ["view", "edit"] },
+      { path: "/users/profile-view.html", label: "Profile View", actions: ["view"] },
       { path: "/users/user-access.html", label: "User Access", actions: ["view", "edit"] },
       { path: "/users/db-create.html", label: "DB Create", actions: ["view", "add", "delete"] },
       { path: "/users/company-create.html", label: "Company Create", actions: ["view", "add", "delete"] },

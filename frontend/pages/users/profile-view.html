@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile View - AXIS_CMS_WEB</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../../assets/css/profile.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <img src="../../assets/images/logo.png" alt="Company Logo">
+            <span>AXIS_CMS_WEB</span>
+        </div>
+        <ul class="nav-links" style="visibility:hidden;"></ul>
+    </div>
+
+    <div class="main-content">
+        <div class="profile-page-header">
+            <header><h2>Profile View</h2></header>
+            <div class="profile-actions">
+                <a class="icon-btn back-icon-btn" href="../dashboard.html" title="Back" aria-label="Back">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        <div class="form-container profile-card">
+            <div class="profile-avatar-wrap profile-view-avatar-wrap">
+                <img id="profileViewAvatar" class="profile-avatar" src="../../assets/images/profile-placeholder.svg" alt="Profile Picture">
+                <div class="profile-view-name-wrap">
+                    <h3 id="profileViewName" class="profile-view-name">-</h3>
+                    <p class="muted">Read-only profile details</p>
+                </div>
+            </div>
+
+            <div class="profile-grid profile-view-grid">
+                <div class="profile-view-item">
+                    <label>Login User</label>
+                    <div id="profileViewLoginUser" class="profile-view-value">-</div>
+                </div>
+                <div class="profile-view-item">
+                    <label>Profile Email</label>
+                    <div id="profileViewEmail" class="profile-view-value">-</div>
+                </div>
+                <div class="profile-view-item">
+                    <label>Account Email</label>
+                    <div id="profileViewLinkedEmail" class="profile-view-value">-</div>
+                </div>
+                <div class="profile-view-item">
+                    <label>Company Name</label>
+                    <div id="profileViewCompanyName" class="profile-view-value">-</div>
+                </div>
+                <div class="profile-view-item">
+                    <label>Department</label>
+                    <div id="profileViewDepartment" class="profile-view-value">-</div>
+                </div>
+                <div class="profile-view-item">
+                    <label>Section</label>
+                    <div id="profileViewSection" class="profile-view-value">-</div>
+                </div>
+                <div class="profile-view-item">
+                    <label>Telephone</label>
+                    <div id="profileViewTelephone" class="profile-view-value">-</div>
+                </div>
+                <div class="profile-view-item">
+                    <label>Mobile</label>
+                    <div id="profileViewMobile" class="profile-view-value">-</div>
+                </div>
+                <div class="profile-view-item full">
+                    <label>Address</label>
+                    <div id="profileViewAddress" class="profile-view-value profile-view-value-multiline">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../assets/js/api.js?v=20260407p01"></script>
+    <script src="../../assets/js/profile-view.js?v=20260407p01"></script>
+</body>
+</html>

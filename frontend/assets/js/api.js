@@ -89,6 +89,7 @@ const BASELINE_LEFT_PANEL_PATHS = [
     "/support/add-court.html",
     "/users/user-list.html",
     "/users/profile-list.html",
+    "/users/profile-view.html",
     "/users/add-profile.html",
     "/users/user-access.html",
     "/users/user-logged.html",
@@ -444,7 +445,6 @@ function renderSidebarMenuByAccess(){
     const menuEntries = isCasesRestrictedPage ? [
         { path: "/dashboard.html", label: "Dashboard" },
         { path: "/cases/case-list.html", label: "Cases" },
-        { path: "/cases/new-case.html", label: "New Case" },
         { path: "/cases/plaint.html", label: "Plaint" },
         { path: "/cases/answer.html", label: "Answer" },
         { path: "/cases/witness-list.html", label: "List of witnesses" },
@@ -459,7 +459,6 @@ function renderSidebarMenuByAccess(){
         { path: "/customers/client-list.html", label: "Client" },
         { path: "/customers/Add-Client.html", label: "Add Client" },
         { path: "/cases/case-list.html", label: "Cases" },
-        { path: "/cases/new-case.html", label: "New Case" },
         { path: "/cases/plaint.html", label: "Plaint" },
         { path: "/cases/answer.html", label: "Answer" },
         { path: "/cases/witness-list.html", label: "List of witnesses" },
@@ -507,7 +506,6 @@ function renderSidebarMenuByAccess(){
             label: "Cases",
             children: [
                 { path: "/cases/case-list.html", label: "Cases List" },
-                { path: "/cases/new-case.html", label: "New Case" },
                 { path: "/cases/plaint.html", label: "Plaint" },
                 { path: "/cases/answer.html", label: "Answer" },
                 { path: "/cases/witness-list.html", label: "List of witnesses" },

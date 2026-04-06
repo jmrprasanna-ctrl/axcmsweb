@@ -51,6 +51,87 @@ router.get("/my-companies", roleMiddleware(["admin","manager","user"]), getMyCom
 router.get("/inv-map/me", roleMiddleware(["admin","manager","user"]), getMyInvMap);
 router.put("/inv-map/me/quotation2-render-inputs", roleMiddleware(["admin","manager","user"]), saveMyQuotation2RenderVisibility);
 router.put("/inv-map/me/quotation3-render-inputs", roleMiddleware(["admin","manager","user"]), saveMyQuotation3RenderVisibility);
+router.get("/profiles/me", roleMiddleware(["admin","manager","user"]), withMainDb(async (req, res) => {
+  try {
+    await ensureUserProfilesTable();
+    const userId = Number(req.user?.id || 0);
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const targetDb = db.normalizeDatabaseName(req?.databaseName || MAIN_DB_NAME) || MAIN_DB_NAME;
+
+    const userRows = await db.query(
+      `SELECT id, username, email, company, department, telephone
+       FROM users
+       WHERE id = $1
+       LIMIT 1`,
+      { bind: [userId], type: QueryTypes.SELECT }
+    );
+    const userRow = userRows[0] || {};
+    const loginUser = norm(userRow.username);
+    const linkedEmail = normEmail(userRow.email);
+
+    const rows = await db.query(
+      `SELECT up.*,
+              u.username AS linked_username,
+              u.email AS linked_user_email_live
+       FROM user_profiles up
+       LEFT JOIN users u ON u.id = up.user_id
+       WHERE LOWER(COALESCE(up.linked_database_name, $1)) = LOWER($1)
+         AND (
+           up.user_id = $2
+           OR ($3 <> '' AND LOWER(COALESCE(up.linked_user_email, '')) = LOWER($3))
+           OR ($3 <> '' AND LOWER(COALESCE(up.email, '')) = LOWER($3))
+           OR ($4 <> '' AND LOWER(COALESCE(up.login_user, '')) = LOWER($4))
+         )
+       ORDER BY
+         CASE
+           WHEN up.user_id = $2 THEN 0
+           WHEN ($3 <> '' AND LOWER(COALESCE(up.linked_user_email, '')) = LOWER($3)) THEN 1
+           WHEN ($3 <> '' AND LOWER(COALESCE(up.email, '')) = LOWER($3)) THEN 2
+           WHEN ($4 <> '' AND LOWER(COALESCE(up.login_user, '')) = LOWER($4)) THEN 3
+           ELSE 9
+         END,
+         up."updatedAt" DESC NULLS LAST,
+         up.id DESC
+       LIMIT 1`,
+      {
+        bind: [targetDb, userId, linkedEmail || "", String(loginUser || "").toLowerCase()],
+        type: QueryTypes.SELECT,
+      }
+    );
+
+    if (rows.length) {
+      return res.json(toProfileJson(rows[0]));
+    }
+
+    const fallbackName = norm(userRow.username || req.user?.role || "User");
+    return res.json({
+      id: null,
+      user_id: userId,
+      profile_name: fallbackName || "User",
+      email: "",
+      login_user: loginUser,
+      linked_user_email: linkedEmail,
+      company_name: norm(userRow.company),
+      company_code: "",
+      department: norm(userRow.department),
+      section: "",
+      address: "",
+      telephone: norm(userRow.telephone),
+      mobile: "",
+      profile_picture_url: "",
+      profile_picture_data_url: "",
+      profile_picture_api_url: "",
+      linked_database_name: targetDb,
+      user_sync_at: null,
+      created_by: null,
+      createdAt: null,
+      updatedAt: null,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server error" });
+  }
+}));
 
 router.use(roleMiddleware(["admin"]));
 

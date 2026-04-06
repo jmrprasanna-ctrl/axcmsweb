@@ -268,12 +268,7 @@ function toggleUserMenu(){
 }
 
 function openMyProfile(){
-    const userId = Number(localStorage.getItem("userId") || 0);
-    if(Number.isFinite(userId) && userId > 0){
-        window.location.href = `users/edit-user.html?id=${userId}`;
-        return;
-    }
-    window.location.href = "users/user-list.html";
+    window.location.href = "users/profile-view.html";
 }
 
 function openPreferencePage(){
@@ -379,6 +374,15 @@ function formatAmountWithSeparators(value){
     return Number(value || 0).toLocaleString("en-US", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
+    });
+}
+
+function bindDashboardProfileQuickLink(){
+    if(!roleEl) return;
+    roleEl.style.cursor = "pointer";
+    roleEl.title = "View profile";
+    roleEl.addEventListener("click", () => {
+        openMyProfile();
     });
 }
 
@@ -710,6 +714,7 @@ async function updateBadges(){
 
 updateBadges();
 initUserMenu();
+bindDashboardProfileQuickLink();
 startDashboardDateTimeClock();
 applyUserAvatarImage();
 hydrateAvatarFromProfiles();
