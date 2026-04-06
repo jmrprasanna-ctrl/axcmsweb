@@ -74,6 +74,101 @@ function normalizeCompanyCode(value) {
     .slice(0, 40);
 }
 
+function normalizeUserKey(value) {
+  return String(value || "").trim().toLowerCase().slice(0, 200);
+}
+
+async function ensureLoginCompanyCodeMemoryTable(client) {
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS user_login_company_codes (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NULL REFERENCES users(id) ON DELETE SET NULL,
+      user_key VARCHAR(200) NOT NULL UNIQUE,
+      company_code VARCHAR(40) NOT NULL,
+      last_used_at TIMESTAMP DEFAULT NOW(),
+      "createdAt" TIMESTAMP DEFAULT NOW(),
+      "updatedAt" TIMESTAMP DEFAULT NOW()
+    );
+  `);
+}
+
+async function rememberLoginCompanyCode(client, userId, keys = [], companyCodeRaw = "") {
+  const companyCode = normalizeCompanyCode(companyCodeRaw);
+  if (!companyCode) return;
+  const normalizedKeys = Array.from(
+    new Set((Array.isArray(keys) ? keys : []).map(normalizeUserKey).filter(Boolean))
+  );
+  if (!normalizedKeys.length) return;
+  await ensureLoginCompanyCodeMemoryTable(client);
+  for (const key of normalizedKeys) {
+    await client.query(
+      `INSERT INTO user_login_company_codes (user_id, user_key, company_code, last_used_at, "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, NOW(), NOW(), NOW())
+       ON CONFLICT (user_key)
+       DO UPDATE SET
+         user_id = COALESCE(EXCLUDED.user_id, user_login_company_codes.user_id),
+         company_code = EXCLUDED.company_code,
+         last_used_at = NOW(),
+         "updatedAt" = NOW()`,
+      [Number(userId || 0) || null, key, companyCode]
+    );
+  }
+}
+
+async function resolveRememberedCompanyCode(client, userKeyRaw = "") {
+  const userKey = normalizeUserKey(userKeyRaw);
+  if (!userKey) return "";
+  await ensureLoginCompanyCodeMemoryTable(client);
+  const rs = await client.query(
+    `SELECT company_code
+     FROM user_login_company_codes
+     WHERE user_key = $1
+     ORDER BY "updatedAt" DESC NULLS LAST, id DESC
+     LIMIT 1`,
+    [userKey]
+  );
+  return normalizeCompanyCode(rs.rows?.[0]?.company_code || "");
+}
+
+async function fetchBrandingByCode(client, companyCodeRaw = "") {
+  const companyCode = normalizeCompanyCode(companyCodeRaw);
+  if (!companyCode) {
+    return { company_code: null, company_name: null, logo_url: null };
+  }
+  const rs = await client.query(
+    `SELECT company_name, company_code, logo_path, logo_data_url, folder_name, logo_file_name
+     FROM company_profiles
+     WHERE UPPER(TRIM(company_code)) = $1
+     ORDER BY "updatedAt" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
+     LIMIT 1`,
+    [companyCode]
+  );
+  if (!rs.rowCount) {
+    return { company_code: companyCode, company_name: null, logo_url: null };
+  }
+
+  const row = rs.rows[0] || {};
+  const logoDataUrl = String(row.logo_data_url || "").trim();
+  let logoUrl = null;
+  if (/^data:image\//i.test(logoDataUrl)) {
+    logoUrl = logoDataUrl;
+  } else {
+    const normalizedPath = normalizeMappedLogoPath(row.logo_path, row.folder_name, row.logo_file_name);
+    if (normalizedPath) {
+      if (/^https?:\/\//i.test(normalizedPath) || /^data:image\//i.test(normalizedPath)) {
+        logoUrl = normalizedPath;
+      } else {
+        logoUrl = `/${String(normalizedPath).replace(/^\/+/, "")}`;
+      }
+    }
+  }
+  return {
+    company_code: normalizeCompanyCode(row.company_code),
+    company_name: String(row.company_name || "").trim() || null,
+    logo_url: logoUrl,
+  };
+}
+
 async function resolveUserProfilePicture(client, userId) {
   const uid = Number(userId || 0);
   if (!uid) {
@@ -126,7 +221,7 @@ async function resolvePreferredDatabaseFromAccess(client, userId) {
 }
 
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, company_code } = req.body;
 
   const client = getAuthDbClient();
   try {
@@ -249,6 +344,13 @@ exports.login = async (req, res) => {
       `INSERT INTO user_login_logs (user_id, username, role, login_time, ip_address, user_agent, "createdAt", "updatedAt")
        VALUES ($1, $2, $3, NOW(), $4, $5, NOW(), NOW())`,
       [user.id, user.username, user.role, ipAddress, userAgent]
+    );
+
+    await rememberLoginCompanyCode(
+      client,
+      user.id,
+      [email, user.email, user.username],
+      company_code || mappedCompanyCode || ""
     );
 
     res.json({
@@ -401,43 +503,38 @@ exports.getCompanyBranding = async (req, res) => {
   const client = getAuthDbClient();
   try {
     await client.connect();
-    const rs = await client.query(
-      `SELECT company_name, company_code, logo_path, logo_data_url, folder_name, logo_file_name
-       FROM company_profiles
-       WHERE UPPER(TRIM(company_code)) = $1
-       ORDER BY "updatedAt" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
-       LIMIT 1`,
-      [companyCode]
-    );
-
-    if (!rs.rowCount) {
-      return res.json({ company_code: companyCode, company_name: null, logo_url: null });
-    }
-
-    const row = rs.rows[0] || {};
-    const logoDataUrl = String(row.logo_data_url || "").trim();
-    let logoUrl = null;
-    if (/^data:image\//i.test(logoDataUrl)) {
-      logoUrl = logoDataUrl;
-    } else {
-      const normalizedPath = normalizeMappedLogoPath(row.logo_path, row.folder_name, row.logo_file_name);
-      if (normalizedPath) {
-        if (/^https?:\/\//i.test(normalizedPath) || /^data:image\//i.test(normalizedPath)) {
-          logoUrl = normalizedPath;
-        } else {
-          logoUrl = `/${String(normalizedPath).replace(/^\/+/, "")}`;
-        }
-      }
-    }
-
-    return res.json({
-      company_code: normalizeCompanyCode(row.company_code),
-      company_name: String(row.company_name || "").trim() || null,
-      logo_url: logoUrl,
-    });
+    const branding = await fetchBrandingByCode(client, companyCode);
+    return res.json(branding);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Failed to load company branding." });
+  } finally {
+    await client.end().catch(() => {});
+  }
+};
+
+exports.getRememberedCompanyCode = async (req, res) => {
+  const userKeyInput = String(req.query?.user || "").trim();
+  if (!userKeyInput) {
+    return res.json({ user: null, company_code: null, company_name: null, logo_url: null });
+  }
+  const client = getAuthDbClient();
+  try {
+    await client.connect();
+    const rememberedCode = await resolveRememberedCompanyCode(client, userKeyInput);
+    if (!rememberedCode) {
+      return res.json({ user: normalizeUserKey(userKeyInput), company_code: null, company_name: null, logo_url: null });
+    }
+    const branding = await fetchBrandingByCode(client, rememberedCode);
+    return res.json({
+      user: normalizeUserKey(userKeyInput),
+      company_code: branding.company_code || rememberedCode,
+      company_name: branding.company_name || null,
+      logo_url: branding.logo_url || null,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Failed to load remembered company code." });
   } finally {
     await client.end().catch(() => {});
   }

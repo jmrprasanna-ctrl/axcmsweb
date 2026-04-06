@@ -76,10 +76,50 @@ function applyRememberedCompanyCode(){
     const userInputEl = document.getElementById("email");
     const companyCodeEl = document.getElementById("companyCode");
     if(!userInputEl || !companyCodeEl) return;
-    if(String(companyCodeEl.value || "").trim()) return;
+    if(String(companyCodeEl.value || "").trim()){
+        fetchCompanyBrandingByCode(companyCodeEl.value);
+        return;
+    }
     const remembered = getRememberedCompanyCode(userInputEl.value);
     if(remembered){
         companyCodeEl.value = remembered;
+        fetchCompanyBrandingByCode(remembered);
+    }
+}
+
+async function fetchRememberedCompanyCodeByUser(userInput){
+    const key = normalizeUserKey(userInput);
+    if(!key) return "";
+    try{
+        const res = await loginPageRequest(`/auth/company-code-memory?user=${encodeURIComponent(key)}`, "GET");
+        const code = String(res?.company_code || "").trim().toUpperCase();
+        if(code){
+            rememberCompanyCode(userInput, code);
+            return code;
+        }
+    }catch(_err){
+    }
+    return "";
+}
+
+async function applyRememberedCompanyCodeAnyDevice(){
+    const userInputEl = document.getElementById("email");
+    const companyCodeEl = document.getElementById("companyCode");
+    if(!userInputEl || !companyCodeEl) return;
+    if(String(companyCodeEl.value || "").trim()){
+        fetchCompanyBrandingByCode(companyCodeEl.value);
+        return;
+    }
+    const localCode = getRememberedCompanyCode(userInputEl.value);
+    if(localCode){
+        companyCodeEl.value = localCode;
+        fetchCompanyBrandingByCode(localCode);
+        return;
+    }
+    const serverCode = await fetchRememberedCompanyCodeByUser(userInputEl.value);
+    if(serverCode){
+        companyCodeEl.value = serverCode;
+        fetchCompanyBrandingByCode(serverCode);
     }
 }
 
@@ -281,7 +321,7 @@ if(companyCodeEl){
 });
 const loginUserInput = document.getElementById("email");
 if(loginUserInput){
-    loginUserInput.addEventListener("blur", applyRememberedCompanyCode);
+    loginUserInput.addEventListener("blur", applyRememberedCompanyCodeAnyDevice);
     loginUserInput.addEventListener("input", () => {
         const companyInput = document.getElementById("companyCode");
         if(companyInput && !String(companyInput.value || "").trim()){
@@ -294,3 +334,12 @@ applyCachedLoginLogo();
 if(companyCodeEl && String(companyCodeEl.value || "").trim()){
     fetchCompanyBrandingByCode(companyCodeEl.value);
 }
+setTimeout(() => {
+    const companyInput = document.getElementById("companyCode");
+    const currentCode = String(companyInput && companyInput.value ? companyInput.value : "").trim();
+    if(currentCode){
+        fetchCompanyBrandingByCode(currentCode);
+        return;
+    }
+    applyRememberedCompanyCodeAnyDevice();
+}, 250);
