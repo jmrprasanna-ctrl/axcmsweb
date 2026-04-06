@@ -69,8 +69,21 @@ function normalizeMappedLogoPath(logoPathRaw, folderNameRaw = "", logoFileNameRa
 }
 
 function resolveBrandingLogoUrl(logoPathRaw, logoDataUrlRaw) {
-  const logoDataUrl = String(logoDataUrlRaw || "").trim();
+  let logoDataUrl = String(logoDataUrlRaw || "").trim();
   if (/^data:image\//i.test(logoDataUrl)) {
+    const dataMatch = logoDataUrl.match(/^data:image\/([a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=]+)/);
+    if (dataMatch) {
+      const declaredMime = String(dataMatch[1] || "").toLowerCase();
+      const base64Body = String(dataMatch[2] || "");
+      const head = base64Body.slice(0, 16);
+      const looksLikeJpeg = head.startsWith("/9j/");
+      const looksLikePng = head.startsWith("iVBOR");
+      if (looksLikeJpeg && declaredMime !== "jpeg" && declaredMime !== "jpg") {
+        logoDataUrl = `data:image/jpeg;base64,${base64Body}`;
+      } else if (looksLikePng && declaredMime !== "png") {
+        logoDataUrl = `data:image/png;base64,${base64Body}`;
+      }
+    }
     return logoDataUrl;
   }
   const normalizedPath = normalizeMappedLogoPath(logoPathRaw);
