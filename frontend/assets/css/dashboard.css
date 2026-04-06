@@ -822,8 +822,8 @@ body {
 
   .topbar-right {
     width: 100%;
-    justify-content: space-between;
-    flex-wrap: wrap;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
     gap: 8px;
   }
 
@@ -837,9 +837,27 @@ body {
   }
 
   .topbar-actions {
-    width: 100%;
+    width: auto;
     justify-content: flex-start;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .topbar-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .topbar-actions .icon-btn {
+    flex: 0 0 auto;
+  }
+
+  .user-menu {
+    right: 0;
+    left: auto;
+    min-width: 220px;
+    max-width: min(88vw, 280px);
   }
 
   .cards {
