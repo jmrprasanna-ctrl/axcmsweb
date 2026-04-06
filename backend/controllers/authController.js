@@ -1,6 +1,8 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { Client } = require("pg");
+const fs = require("fs");
+const path = require("path");
 const db = require("../config/database");
 const User = require("../models/User");
 const { Op } = require("sequelize");
@@ -64,6 +66,24 @@ function normalizeMappedLogoPath(logoPathRaw, folderNameRaw = "", logoFileNameRa
     raw = `storage/${raw}`;
   }
   return raw.replace(/^\/+/, "");
+}
+
+function resolveBrandingLogoUrl(logoPathRaw, logoDataUrlRaw) {
+  const logoDataUrl = String(logoDataUrlRaw || "").trim();
+  if (/^data:image\//i.test(logoDataUrl)) {
+    return logoDataUrl;
+  }
+  const normalizedPath = normalizeMappedLogoPath(logoPathRaw);
+  if (!normalizedPath) return null;
+  if (/^https?:\/\//i.test(normalizedPath) || /^data:image\//i.test(normalizedPath)) {
+    return normalizedPath;
+  }
+  const clean = String(normalizedPath).replace(/^\/+/, "");
+  const abs = path.resolve(__dirname, "..", clean);
+  if (fs.existsSync(abs) && fs.statSync(abs).isFile()) {
+    return `/${clean}`;
+  }
+  return null;
 }
 
 function normalizeCompanyCode(value) {
@@ -148,20 +168,8 @@ async function fetchBrandingByCode(client, companyCodeRaw = "") {
   }
 
   const row = rs.rows[0] || {};
-  const logoDataUrl = String(row.logo_data_url || "").trim();
-  let logoUrl = null;
-  if (/^data:image\//i.test(logoDataUrl)) {
-    logoUrl = logoDataUrl;
-  } else {
-    const normalizedPath = normalizeMappedLogoPath(row.logo_path, row.folder_name, row.logo_file_name);
-    if (normalizedPath) {
-      if (/^https?:\/\//i.test(normalizedPath) || /^data:image\//i.test(normalizedPath)) {
-        logoUrl = normalizedPath;
-      } else {
-        logoUrl = `/${String(normalizedPath).replace(/^\/+/, "")}`;
-      }
-    }
-  }
+  const logoPath = normalizeMappedLogoPath(row.logo_path, row.folder_name, row.logo_file_name);
+  const logoUrl = resolveBrandingLogoUrl(logoPath, row.logo_data_url);
   return {
     company_code: normalizeCompanyCode(row.company_code),
     company_name: String(row.company_name || "").trim() || null,

@@ -127,6 +127,15 @@ function getLoginLogoElement(){
     return document.getElementById("loginCompanyLogo");
 }
 
+function setupLoginLogoFallback(){
+    const el = getLoginLogoElement();
+    if(!el || el.dataset.fallbackBound === "1") return;
+    el.dataset.fallbackBound = "1";
+    el.addEventListener("error", () => {
+        applyLoginLogo("");
+    });
+}
+
 function toAbsoluteLogoUrl(rawPath){
     const logoPath = String(rawPath || "").trim();
     if(!logoPath) return "";
@@ -138,6 +147,7 @@ function toAbsoluteLogoUrl(rawPath){
 function applyLoginLogo(logoPath){
     const el = getLoginLogoElement();
     if(!el) return;
+    setupLoginLogoFallback();
     const abs = toAbsoluteLogoUrl(logoPath);
     if(abs){
         el.src = abs;
