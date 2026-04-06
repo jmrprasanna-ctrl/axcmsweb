@@ -68,6 +68,8 @@ body {
   border-radius: 12px;
   padding: 9px 11px;
   font-weight: 620;
+  font-family: 'Outfit', 'Segoe UI', Tahoma, sans-serif;
+  font-size: 1rem;
   transition: background 0.2s ease, transform 0.15s ease;
 }
 
@@ -95,6 +97,8 @@ body {
   color: rgba(247, 252, 255, 0.94);
   background: transparent;
   font-weight: 620;
+  font-family: 'Outfit', 'Segoe UI', Tahoma, sans-serif;
+  font-size: 1rem;
   cursor: pointer;
 }
 
@@ -125,7 +129,9 @@ body {
 }
 
 .sidebar .nav-links .nav-submenu li a {
-  font-weight: 560;
+  font-weight: 620;
+  font-family: 'Outfit', 'Segoe UI', Tahoma, sans-serif;
+  font-size: 1rem;
   padding: 8px 10px;
   border-radius: 10px;
   opacity: 0.96;
