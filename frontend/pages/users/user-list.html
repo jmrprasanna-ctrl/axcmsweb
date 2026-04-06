@@ -44,7 +44,12 @@
         <section class="health-panel" id="healthPanel" aria-live="polite">
             <div class="health-head">
                 <h3>System Health</h3>
-                <button class="btn btn-secondary" type="button" id="healthRefreshBtn">Refresh</button>
+                <button class="icon-btn refresh-icon-btn" type="button" id="healthRefreshBtn" title="Refresh" aria-label="Refresh">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M20 11a8 8 0 1 0 2.1 5.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        <path d="M20 4.5V11h-6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
             </div>
             <div class="health-grid">
                 <div class="health-item"><span class="health-label">Overall</span><span class="health-badge unknown" id="healthOverall">Unknown</span></div>
