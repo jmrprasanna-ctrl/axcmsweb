@@ -35,6 +35,7 @@ const { getLoginLogs, clearLoginLogs } = require("../controllers/userLogControll
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 const User = require("../models/User");
+const bcrypt = require("bcrypt");
 const db = require("../config/database");
 const { QueryTypes } = require("sequelize");
 const MAIN_DB_NAME = db.normalizeDatabaseName(process.env.DB_NAME || "axiscmsdb") || "axiscmsdb";
@@ -313,6 +314,11 @@ async function findLinkedUserInDatabase(databaseName, payload = {}) {
       const byName = await User.findOne({ where: { username: loginUser } });
       if (byName) return { user: byName, database_name: dbName };
     }
+    const accountEmail = normEmail(payload.linked_user_email || "");
+    if (accountEmail) {
+      const byAccountEmail = await User.findOne({ where: { email: accountEmail } });
+      if (byAccountEmail) return { user: byAccountEmail, database_name: dbName };
+    }
     return null;
   });
 }
@@ -333,7 +339,7 @@ async function syncUserInDatabase(databaseName, userId, payload = {}) {
     const user = await User.findByPk(Number(userId || 0));
     if (!user) return false;
 
-    const nextEmail = normEmail(payload.email);
+    const nextEmail = normEmail(payload.linked_user_email || payload.email);
     if (nextEmail && nextEmail !== String(user.email || "").toLowerCase()) {
       const exists = await User.findOne({ where: { email: nextEmail } });
       if (exists && Number(exists.id || 0) !== Number(user.id || 0)) {
@@ -355,10 +361,75 @@ async function syncUserInDatabase(databaseName, userId, payload = {}) {
 }
 
 async function syncLinkedUserFromProfile(linked, payload = {}, req = null) {
-  if (!linked || !linked.user) return { synced: false, primary_db: MAIN_DB_NAME };
+  const primaryDb = db.normalizeDatabaseName(
+    linked?.database_name || payload?.linked_database_name || req?.databaseName || MAIN_DB_NAME
+  ) || MAIN_DB_NAME;
+  const accountEmail = normEmail(payload.linked_user_email || linked?.user?.email || payload.email);
+  const loginUser = norm(payload.login_user || linked?.user?.username || payload.profile_name);
+  const companyName = norm(payload.company_name);
+  const department = norm(payload.department);
+  const telephone = norm(payload.telephone || payload.mobile);
+
+  if (!accountEmail || !loginUser || !primaryDb) {
+    return {
+      synced: false,
+      primary_db: primaryDb,
+      user_id: Number(linked?.user?.id || payload.user_id || 0) || null,
+      account_email: accountEmail || null,
+      login_user: loginUser || null,
+    };
+  }
+
+  const result = await db.withDatabase(primaryDb, async () => {
+    let user = null;
+    const pickedId = Number(linked?.user?.id || payload.user_id || 0);
+    if (pickedId > 0) {
+      user = await User.findByPk(pickedId);
+    }
+    if (!user) {
+      user = await User.findOne({ where: { email: accountEmail } });
+    }
+    if (!user && loginUser) {
+      user = await User.findOne({ where: { username: loginUser } });
+    }
+
+    if (user) {
+      if (String(user.email || "").toLowerCase() !== accountEmail) {
+        const exists = await User.findOne({ where: { email: accountEmail } });
+        if (exists && Number(exists.id || 0) !== Number(user.id || 0)) {
+          throw new Error(`Email already in use in ${primaryDb}.`);
+        }
+        user.email = accountEmail;
+      }
+      if (loginUser) user.username = loginUser;
+      if (companyName) user.company = companyName;
+      if (department) user.department = department;
+      if (telephone) user.telephone = telephone;
+      await user.save();
+      return { user, created: false };
+    }
+
+    const tempPassword = String(process.env.DEFAULT_PROFILE_USER_PASSWORD || "ChangeMe@123").trim() || "ChangeMe@123";
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+    const createdUser = await User.create({
+      username: loginUser,
+      email: accountEmail,
+      company: companyName || null,
+      department: department || null,
+      telephone: telephone || null,
+      role: "user",
+      password: hashedPassword,
+      password_plain: tempPassword,
+    });
+    return { user: createdUser, created: true };
+  });
+
   return {
-    synced: false,
-    primary_db: db.normalizeDatabaseName(linked.database_name || MAIN_DB_NAME),
+    synced: true,
+    primary_db: primaryDb,
+    user_id: Number(result?.user?.id || 0) || null,
+    account_email: accountEmail,
+    login_user: loginUser,
   };
 }
 
@@ -642,7 +713,7 @@ router.post("/profiles", withMainDb(async (req, res) => {
       return res.status(400).json({ message: "profile_name is required" });
     }
     const linkedUser = await resolveLinkedUser(payload, req);
-    const linkedUserEmail = normEmail(linkedUser?.user?.email || "");
+    const linkedUserEmail = normEmail(payload.linked_user_email || linkedUser?.user?.email || "");
     if (email && linkedUserEmail && email === linkedUserEmail) {
       return res.status(400).json({ message: "Profile email must be different from account email." });
     }
@@ -656,11 +727,11 @@ router.post("/profiles", withMainDb(async (req, res) => {
        RETURNING *`,
       {
         bind: [
-          linkedUser && linkedUser.user ? Number(linkedUser.user.id || 0) : (Number(payload.user_id || 0) || null),
+          Number(syncResult.user_id || linkedUser?.user?.id || payload.user_id || 0) || null,
           profileName,
           email || null,
-          norm(payload.login_user),
-          linkedUserEmail,
+          norm(syncResult.login_user || payload.login_user),
+          normEmail(syncResult.account_email || linkedUserEmail),
           norm(payload.company_name),
           normCode(payload.company_code),
           norm(payload.department),
@@ -724,7 +795,7 @@ router.put("/profiles/:id", withMainDb(async (req, res) => {
       return res.status(400).json({ message: "profile_name is required" });
     }
     const linkedUser = await resolveLinkedUser(merged, req);
-    const linkedUserEmail = normEmail(linkedUser?.user?.email || merged.linked_user_email || "");
+    const linkedUserEmail = normEmail(merged.linked_user_email || linkedUser?.user?.email || "");
     if (merged.email && linkedUserEmail && merged.email === linkedUserEmail) {
       return res.status(400).json({ message: "Profile email must be different from account email." });
     }
@@ -763,11 +834,11 @@ router.put("/profiles/:id", withMainDb(async (req, res) => {
       {
         bind: [
           id,
-          linkedUser && linkedUser.user ? Number(linkedUser.user.id || 0) : merged.user_id,
+          Number(syncResult.user_id || linkedUser?.user?.id || merged.user_id || 0) || null,
           merged.profile_name,
           merged.email || null,
-          merged.login_user,
-          linkedUserEmail,
+          norm(syncResult.login_user || merged.login_user),
+          normEmail(syncResult.account_email || linkedUserEmail),
           merged.company_name,
           merged.company_code,
           merged.department,
