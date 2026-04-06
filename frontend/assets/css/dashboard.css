@@ -625,6 +625,12 @@ body {
 .upcoming-cases-table-wrap {
   width: 100%;
   overflow-x: auto;
+  border: 1px solid #dbe8f6;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #9eb8d6 #edf4fd;
 }
 
 .upcoming-cases-table {
@@ -654,6 +660,12 @@ body {
 .upcoming-empty {
   color: #5f7388;
   text-align: center !important;
+}
+
+.upcoming-scroll-hint {
+  margin: 8px 2px 0;
+  font-size: 0.78rem;
+  color: #617a95;
 }
 
 .todo-header {
@@ -851,6 +863,40 @@ body {
     width: 100%;
     justify-content: flex-start;
   }
+
+  .upcoming-cases-section {
+    padding: 10px;
+  }
+
+  .upcoming-cases-table-wrap {
+    overflow-x: auto;
+    box-shadow: inset -20px 0 18px -18px rgba(16, 72, 125, 0.28);
+  }
+
+  .upcoming-cases-table {
+    min-width: 860px;
+  }
+
+  .upcoming-cases-table th,
+  .upcoming-cases-table td {
+    white-space: nowrap;
+    padding: 10px 12px;
+    font-size: 0.86rem;
+  }
+
+  .upcoming-cases-table th:first-child,
+  .upcoming-cases-table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: #f2f8ff;
+    box-shadow: 10px 0 14px -12px rgba(20, 71, 122, 0.45);
+  }
+
+  .upcoming-cases-table th:first-child {
+    z-index: 3;
+    background: #eaf3ff;
+  }
 }
 
 body.theme-dark .dashboard-topbar,
@@ -961,4 +1007,26 @@ body.theme-dark .upcoming-cases-table th {
 
 body.theme-dark .upcoming-empty {
   color: #b9cade;
+}
+
+body.theme-dark .upcoming-cases-table-wrap {
+  border-color: #35516c;
+  background: linear-gradient(180deg, #213344 0%, #1d2e3e 100%);
+  scrollbar-color: #6288b1 #1f3244;
+}
+
+body.theme-dark .upcoming-scroll-hint {
+  color: #a7bfd7;
+}
+
+@media (max-width: 640px) {
+  body.theme-dark .upcoming-cases-table th:first-child,
+  body.theme-dark .upcoming-cases-table td:first-child {
+    background: #24384b;
+    box-shadow: 10px 0 14px -12px rgba(12, 28, 46, 0.9);
+  }
+
+  body.theme-dark .upcoming-cases-table th:first-child {
+    background: #2a3f54;
+  }
 }
