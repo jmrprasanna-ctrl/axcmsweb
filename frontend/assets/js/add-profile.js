@@ -77,6 +77,20 @@
         return profileUsers.find((u) => Number(u.id || 0) === selectedId) || null;
     }
 
+    function getMappedCompanyFromStorage() {
+        return {
+            name: String(localStorage.getItem("mappedCompanyName") || "").trim(),
+            code: normalizeUpper(localStorage.getItem("mappedCompanyCode") || ""),
+        };
+    }
+
+    function applyMappedCompanyToForm() {
+        if (profileId) return;
+        const mapped = getMappedCompanyFromStorage();
+        if (mapped.name) els.company_name.value = mapped.name;
+        if (mapped.code) els.company_code.value = mapped.code;
+    }
+
     async function autofillFromSelectedUser() {
         const selected = getSelectedProfileUser();
         if (!selected) {
@@ -102,17 +116,19 @@
             }
         } catch (_err) {
         }
+        applyMappedCompanyToForm();
     }
 
     function getPayload() {
         const selected = getSelectedProfileUser();
+        const mapped = getMappedCompanyFromStorage();
         return {
             profile_name: String(els.profile_name.value || "").trim(),
             email: String(els.email.value || "").trim().toLowerCase(),
             user_id: Number(selected?.id || 0) || undefined,
             login_user: String(selected?.username || "").trim(),
-            company_name: String(els.company_name.value || "").trim(),
-            company_code: normalizeUpper(els.company_code.value),
+            company_name: !profileId && mapped.name ? mapped.name : String(els.company_name.value || "").trim(),
+            company_code: !profileId && mapped.code ? mapped.code : normalizeUpper(els.company_code.value),
             department: String(els.department.value || "").trim(),
             section: String(els.section.value || "").trim(),
             address: String(els.address.value || "").trim(),
@@ -319,6 +335,7 @@
             const mappedCode = String(localStorage.getItem("mappedCompanyCode") || "").trim();
             if (mappedCode) els.company_code.value = normalizeUpper(mappedCode);
         }
+        applyMappedCompanyToForm();
         await loadForEdit();
         const canDelete = typeof hasUserActionPermission === "function" && hasUserActionPermission(PROFILE_PATH, "delete");
         if (els.del) {

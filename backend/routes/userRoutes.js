@@ -507,6 +507,34 @@ async function resolveRequesterUserAndMapping(req) {
   }
 }
 
+async function resolveRequesterMappedCompany(req) {
+  const userId = Number(req?.user?.id || req?.user?.userId || 0);
+  const targetDb = db.normalizeDatabaseName(req?.databaseName || req?.requestedDatabaseName || MAIN_DB_NAME) || MAIN_DB_NAME;
+  if (!userId || !targetDb || targetDb === MAIN_DB_NAME) {
+    return { company_name: "", company_code: "" };
+  }
+  try {
+    const rows = await db.withDatabase(MAIN_DB_NAME, async () => {
+      return db.query(
+        `SELECT cp.company_name, cp.company_code
+         FROM user_mappings um
+         JOIN company_profiles cp ON cp.id = um.company_profile_id
+         WHERE um.user_id = $1
+           AND LOWER(COALESCE(um.database_name, '')) = LOWER($2)
+         ORDER BY um.id DESC
+         LIMIT 1`,
+        { bind: [userId, targetDb], type: QueryTypes.SELECT }
+      );
+    });
+    return {
+      company_name: norm(rows?.[0]?.company_name),
+      company_code: normCode(rows?.[0]?.company_code),
+    };
+  } catch (_err) {
+    return { company_name: "", company_code: "" };
+  }
+}
+
 async function filterProfileLoginUsersForRequester(req, users) {
   const list = Array.isArray(users) ? users : [];
   const targetDb = db.normalizeDatabaseName(req?.databaseName || req?.requestedDatabaseName || MAIN_DB_NAME) || MAIN_DB_NAME;
@@ -712,6 +740,7 @@ router.post("/profiles", withMainDb(async (req, res) => {
     if (!profileName) {
       return res.status(400).json({ message: "profile_name is required" });
     }
+    const mappedCompany = await resolveRequesterMappedCompany(req);
     const linkedUser = await resolveLinkedUser(payload, req);
     const linkedUserEmail = normEmail(payload.linked_user_email || linkedUser?.user?.email || "");
     if (email && linkedUserEmail && email === linkedUserEmail) {
@@ -732,8 +761,8 @@ router.post("/profiles", withMainDb(async (req, res) => {
           email || null,
           norm(syncResult.login_user || payload.login_user),
           normEmail(syncResult.account_email || linkedUserEmail),
-          norm(payload.company_name),
-          normCode(payload.company_code),
+          mappedCompany.company_name || norm(payload.company_name),
+          mappedCompany.company_code || normCode(payload.company_code),
           norm(payload.department),
           norm(payload.section),
           norm(payload.address),
@@ -773,6 +802,7 @@ router.put("/profiles/:id", withMainDb(async (req, res) => {
     );
     if (!oldRows.length) return res.status(404).json({ message: "Profile not found" });
     const old = oldRows[0];
+    const mappedCompany = await resolveRequesterMappedCompany(req);
     const hasEmailField = Object.prototype.hasOwnProperty.call(payload, "email");
     const nextEmail = hasEmailField ? normEmail(payload.email) : normEmail(old.email);
     const merged = {
@@ -781,8 +811,8 @@ router.put("/profiles/:id", withMainDb(async (req, res) => {
       profile_name: norm(payload.profile_name || old.profile_name),
       email: nextEmail,
       login_user: norm(payload.login_user || old.login_user),
-      company_name: norm(payload.company_name || old.company_name),
-      company_code: normCode(payload.company_code || old.company_code),
+      company_name: mappedCompany.company_name || norm(payload.company_name || old.company_name),
+      company_code: mappedCompany.company_code || normCode(payload.company_code || old.company_code),
       department: norm(payload.department || old.department),
       section: norm(payload.section || old.section),
       address: norm(payload.address || old.address),
