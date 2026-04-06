@@ -166,7 +166,9 @@ body{
     border-top:1px solid rgba(255,255,255,0.28);
     background:rgba(255,255,255,0.72);
     color:#1d3855;
-    font-size:15px;
+    font-size:clamp(10px, 2.9vw, 14px);
+    white-space:nowrap;
+    letter-spacing:-0.01em;
     z-index:99;
     backdrop-filter:blur(5px);
 }
@@ -201,6 +203,11 @@ body{
 
     .forgot-password{
         font-size:16px;
+    }
+
+    .app-global-footer{
+        font-size:clamp(8px, 2.6vw, 11px);
+        padding:8px 6px;
     }
 }
 
