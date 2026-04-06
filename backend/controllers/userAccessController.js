@@ -169,7 +169,11 @@ const ACCESS_MODULE_OPTIONS = [
     items: [
       { path: "/messages/messages.html", label: "Messages", actions: ["view", "add", "delete"] },
       { path: "/notifications/notifications.html", label: "Notifications", actions: ["view"] },
-      { path: "/support/support.html", label: "Support", actions: ["view", "add", "edit", "delete"] },
+      { path: "/support/lawyer-list.html", label: "Lawyer List", actions: ["view", "add", "edit", "delete"] },
+      { path: "/support/court-list.html", label: "Court List", actions: ["view", "add", "edit", "delete"] },
+      { path: "/support/add-lawyer.html", label: "Add Lawyer", actions: ["view", "add"] },
+      { path: "/support/add-court.html", label: "Add Court", actions: ["view", "add"] },
+      { path: "/support/support.html", label: "Support (Legacy)", actions: ["view", "add", "edit", "delete"] },
       { path: "/support/warrenty.html", label: "Warrenty", actions: ["view"] },
       { path: "/users/technician-list.html", label: "Support Technician", actions: ["view", "add", "edit", "delete"] },
     ],

@@ -10,7 +10,7 @@ async function loadExpense(){
     try{
         const expense = await request(`/expenses/${expenseId}`,"GET");
         document.getElementById("title").value = expense.title || "";
-        document.getElementById("customer").value = expense.customer || "";
+        document.getElementById("client").value = expense.client || expense.customer || "";
         document.getElementById("amount").value = expense.amount || 0;
         const dateVal = expense.date ? new Date(expense.date) : new Date();
         const tzOffset = dateVal.getTimezoneOffset() * 60000;
@@ -27,7 +27,8 @@ document.getElementById("expenseForm").addEventListener("submit", async function
     e.preventDefault();
     const data = {
         title: document.getElementById("title").value.trim(),
-        customer: document.getElementById("customer").value.trim(),
+        client: document.getElementById("client").value.trim(),
+        customer: document.getElementById("client").value.trim(),
         amount: parseFloat(document.getElementById("amount").value),
         date: document.getElementById("date").value,
         category: document.getElementById("category").value.trim()

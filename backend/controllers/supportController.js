@@ -6,6 +6,10 @@ function normalizeName(value) {
   return String(value || "").trim().replace(/\s+/g, " ").toUpperCase();
 }
 
+function normalizeText(value) {
+  return String(value || "").trim().replace(/\s+/g, " ").toUpperCase();
+}
+
 async function listRows(model, res, label) {
   try {
     const rows = await model.findAll({ order: [["name", "ASC"], ["id", "DESC"]] });
@@ -18,6 +22,9 @@ async function listRows(model, res, label) {
 async function addRow(model, req, res, label) {
   try {
     const name = normalizeName(req.body?.name);
+    const address = normalizeText(req.body?.address);
+    const area = normalizeText(req.body?.area);
+    const mobile = label === "Lawyer" ? normalizeText(req.body?.mobile) : "";
     if (!name) {
       return res.status(400).json({ message: `${label} name is required.` });
     }
@@ -29,7 +36,12 @@ async function addRow(model, req, res, label) {
       return res.status(400).json({ message: `${label} already exists.` });
     }
 
-    const created = await model.create({ name });
+    const created = await model.create({
+      name,
+      address: address || null,
+      area: area || null,
+      ...(label === "Lawyer" ? { mobile: mobile || null } : {})
+    });
     res.status(201).json(created);
   } catch (err) {
     res.status(500).json({ message: err.message || `Failed to add ${label}.` });

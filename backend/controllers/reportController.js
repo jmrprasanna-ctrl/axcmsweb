@@ -879,12 +879,12 @@ exports.financeOverview = async (req,res)=>{
         const monthExpenseRowsRaw = await Expense.findAll({
             where: { date: { [Op.between]: [expenseRange.start, expenseRange.end] } },
             order: [["date", "DESC"], ["id", "DESC"]],
-            attributes: ["id", "title", "customer", "category", "amount", "date"]
+            attributes: ["id", "title", "client", "customer", "category", "amount", "date"]
         });
         const monthExpenseRows = monthExpenseRowsRaw.map((e) => ({
             id: e.id,
             title: e.title || "",
-            customer: e.customer || "",
+            customer: e.client || e.customer || "",
             category: e.category || "",
             amount: Number(e.amount || 0),
             date: e.date

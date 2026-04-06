@@ -6,6 +6,8 @@ const Court = db.define(
   {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     name: { type: DataTypes.STRING(150), allowNull: false },
+    address: { type: DataTypes.STRING(255), allowNull: true },
+    area: { type: DataTypes.STRING(150), allowNull: true },
     createdAt: { type: DataTypes.DATE, allowNull: true, defaultValue: DataTypes.NOW },
     updatedAt: { type: DataTypes.DATE, allowNull: true, defaultValue: DataTypes.NOW },
   },

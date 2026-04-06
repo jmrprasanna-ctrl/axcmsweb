@@ -82,6 +82,8 @@ const BASELINE_LEFT_PANEL_PATHS = [
     "/invoices/Payments-list.html",
     "/expenses/expense-list.html",
     "/finance/finance.html",
+    "/support/lawyer-list.html",
+    "/support/court-list.html",
     "/support/support.html",
     "/support/add-lawyer.html",
     "/support/add-court.html",
@@ -467,7 +469,8 @@ function renderSidebarMenuByAccess(){
         { path: "/expenses/expense-list.html", label: "Expenses" },
         { path: "/expenses/add-expense.html", label: "Add Expense" },
         { path: "/finance/finance.html", label: "Finance" },
-        { path: "/support/support.html", label: "Support" },
+        { path: "/support/lawyer-list.html", label: "Lawyer List" },
+        { path: "/support/court-list.html", label: "Court List" },
         { path: "/support/add-lawyer.html", label: "Add Lawyer" },
         { path: "/support/add-court.html", label: "Add Court" },
         { path: "/users/user-list.html", label: "Users" },
@@ -528,12 +531,12 @@ function renderSidebarMenuByAccess(){
         },
         { path: "/finance/finance.html", label: "Finance" },
         {
-            path: "/support/support.html",
+            path: "/support/lawyer-list.html",
             label: "Support",
             children: [
-                { path: "/support/support.html", label: "Lawyer List" },
+                { path: "/support/lawyer-list.html", label: "Lawyer List" },
                 { path: "/support/add-lawyer.html", label: "Add Lawyer" },
-                { path: "/support/support.html", label: "Court List" },
+                { path: "/support/court-list.html", label: "Court List" },
                 { path: "/support/add-court.html", label: "Add Court" }
             ]
         },
@@ -1008,9 +1011,14 @@ async function loadUserAccessPermissions(){
         const pagesFromActions = normalizedActionKeys
             .map((x) => x.slice(0, x.lastIndexOf("::")))
             .filter(Boolean);
+        const hasLegacySupportPage = normalizedAllowedPages.includes("/support/support.html")
+            || pagesFromActions.includes("/support/support.html");
+        const hasLegacySupportAddAction = normalizedActionKeys.includes("/support/support.html::add");
         const dynamicPages = Array.from(new Set([
             ...normalizedAllowedPages,
             ...pagesFromActions,
+            ...(hasLegacySupportPage ? ["/support/lawyer-list.html", "/support/court-list.html"] : []),
+            ...(hasLegacySupportAddAction ? ["/support/add-lawyer.html", "/support/add-court.html"] : []),
             ...(normalizedActionKeys.includes("/users/technician-list.html::add") ? ["/users/add-technician.html"] : []),
             ...(normalizedActionKeys.includes("/users/technician-list.html::edit") ? ["/users/edit-technician.html"] : [])
         ]));

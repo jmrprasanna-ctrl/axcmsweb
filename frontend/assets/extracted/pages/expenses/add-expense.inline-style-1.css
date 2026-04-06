@@ -1,15 +1,111 @@
-.form-actions{
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin-top: 12px;
+.expense-page-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:12px;
+}
+
+.expense-page-header .back-icon-btn{
+    margin-top:0;
+}
+
+#expenseForm{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(220px,1fr));
+    gap:12px 14px;
+}
+
+#expenseForm label{
+    margin:0;
+}
+
+#expenseForm label[for="title"],
+#expenseForm label[for="clientSearch"],
+#expenseForm label[for="amount"],
+#expenseForm label[for="date"],
+#expenseForm label[for="category"]{
+    align-self:end;
+}
+
+#title,
+.client-search-wrap,
+#amount,
+#date,
+#category{
+    margin-top:0;
+}
+
+.client-search-wrap{
+    position:relative;
+}
+
+.client-search-list{
+    position:absolute;
+    top:calc(100% + 6px);
+    left:0;
+    right:0;
+    z-index:12;
+    border:1px solid #d4e3f3;
+    border-radius:12px;
+    background:#fff;
+    box-shadow:0 14px 30px rgba(15, 52, 88, 0.14);
+    max-height:220px;
+    overflow:auto;
+    padding:4px;
+}
+
+.client-search-list.hidden{
+    display:none;
+}
+
+.client-search-item{
+    width:100%;
+    border:0;
+    background:transparent;
+    text-align:left;
+    padding:8px 10px;
+    border-radius:8px;
+    cursor:pointer;
+    color:#173a5d;
+    font-size:0.92rem;
+}
+
+.client-search-item:hover,
+.client-search-item.active{
+    background:#edf5ff;
+}
+
+.client-search-empty{
+    padding:8px 10px;
+    color:#647d96;
+    font-size:0.88rem;
+}
+
+#expenseForm .form-actions{
+    grid-column:1 / -1;
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-top:8px;
+}
+
+.save-icon-btn{
+    width:44px;
+    height:44px;
+    min-width:44px;
+    padding:0;
+    border-radius:14px;
+    margin-top:0;
+}
+
+.save-icon-btn svg{
+    width:20px;
+    height:20px;
+}
+
+@media (max-width:900px){
+    #expenseForm{
+        grid-template-columns:1fr;
     }
-    .btn-secondary{
-        background: #e9f3fc;
-        color: #0b4f93;
-        border: 1px solid #cfe1f5;
-        text-decoration: none;
-    }
-    .btn-secondary:hover{
-        filter: brightness(0.98);
-    }
+}

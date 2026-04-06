@@ -112,7 +112,7 @@ function renderExpenses(expenses){
         const dateText = expenseDateValue(exp) ? new Date(expenseDateValue(exp)).toLocaleDateString() : "";
         tr.innerHTML = `
             <td>${exp.title}</td>
-            <td>${exp.customer || ""}</td>
+            <td>${exp.client || exp.customer || ""}</td>
             <td>${Number(exp.amount || 0).toFixed(2)}</td>
             <td>${dateText}</td>
             <td>${exp.category}</td>
@@ -144,7 +144,7 @@ function applyExpenseFilters(){
     let filtered = filterExpensesByPeriod(allExpenses);
     if(query){
         filtered = filtered.filter(exp =>
-            [exp.title, exp.customer, exp.category, expenseDateValue(exp)].some(v => String(v || "").toLowerCase().includes(query))
+            [exp.title, exp.client || exp.customer, exp.category, expenseDateValue(exp)].some(v => String(v || "").toLowerCase().includes(query))
         );
     }
     renderExpenses(filtered);

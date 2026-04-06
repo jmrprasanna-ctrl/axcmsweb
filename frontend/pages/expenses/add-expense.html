@@ -25,17 +25,25 @@
 </div>
 
 <div class="main-content">
-    <header><h2>Add Expense</h2></header>
+    <header class="expense-page-header">
+        <h2>Add Expense</h2>
+        <a class="icon-btn back-icon-btn" href="expense-list.html" title="Back" aria-label="Back">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+        </a>
+    </header>
 
     <div class="form-container">
         <form id="expenseForm">
             <label>Title</label>
             <input type="text" id="title" placeholder="Expense Title" required>
 
-            <label>Customer</label>
-            <select id="customer">
-                <option value="">Select Customer</option>
-            </select>
+            <label for="clientSearch">Client</label>
+            <div class="client-search-wrap">
+                <input type="text" id="clientSearch" placeholder="Search client name" autocomplete="off">
+                <div class="client-search-list hidden" id="clientSearchList" role="listbox" aria-label="Client search results"></div>
+            </div>
 
             <label>Amount</label>
             <input type="number" id="amount" placeholder="Amount" min="0" required>
@@ -46,16 +54,24 @@
             <label>Category</label>
             <select id="category" required>
                 <option value="">Select Category</option>
-                <option value="Repair">Repair</option>
-                <option value="Customer Visit">Customer Visit</option>
-                <option value="Brekdown">Brekdown</option>
+                <option value="Lawyer Payment">Lawyer Payment</option>
+                <option value="Colombo Court Visit">Colombo Court Visit</option>
+                <option value="Outsttion Court Visit">Outsttion Court Visit</option>
+                <option value="Document Charges">Document Charges</option>
+                <option value="Failing Charges">Failing Charges</option>
                 <option value="Personal">Personal</option>
-                <option value="Miscellaneous">Miscellaneous</option>
+                <option value="Other">Other</option>
+                <option value="Sallary Pay">Sallary Pay</option>
             </select>
 
             <div class="form-actions">
-                <button type="submit">Save Expense</button>
-                <a class="icon-btn back-icon-btn" href="expense-list.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+                <button class="icon-btn save-icon-btn" type="submit" title="Save Expense" aria-label="Save Expense">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M6.8 3.5h8.9l2.8 2.8v13a1.7 1.7 0 0 1-1.7 1.7H7.2a1.7 1.7 0 0 1-1.7-1.7V5.2a1.7 1.7 0 0 1 1.3-1.7Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"></path>
+                        <path d="M8.7 3.5v5.2h6.1V3.5" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"></path>
+                        <path d="M8.7 16h6.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path>
+                    </svg>
+                </button>
             </div>
         </form>
     </div>

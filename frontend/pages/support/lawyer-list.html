@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lawyer List - AXIS_CMS_WEB</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<link rel="stylesheet" href="../../assets/css/support-pages.css">
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>AXIS_CMS_WEB</span>
+    </div>
+    <ul class="nav-links" style="visibility:hidden;">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../calendar.html">Calender</a></li>
+        <li><a href="../customers/client-list.html">Client</a></li>
+        <li><a href="../cases/case-list.html">Cases</a></li>
+        <li><a href="../cases/finished.html">Finished</a></li>
+        <li><a href="../invoices/Payments-list.html">Payments</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../finance/finance.html">Finance</a></li>
+        <li><a href="lawyer-list.html">Lawyer List</a></li>
+        <li><a href="../users/user-list.html">Users</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header class="support-page-header">
+        <h2>Lawyer List</h2>
+        <a class="icon-btn back-icon-btn" href="../dashboard.html" title="Back" aria-label="Back">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </a>
+    </header>
+
+    <div class="form-container">
+        <div class="support-actions">
+            <a class="btn btn-primary" href="add-lawyer.html">Add Lawyer</a>
+            <a class="icon-btn" href="court-list.html" title="Court List" aria-label="Court List">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M4 20.2h16M6.5 20.2V9.5M12 20.2V9.5M17.5 20.2V9.5M3.5 9.5h17l-8.5-5-8.5 5Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+            </a>
+        </div>
+        <div class="support-table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Lawyer Name</th>
+                        <th>Address</th>
+                        <th>Area</th>
+                        <th>Mobile</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="lawyerTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js?v=20260407p01"></script>
+<script src="../../assets/js/lawyer-list.js?v=20260407p01"></script>
+</body>
+</html>
