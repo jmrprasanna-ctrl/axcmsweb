@@ -59,6 +59,7 @@ const rentalMachineConsumableRoutes = require("./routes/rentalMachineConsumableR
 const rentalMachineCountRoutes = require("./routes/rentalMachineCountRoutes");
 const technicianRoutes = require("./routes/technicianRoutes");
 const supportImportantRoutes = require("./routes/supportImportantRoutes");
+const supportRoutes = require("./routes/supportRoutes");
 const categoryModelOptionRoutes = require("./routes/categoryModelOptionRoutes");
 const uiSettingsRoutes = require("./routes/uiSettingsRoutes");
 const emailSetupRoutes = require("./routes/emailSetupRoutes");
@@ -958,6 +959,7 @@ app.use("/api/rental-machine-consumables", rentalMachineConsumableRoutes);
 app.use("/api/rental-machine-counts", rentalMachineCountRoutes);
 app.use("/api/technicians", technicianRoutes);
 app.use("/api/support-importants", supportImportantRoutes);
+app.use("/api/support", supportRoutes);
 app.use("/api/category-model-options", categoryModelOptionRoutes);
 app.use("/api/ui-settings", uiSettingsRoutes);
 app.use("/api/email-setup", emailSetupRoutes);
