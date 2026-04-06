@@ -66,6 +66,14 @@ function normalizeMappedLogoPath(logoPathRaw, folderNameRaw = "", logoFileNameRa
   return raw.replace(/^\/+/, "");
 }
 
+function normalizeCompanyCode(value) {
+  return String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9_-]+/g, "")
+    .slice(0, 40);
+}
+
 async function resolveUserProfilePicture(client, userId) {
   const uid = Number(userId || 0);
   if (!uid) {
@@ -379,6 +387,57 @@ exports.forgotPassword = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: err.message || "Failed to send password email." });
+  } finally {
+    await client.end().catch(() => {});
+  }
+};
+
+exports.getCompanyBranding = async (req, res) => {
+  const companyCode = normalizeCompanyCode(req.query?.company_code || "");
+  if (!companyCode) {
+    return res.json({ company_code: null, company_name: null, logo_url: null });
+  }
+
+  const client = getAuthDbClient();
+  try {
+    await client.connect();
+    const rs = await client.query(
+      `SELECT company_name, company_code, logo_path, logo_data_url, folder_name, logo_file_name
+       FROM company_profiles
+       WHERE UPPER(TRIM(company_code)) = $1
+       ORDER BY "updatedAt" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
+       LIMIT 1`,
+      [companyCode]
+    );
+
+    if (!rs.rowCount) {
+      return res.json({ company_code: companyCode, company_name: null, logo_url: null });
+    }
+
+    const row = rs.rows[0] || {};
+    const logoDataUrl = String(row.logo_data_url || "").trim();
+    let logoUrl = null;
+    if (/^data:image\//i.test(logoDataUrl)) {
+      logoUrl = logoDataUrl;
+    } else {
+      const normalizedPath = normalizeMappedLogoPath(row.logo_path, row.folder_name, row.logo_file_name);
+      if (normalizedPath) {
+        if (/^https?:\/\//i.test(normalizedPath) || /^data:image\//i.test(normalizedPath)) {
+          logoUrl = normalizedPath;
+        } else {
+          logoUrl = `/${String(normalizedPath).replace(/^\/+/, "")}`;
+        }
+      }
+    }
+
+    return res.json({
+      company_code: normalizeCompanyCode(row.company_code),
+      company_name: String(row.company_name || "").trim() || null,
+      logo_url: logoUrl,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Failed to load company branding." });
   } finally {
     await client.end().catch(() => {});
   }

@@ -99,15 +99,17 @@ function applyLoginLogo(logoPath){
     const el = getLoginLogoElement();
     if(!el) return;
     const abs = toAbsoluteLogoUrl(logoPath);
-    el.src = abs || LOGIN_DEFAULT_LOGO_SRC;
+    if(abs){
+        el.src = abs;
+        el.style.display = "";
+        return;
+    }
+    el.removeAttribute("src");
+    el.style.display = "none";
 }
 
 function applyCachedLoginLogo(){
-    const cached = String(localStorage.getItem("mappedCompanyLogoUrl") || "").trim();
-    if(cached){
-        applyLoginLogo(cached);
-        return;
-    }
+    // Login page should not show default/cached logo before company code is provided.
     applyLoginLogo("");
 }
 
