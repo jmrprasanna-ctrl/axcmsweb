@@ -24,6 +24,18 @@ function fmt(v){
     return asNumber(v).toFixed(2);
 }
 
+const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function formatDateWithWeekday(dateText){
+    const raw = String(dateText || "").trim();
+    if(!raw) return "Today";
+    const parsed = new Date(raw);
+    if(Number.isNaN(parsed.getTime())) return raw;
+    const weekday = parsed.toLocaleDateString("en-GB", { weekday: "long" });
+    const date = parsed.toLocaleDateString("en-GB");
+    return `${date} ${weekday}`;
+}
+
 let lastFinanceData = null;
 let salesChartInstance = null;
 let profitChartInstance = null;
@@ -90,12 +102,16 @@ function putRows(tbodyId, rows, emptyCols){
 
 async function loadFinanceOverview(){
     try{
-        const query = `?date=${encodeURIComponent("")}`;
+        const periodEl = document.getElementById("summaryPeriod");
+        const dateEl = document.getElementById("summaryDate");
+        const period = (periodEl ? periodEl.value : "day") || "day";
         const today = new Date().toISOString().slice(0, 10);
+        const date = (dateEl && dateEl.value) ? dateEl.value : today;
+        const query = `?period=${encodeURIComponent(period)}&date=${encodeURIComponent(date)}`;
         const [data, dashboardSummary, dashboardYearSummary] = await Promise.all([
             request(`/reports/finance-overview${query}`, "GET"),
-            request(`/dashboard/summary?period=month&date=${encodeURIComponent(today)}`, "GET"),
-            request(`/dashboard/summary?period=year&date=${encodeURIComponent(today)}`, "GET")
+            request(`/dashboard/summary?period=${encodeURIComponent(period)}&date=${encodeURIComponent(date)}`, "GET"),
+            request(`/dashboard/summary?period=year&date=${encodeURIComponent(date)}`, "GET")
         ]);
         lastFinanceData = data;
 
@@ -112,6 +128,17 @@ async function loadFinanceOverview(){
         if(expenseEl) expenseEl.innerText = fmt(expenseValue);
         if(profitEl) profitEl.innerText = fmt(profitValue);
         renderMonthlyCharts(dashboardYearSummary || dashboardSummary);
+        const labelEl = document.getElementById("summaryRangeLabel");
+        if(labelEl){
+            const periodName = String(period || "day").toLowerCase();
+            if(periodName === "year"){
+                labelEl.innerText = date ? `Year: ${date.slice(0,4)}` : "This Year";
+            }else if(periodName === "month"){
+                labelEl.innerText = date ? `Month of ${date.slice(0,7)}` : "This Month";
+            }else{
+                labelEl.innerText = formatDateWithWeekday(date);
+            }
+        }
 
         const summaryRows = ["week","month","year"].map((k) => {
             const s = data.summary_by_period?.[k] || {};
@@ -127,6 +154,60 @@ async function loadFinanceOverview(){
     }catch(err){
         putRows("summaryBody", [`<td colspan="4">${err.message || "Failed to load finance overview"}</td>`], 4);
     }
+}
+
+function populateSummaryYearOptions(){
+    const yearEl = document.getElementById("summaryYearSelect");
+    if(!yearEl) return;
+    const currentYear = new Date().getFullYear();
+    const startYear = currentYear - 15;
+    const rows = [];
+    for(let y = currentYear; y >= startYear; y--){
+        rows.push(`<option value="${y}">${y}</option>`);
+    }
+    yearEl.innerHTML = rows.join("");
+}
+
+function populateSummaryMonthOptions(){
+    const monthEl = document.getElementById("summaryMonthSelect");
+    if(!monthEl) return;
+    monthEl.innerHTML = MONTH_NAMES
+        .map((name, i) => `<option value="${String(i + 1).padStart(2, "0")}">${name}</option>`)
+        .join("");
+}
+
+function syncSummaryDateFromSelectors(){
+    const periodEl = document.getElementById("summaryPeriod");
+    const dateEl = document.getElementById("summaryDate");
+    const yearEl = document.getElementById("summaryYearSelect");
+    const monthEl = document.getElementById("summaryMonthSelect");
+    if(!periodEl || !dateEl) return;
+
+    const now = new Date();
+    const period = (periodEl.value || "day").toLowerCase();
+    const year = (yearEl && yearEl.value) ? yearEl.value : String(now.getFullYear());
+    const month = (monthEl && monthEl.value) ? monthEl.value : String(now.getMonth() + 1).padStart(2, "0");
+
+    if(period === "year"){
+        dateEl.value = `${year}-01-01`;
+    }else if(period === "month"){
+        dateEl.value = `${year}-${month}-01`;
+    }else if(!dateEl.value){
+        dateEl.value = now.toISOString().slice(0, 10);
+    }
+}
+
+function toggleSummaryExtraSelectors(){
+    const periodEl = document.getElementById("summaryPeriod");
+    const dateEl = document.getElementById("summaryDate");
+    const yearEl = document.getElementById("summaryYearSelect");
+    const monthEl = document.getElementById("summaryMonthSelect");
+    if(!periodEl || !dateEl || !yearEl || !monthEl) return;
+
+    const period = (periodEl.value || "day").toLowerCase();
+    yearEl.style.display = (period === "year" || period === "month") ? "" : "none";
+    monthEl.style.display = period === "month" ? "" : "none";
+    dateEl.style.display = period === "day" ? "" : "none";
 }
 
 function csvEscape(value){
@@ -294,6 +375,52 @@ function logout(){
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     window.location.href="../login.html";
+}
+
+const summaryDateEl = document.getElementById("summaryDate");
+if(summaryDateEl){
+    summaryDateEl.value = new Date().toISOString().slice(0, 10);
+}
+const summaryPeriodEl = document.getElementById("summaryPeriod");
+const summaryYearEl = document.getElementById("summaryYearSelect");
+const summaryMonthEl = document.getElementById("summaryMonthSelect");
+
+populateSummaryYearOptions();
+populateSummaryMonthOptions();
+if(summaryYearEl && !summaryYearEl.value){
+    summaryYearEl.value = String(new Date().getFullYear());
+}
+if(summaryMonthEl && !summaryMonthEl.value){
+    summaryMonthEl.value = String(new Date().getMonth() + 1).padStart(2, "0");
+}
+toggleSummaryExtraSelectors();
+syncSummaryDateFromSelectors();
+
+if(summaryPeriodEl){
+    summaryPeriodEl.addEventListener("change", () => {
+        toggleSummaryExtraSelectors();
+        syncSummaryDateFromSelectors();
+        loadFinanceOverview();
+    });
+}
+if(summaryYearEl){
+    summaryYearEl.addEventListener("change", () => {
+        syncSummaryDateFromSelectors();
+        loadFinanceOverview();
+    });
+}
+if(summaryMonthEl){
+    summaryMonthEl.addEventListener("change", () => {
+        syncSummaryDateFromSelectors();
+        loadFinanceOverview();
+    });
+}
+if(summaryDateEl){
+    summaryDateEl.addEventListener("change", () => {
+        const period = summaryPeriodEl ? (summaryPeriodEl.value || "day").toLowerCase() : "day";
+        if(period !== "day") return;
+        loadFinanceOverview();
+    });
 }
 
 loadFinanceOverview();

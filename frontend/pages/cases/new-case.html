@@ -26,7 +26,14 @@
 </div>
 
 <div class="main-content">
-    <header><h2 id="formTitle">New Case</h2></header>
+    <header class="cases-page-header">
+        <h2 id="formTitle">New Case</h2>
+        <a class="icon-btn back-icon-btn" href="case-list.html" title="Back" aria-label="Back">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+        </a>
+    </header>
     <div class="form-container">
         <form id="caseForm" class="form-grid">
             <input type="hidden" id="caseId">
@@ -75,13 +82,17 @@
             <div class="full">
                 <label>Upload Option</label>
                 <div class="upload-picker">
-                    <button type="button" class="upload-trigger" id="cameraUploadBtn" title="Capture photos using mobile camera">
-                        <span class="upload-icon" aria-hidden="true">??</span>
-                        <span>Camera</span>
+                    <button type="button" class="upload-trigger upload-trigger-icon" id="cameraUploadBtn" title="Camera" aria-label="Camera">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M4.5 8.2h3l1.2-2h6.6l1.2 2h3A1.8 1.8 0 0 1 21.3 10v8.3a1.8 1.8 0 0 1-1.8 1.8H4.5a1.8 1.8 0 0 1-1.8-1.8V10a1.8 1.8 0 0 1 1.8-1.8Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                            <circle cx="12" cy="14.2" r="3.3" stroke="currentColor" stroke-width="1.7"/>
+                        </svg>
                     </button>
-                    <button type="button" class="upload-trigger" id="folderUploadBtn" title="Upload images, PDF, DOC from local folder">
-                        <span class="upload-icon" aria-hidden="true">??</span>
-                        <span>Folder Upload</span>
+                    <button type="button" class="upload-trigger upload-trigger-icon" id="folderUploadBtn" title="Folder Upload" aria-label="Folder Upload">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M3.5 7.2a1.7 1.7 0 0 1 1.7-1.7h4l1.7 2h7.6a1.7 1.7 0 0 1 1.7 1.7v8.6a1.7 1.7 0 0 1-1.7 1.7H5.2a1.7 1.7 0 0 1-1.7-1.7V7.2Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                            <path d="M12 10.3v5.8M9.4 13h5.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                        </svg>
                     </button>
                 </div>
                 <input type="file" id="camera_uploads" accept="image/*" capture="environment" multiple hidden>
@@ -89,8 +100,13 @@
             </div>
             <div class="full upload-preview" id="uploadPreview"></div>
             <div class="full cases-actions">
-                <button type="submit" class="btn btn-primary" id="saveCaseBtn">Save Case</button>
-                <a class="icon-btn back-icon-btn" href="case-list.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+                <button type="submit" class="icon-btn save-icon-btn" id="saveCaseBtn" title="Save Case" aria-label="Save Case">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M6.8 3.5h8.9l2.8 2.8v13a1.7 1.7 0 0 1-1.7 1.7H7.2a1.7 1.7 0 0 1-1.7-1.7V5.2a1.7 1.7 0 0 1 1.3-1.7Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"></path>
+                        <path d="M8.7 3.5v5.2h6.1V3.5" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"></path>
+                        <path d="M8.7 16h6.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path>
+                    </svg>
+                </button>
             </div>
         </form>
     </div>

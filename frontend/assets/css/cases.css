@@ -102,6 +102,19 @@
     border-color: #acc8e5;
 }
 
+.upload-trigger-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    padding: 0;
+    justify-content: center;
+}
+
+.upload-trigger-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
 .upload-icon {
     font-size: 16px;
     line-height: 1;
@@ -140,6 +153,20 @@
 .btn[aria-disabled="true"] {
     opacity: 0.55;
     cursor: not-allowed;
+}
+
+.cases-actions .save-icon-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    padding: 0;
+    border-radius: 14px;
+    margin-top: 0;
+}
+
+.cases-actions .save-icon-btn svg {
+    width: 20px;
+    height: 20px;
 }
 
 .history-panel {
