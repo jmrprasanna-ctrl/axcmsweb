@@ -387,39 +387,95 @@ async function listUsersAcrossDatabases(req) {
   return listUsersFromDatabase(targetDb).catch(() => []);
 }
 
-async function resolveRequesterMappedEmail(req) {
+async function resolveRequesterUserAndMapping(req) {
   const userId = Number(req?.user?.id || req?.user?.userId || 0);
   const targetDb = db.normalizeDatabaseName(req?.databaseName || req?.requestedDatabaseName || MAIN_DB_NAME) || MAIN_DB_NAME;
-  if (!userId || !targetDb || targetDb === MAIN_DB_NAME) return "";
+  if (!userId || !targetDb) {
+    return {
+      user_id: 0,
+      username: "",
+      email: "",
+      mapped_email: "",
+      database_name: targetDb,
+    };
+  }
   try {
     const rows = await db.withDatabase(MAIN_DB_NAME, async () => {
       return db.query(
-        `SELECT mapped_email
-         FROM user_mappings
-         WHERE user_id = $1
-           AND LOWER(database_name) = LOWER($2)
-         ORDER BY id DESC
+        `SELECT u.id AS user_id,
+                u.username,
+                u.email,
+                um.mapped_email,
+                um.database_name
+         FROM users u
+         LEFT JOIN user_mappings um
+           ON um.user_id = u.id
+          AND LOWER(COALESCE(um.database_name, '')) = LOWER($2)
+         WHERE u.id = $1
+         ORDER BY um.id DESC NULLS LAST
          LIMIT 1`,
         { bind: [userId, targetDb], type: QueryTypes.SELECT }
       );
     });
-    return normEmail(rows?.[0]?.mapped_email || "");
+    const row = rows?.[0] || {};
+    return {
+      user_id: Number(row.user_id || 0),
+      username: String(row.username || "").trim(),
+      email: normEmail(row.email),
+      mapped_email: normEmail(row.mapped_email),
+      database_name: db.normalizeDatabaseName(row.database_name || targetDb) || targetDb,
+    };
   } catch (_err) {
-    return "";
+    return {
+      user_id: userId,
+      username: "",
+      email: "",
+      mapped_email: "",
+      database_name: targetDb,
+    };
   }
 }
 
 async function filterProfileLoginUsersForRequester(req, users) {
   const list = Array.isArray(users) ? users : [];
   const targetDb = db.normalizeDatabaseName(req?.databaseName || req?.requestedDatabaseName || MAIN_DB_NAME) || MAIN_DB_NAME;
-  const requesterId = Number(req?.user?.id || req?.user?.userId || 0);
-  if (!requesterId || !targetDb || targetDb === MAIN_DB_NAME) return list;
+  if (!targetDb || targetDb === MAIN_DB_NAME) return list;
 
-  const mappedEmail = await resolveRequesterMappedEmail(req);
-  if (mappedEmail) {
-    return list.filter((u) => normEmail(u?.email) === mappedEmail);
+  const requester = await resolveRequesterUserAndMapping(req);
+  const candidateEmails = new Set(
+    [requester.mapped_email, requester.email]
+      .map((v) => normEmail(v))
+      .filter(Boolean)
+  );
+  const candidateUsernames = new Set(
+    [requester.username]
+      .map((v) => String(v || "").trim().toLowerCase())
+      .filter(Boolean)
+  );
+
+  if (list.length) {
+    const matched = list.filter((u) => {
+      const email = normEmail(u?.email);
+      const username = String(u?.username || "").trim().toLowerCase();
+      if (email && candidateEmails.has(email)) return true;
+      if (username && candidateUsernames.has(username)) return true;
+      return false;
+    });
+    if (matched.length) return matched;
   }
-  return list.filter((u) => Number(u?.id || 0) === requesterId);
+
+  if (requester.user_id || requester.username || requester.mapped_email || requester.email) {
+    return [{
+      id: Number(requester.user_id || 0),
+      username: String(requester.username || "").trim(),
+      email: normEmail(requester.mapped_email || requester.email),
+      company: "",
+      department: "",
+      telephone: "",
+      source_database: targetDb,
+    }];
+  }
+  return list;
 }
 
 // Profile endpoints (stored in user_profiles and synced to linked users account).

@@ -179,6 +179,10 @@
             try {
                 const res = await request("/users/profiles/user-options", "GET");
                 list = normalizeUserOptions(res);
+                if (!list.length) {
+                    const fallback = await request("/users/assignable", "GET");
+                    list = normalizeUserOptions(fallback);
+                }
             } catch (_firstErr) {
                 const fallback = await request("/users/assignable", "GET");
                 list = normalizeUserOptions(fallback);
