@@ -204,6 +204,7 @@ function logoutForInactivity(){
     localStorage.removeItem(MAPPED_COMPANY_LOGO_URL_KEY);
     localStorage.removeItem(MAPPED_COMPANY_CODE_KEY);
     localStorage.removeItem(MAPPED_COMPANY_EMAIL_KEY);
+    localStorage.removeItem("userProfileName");
     localStorage.removeItem("userProfilePictureUrl");
     window.location.replace(buildPagesPath("login.html"));
 }
@@ -1300,6 +1301,12 @@ async function login(){
         localStorage.setItem("userId", res.user.id);
         localStorage.setItem("userName", res.user.username || "");
         localStorage.setItem("userEmail", res.user.email || "");
+        const loginProfileName = String((res.user && res.user.user_profile_name) || "").trim();
+        if(loginProfileName){
+            localStorage.setItem("userProfileName", loginProfileName);
+        }else{
+            localStorage.removeItem("userProfileName");
+        }
         if(res.user && res.user.database_name){
             localStorage.setItem("selectedDatabaseName", String(res.user.database_name).trim().toLowerCase());
         }else{

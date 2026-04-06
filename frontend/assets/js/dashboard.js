@@ -2,34 +2,43 @@
 const storedRole = localStorage.getItem("role") || "";
 const storedEmail = localStorage.getItem("userEmail") || "";
 const storedName = localStorage.getItem("userName") || "";
+let storedProfileName = localStorage.getItem("userProfileName") || "";
 let storedProfilePicturePath = localStorage.getItem("userProfilePictureUrl") || "";
-const displayName = storedName || storedEmail || storedRole || "User";
+let displayName = storedProfileName || storedName || storedEmail || storedRole || "User";
 const MENU_AVATAR_PLACEHOLDER = "../assets/images/profile-placeholder.svg";
 
 const roleEl = document.getElementById("userRole");
-if (roleEl) roleEl.innerText = storedRole;
-
 const nameEl = document.getElementById("userName");
-if (nameEl) nameEl.innerText = displayName;
-
 const initialEl = document.getElementById("userInitial");
-if (initialEl) {
-    const initialSource = displayName.trim();
-    initialEl.innerText = initialSource ? initialSource[0].toUpperCase() : "U";
-}
 const menuNameEl = document.getElementById("userMenuName");
-if(menuNameEl){
-    menuNameEl.innerText = displayName;
-}
 const menuRoleEl = document.getElementById("userMenuRole");
 if(menuRoleEl){
     menuRoleEl.innerText = storedRole || "User";
 }
 const menuInitialEl = document.getElementById("userMenuInitial");
-if(menuInitialEl){
+
+function applyDisplayName(nextName){
+    const normalized = String(nextName || "").trim();
+    displayName = normalized || storedName || storedEmail || storedRole || "User";
+    if(roleEl){
+        roleEl.innerText = displayName;
+    }
+    if(nameEl){
+        nameEl.innerText = displayName;
+    }
+    if(menuNameEl){
+        menuNameEl.innerText = displayName;
+    }
     const initialSource = displayName.trim();
-    menuInitialEl.innerText = initialSource ? initialSource[0].toUpperCase() : "U";
+    const initial = initialSource ? initialSource[0].toUpperCase() : "U";
+    if(initialEl){
+        initialEl.innerText = initial;
+    }
+    if(menuInitialEl){
+        menuInitialEl.innerText = initial;
+    }
 }
+applyDisplayName(displayName);
 
 function applyUserAvatarImage() {
     const menuAvatarEl = document.getElementById("userMenuInitial");
@@ -78,6 +87,14 @@ async function hydrateAvatarFromProfiles() {
         const bestAvatar = match
             ? String(match.profile_picture_data_url || match.profile_picture_url || match.profile_picture_api_url || "").trim()
             : "";
+        const bestProfileName = match
+            ? String(match.profile_name || "").trim()
+            : "";
+        if(bestProfileName){
+            storedProfileName = bestProfileName;
+            localStorage.setItem("userProfileName", storedProfileName);
+            applyDisplayName(storedProfileName);
+        }
         if (bestAvatar) {
             storedProfilePicturePath = bestAvatar;
             localStorage.setItem("userProfilePictureUrl", storedProfilePicturePath);
@@ -205,6 +222,7 @@ function logout(){
     localStorage.removeItem("selectedDatabaseName");
     localStorage.removeItem("mappedCompanyName");
     localStorage.removeItem("mappedCompanyLogoUrl");
+    localStorage.removeItem("userProfileName");
     localStorage.removeItem("userProfilePictureUrl");
     window.location.href = "login.html";
 }

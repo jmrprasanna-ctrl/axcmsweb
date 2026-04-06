@@ -216,17 +216,17 @@ async function fetchBrandingByCode(client, companyCodeRaw = "") {
 async function resolveUserProfilePicture(client, userId) {
   const uid = Number(userId || 0);
   if (!uid) {
-    return { url: null, dataUrl: null };
+    return { url: null, dataUrl: null, profileName: null };
   }
   try {
     const tableCheck = await client.query(
       `SELECT to_regclass('public.user_profiles') AS table_name`
     );
     if (!String(tableCheck.rows?.[0]?.table_name || "").trim()) {
-      return { url: null, dataUrl: null };
+      return { url: null, dataUrl: null, profileName: null };
     }
     const profileRs = await client.query(
-      `SELECT profile_picture_path, profile_picture_data_url, profile_picture_updated_at
+      `SELECT profile_name, profile_picture_path, profile_picture_data_url, profile_picture_updated_at
        FROM user_profiles
        WHERE user_id = $1
        ORDER BY "updatedAt" DESC NULLS LAST, id DESC
@@ -234,15 +234,16 @@ async function resolveUserProfilePicture(client, userId) {
       [uid]
     );
     if (!profileRs.rowCount) {
-      return { url: null, dataUrl: null };
+      return { url: null, dataUrl: null, profileName: null };
     }
     const row = profileRs.rows[0] || {};
     return {
+      profileName: String(row.profile_name || "").trim() || null,
       url: buildProfilePictureUrl(row),
       dataUrl: String(row.profile_picture_data_url || "").trim() || null,
     };
   } catch (_err) {
-    return { url: null, dataUrl: null };
+    return { url: null, dataUrl: null, profileName: null };
   }
 }
 
@@ -307,6 +308,7 @@ exports.login = async (req, res) => {
     let mappedCompanyCode = null;
     let mappedCompanyEmail = null;
     let mappedCompanyLogoUrl = null;
+    let userProfileName = null;
     let userProfilePictureUrl = null;
     let userProfilePictureDataUrl = null;
 
@@ -372,6 +374,7 @@ exports.login = async (req, res) => {
     }
 
     const avatar = await resolveUserProfilePicture(client, user.id);
+    userProfileName = avatar.profileName;
     userProfilePictureUrl = avatar.url;
     userProfilePictureDataUrl = avatar.dataUrl;
 
@@ -410,6 +413,7 @@ exports.login = async (req, res) => {
         mapped_company_code: mappedCompanyCode,
         mapped_company_email: mappedCompanyEmail,
         mapped_company_logo_url: mappedCompanyLogoUrl,
+        user_profile_name: userProfileName,
         user_profile_picture_url: userProfilePictureUrl,
         user_profile_picture_data_url: userProfilePictureDataUrl,
       },
