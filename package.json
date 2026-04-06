@@ -10,6 +10,8 @@
     "doctor": "node backend/scripts/setup.js",
     "security:extract-inline": "node backend/scripts/extractInlineFrontendAssets.js",
     "migrate:baseline": "node backend/scripts/runBaselineMigration.js",
+    "migrate:sql": "node backend/migrations/runMigrations.js",
+    "migrate:mark-baseline": "node backend/migrations/markBaselineApplied.js",
     "start:auto": "npm run doctor && npm run start",
     "lint": "eslint .",
     "sync-db": "node backend/scripts/setup.js"

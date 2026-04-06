@@ -5,6 +5,7 @@ const { Client } = require("pg");
 
 const MIGRATIONS_TABLE = "schema_migrations";
 const MIGRATIONS_DIR = path.resolve(__dirname, "sql");
+const MIGRATION_BASELINE_CUTOFF = String(process.env.MIGRATION_BASELINE_CUTOFF || "").trim();
 
 function getDbConfig(database) {
   return {
@@ -95,6 +96,16 @@ function getMigrationFiles() {
     .sort((a, b) => a.localeCompare(b));
 }
 
+function normalizeCutoff(fileName, migrationFiles) {
+  const clean = String(fileName || "").trim();
+  if (!clean) return "";
+  if (!migrationFiles.includes(clean)) {
+    console.warn(`[migrate] warning: MIGRATION_BASELINE_CUTOFF '${clean}' not found in migrations list`);
+    return "";
+  }
+  return clean;
+}
+
 async function ensureMigrationsTable(client) {
   await client.query(`
     CREATE TABLE IF NOT EXISTS ${MIGRATIONS_TABLE} (
@@ -105,15 +116,19 @@ async function ensureMigrationsTable(client) {
   `);
 }
 
-async function runForDatabase(databaseName, migrationFiles) {
+async function runForDatabase(databaseName, migrationFiles, baselineCutoff = "") {
   const client = new Client(getDbConfig(databaseName));
   await client.connect();
   try {
     await ensureMigrationsTable(client);
     const appliedRs = await client.query(`SELECT file_name FROM ${MIGRATIONS_TABLE}`);
     const applied = new Set((appliedRs.rows || []).map((r) => String(r.file_name || "").trim()));
+    const baselineIsApplied = baselineCutoff ? applied.has(baselineCutoff) : false;
 
     for (const fileName of migrationFiles) {
+      if (baselineIsApplied && baselineCutoff && fileName.localeCompare(baselineCutoff) <= 0) {
+        continue;
+      }
       if (applied.has(fileName)) continue;
       const fullPath = path.join(MIGRATIONS_DIR, fileName);
       const sql = fs.readFileSync(fullPath, "utf8");
@@ -139,13 +154,17 @@ async function main() {
     console.log("[migrate] no sql files found");
     return;
   }
+  const baselineCutoff = normalizeCutoff(MIGRATION_BASELINE_CUTOFF, migrationFiles);
+  if (baselineCutoff) {
+    console.log(`[migrate] baseline cutoff enabled: ${baselineCutoff}`);
+  }
   const dbs = await listTargetDatabases();
   if (!dbs.length) {
     console.log("[migrate] no target databases found");
     return;
   }
   for (const dbName of dbs) {
-    await runForDatabase(dbName, migrationFiles);
+    await runForDatabase(dbName, migrationFiles, baselineCutoff);
   }
   console.log("[migrate] complete");
 }
