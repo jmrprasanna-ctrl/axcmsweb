@@ -108,6 +108,19 @@
     flex: 0 0 auto;
 }
 
+.add-product-actions .save-icon-btn {
+    min-width: 44px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 14px;
+}
+
+.add-product-actions .save-icon-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
 @media (max-width: 900px) {
     .add-product-grid {
         grid-template-columns: 1fr;

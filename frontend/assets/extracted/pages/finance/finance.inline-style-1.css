@@ -1,4 +1,6 @@
-.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;margin-bottom:12px;white-space:nowrap;overflow-x:auto;}
+.finance-page-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;}
+    .finance-page-header .back-icon-btn{margin-top:0;}
+    .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;margin-bottom:12px;white-space:nowrap;overflow-x:auto;}
     .toolbar input,
     .toolbar select{
         width: auto;
@@ -7,6 +9,16 @@
     .toolbar .btn,
     .toolbar button{
         margin-top:0;
+    }
+    .toolbar .refresh-icon-btn{
+        width:44px;
+        height:44px;
+        min-width:44px;
+        padding:0;
+    }
+    .toolbar .refresh-icon-btn svg{
+        width:20px;
+        height:20px;
     }
     .grid-3{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:12px;margin-bottom:14px;}
     .card-block{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:12px;}

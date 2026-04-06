@@ -37,7 +37,11 @@
             <div>
                 <h2 class="add-product-title">Add Client</h2>
             </div>
-            <div class="add-product-badge">Client Setup</div>
+            <a class="icon-btn back-icon-btn" href="client-list.html" title="Back" aria-label="Back">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+            </a>
         </div>
 
         <form id="customerForm">
@@ -80,8 +84,13 @@
             </div>
 
             <div class="add-product-actions">
-                <button type="submit">Save Client</button>
-                <button class="icon-btn back-icon-btn" type="button" onclick="window.location.href='client-list.html'" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+                <button class="icon-btn save-icon-btn" type="submit" title="Save Client" aria-label="Save Client">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M6.8 3.5h8.9l2.8 2.8v13a1.7 1.7 0 0 1-1.7 1.7H7.2a1.7 1.7 0 0 1-1.7-1.7V5.2a1.7 1.7 0 0 1 1.3-1.7Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"></path>
+                        <path d="M8.7 3.5v5.2h6.1V3.5" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"></path>
+                        <path d="M8.7 16h6.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path>
+                    </svg>
+                </button>
             </div>
         </form>
     </div>
