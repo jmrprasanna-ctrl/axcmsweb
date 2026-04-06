@@ -131,8 +131,12 @@ function setupLoginLogoFallback(){
     const el = getLoginLogoElement();
     if(!el || el.dataset.fallbackBound === "1") return;
     el.dataset.fallbackBound = "1";
+    el.addEventListener("load", () => {
+        el.style.display = "";
+    });
     el.addEventListener("error", () => {
-        applyLoginLogo("");
+        el.removeAttribute("src");
+        el.style.display = "none";
     });
 }
 
@@ -140,7 +144,7 @@ function toAbsoluteLogoUrl(rawPath){
     const logoPath = String(rawPath || "").trim();
     if(!logoPath) return "";
     if(/^https?:\/\//i.test(logoPath)) return logoPath;
-    const apiOrigin = String(BASE_URL || "").replace(/\/api\/?$/i, "");
+    const apiOrigin = String(window.BASE_URL || "").replace(/\/api\/?$/i, "");
     return `${apiOrigin}${logoPath.startsWith("/") ? "" : "/"}${logoPath}`;
 }
 
@@ -150,8 +154,9 @@ function applyLoginLogo(logoPath){
     setupLoginLogoFallback();
     const abs = toAbsoluteLogoUrl(logoPath);
     if(abs){
+        // Keep hidden until load event confirms image is valid.
+        el.style.display = "none";
         el.src = abs;
-        el.style.display = "";
         return;
     }
     el.removeAttribute("src");
