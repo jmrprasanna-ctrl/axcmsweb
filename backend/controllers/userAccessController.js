@@ -187,7 +187,8 @@ const ACCESS_MODULE_OPTIONS = [
       { path: "/users/profile-view.html", label: "Profile View", actions: ["view"] },
       { path: "/users/user-access.html", label: "User Access", actions: ["view", "edit"] },
       { path: "/users/db-create.html", label: "DB Create", actions: ["view", "add", "delete"] },
-      { path: "/users/company-create.html", label: "Company Create", actions: ["view", "add", "delete"] },
+      { path: "/users/company-create.html", label: "Company Create", actions: ["view", "add", "edit", "delete"] },
+      { path: "/users/company-edit.html", label: "Company Edit", actions: ["view", "edit"] },
       { path: "/users/mapped.html", label: "Mapped", actions: ["view", "add"] },
       { path: "/users/inv-map.html", label: "Inv Map", actions: ["view", "add", "delete"] },
       { path: "/users/preference.html", label: "Preference", actions: ["view", "edit"] },
@@ -1215,7 +1216,11 @@ async function hasDbCreateActionPermission(req, action) {
                                                                       
   if (!row) return true;
   const allowedActions = parseAllowedActions(row);
-  return allowedActions.includes(actionKey);
+  if (allowedActions.includes(actionKey)) return true;
+  if (String(action || "").toLowerCase() === "edit") {
+    return allowedActions.includes(toActionKey("/users/company-create.html", "add"));
+  }
+  return false;
 }
 
 async function hasCompanyCreateActionPermission(req, action) {
@@ -1932,6 +1937,81 @@ exports.getCompanies = async (_req, res) => {
   }
 };
 
+function toCompanyResponseRow(row = {}) {
+  const logoPath = resolveCompanyLogoPathForResponse(row);
+  const logoDataUrl = buildCompanyLogoDataUrl(row);
+  return {
+    id: Number(row.id || 0),
+    company_name: normalizeCompanyName(row.company_name),
+    company_code: normalizeCompanyCode(row.company_code),
+    email: normalizeEmail(row.email),
+    folder_name: String(row.folder_name || "").trim(),
+    logo_file_name: String(row.logo_file_name || "").trim(),
+    logo_path: logoPath,
+    logo_data_url: logoDataUrl || "",
+    logo_exists: Boolean(logoDataUrl || logoPath),
+    logo_url: logoPath ? `/${String(logoPath).replace(/^\/+/, "")}` : "",
+    logo_preview_url: `/api/users/companies/${Number(row.id || 0)}/logo${row.updatedAt ? `?v=${encodeURIComponent(String(new Date(row.updatedAt).getTime() || ""))}` : ""}`,
+    created_at: row.createdAt || null,
+    updated_at: row.updatedAt || null,
+    mapped_users_count: Number(row.mapped_users_count || 0),
+    is_mapped: Number(row.mapped_users_count || 0) > 0,
+  };
+}
+
+exports.getCompanyById = async (req, res) => {
+  const canView = await hasCompanyCreateActionPermission(req, "view");
+  if (!canView) {
+    return res.status(403).json({ message: "Forbidden: Missing Company Create view permission." });
+  }
+
+  const companyId = Number(req.params.companyId || 0);
+  if (!Number.isFinite(companyId) || companyId <= 0) {
+    return res.status(400).json({ message: "Invalid company id." });
+  }
+
+  const cfg = getDbConfig();
+  const mainDbClient = new Client({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: cfg.database || INVENTORY_DB_NAME,
+  });
+  try {
+    await mainDbClient.connect();
+    await ensureCompanyRegistryTable(mainDbClient);
+    await ensureUserMappingTable(mainDbClient);
+    const rs = await mainDbClient.query(
+      `SELECT cp.id,
+              cp.company_name,
+              cp.company_code,
+              cp.email,
+              cp.folder_name,
+              cp.logo_path,
+              cp.logo_file_name,
+              cp.logo_data_url,
+              cp."createdAt",
+              cp."updatedAt",
+              COUNT(um.user_id)::int AS mapped_users_count
+       FROM ${COMPANY_REGISTRY_TABLE} cp
+       LEFT JOIN user_mappings um ON um.company_profile_id = cp.id
+       WHERE cp.id = $1
+       GROUP BY cp.id, cp.company_name, cp.company_code, cp.email, cp.folder_name, cp.logo_path, cp.logo_file_name, cp.logo_data_url, cp."createdAt", cp."updatedAt"
+       LIMIT 1`,
+      [companyId]
+    );
+    if (!rs.rowCount) {
+      return res.status(404).json({ message: "Company not found." });
+    }
+    return res.json({ company: toCompanyResponseRow(rs.rows[0] || {}) });
+  } catch (err) {
+    return res.status(500).json({ message: err.message || "Failed to load company." });
+  } finally {
+    await mainDbClient.end().catch(() => {});
+  }
+};
+
 exports.createCompany = async (req, res) => {
   const canAdd = await hasCompanyCreateActionPermission(req, "add");
   if (!canAdd) {
@@ -2088,6 +2168,164 @@ exports.createCompany = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to create company." });
+  } finally {
+    await mainDbClient.end().catch(() => {});
+  }
+};
+
+exports.updateCompany = async (req, res) => {
+  const canEdit = await hasCompanyCreateActionPermission(req, "edit");
+  if (!canEdit) {
+    return res.status(403).json({ message: "Forbidden: Missing Company Create edit permission." });
+  }
+
+  const companyId = Number(req.params.companyId || 0);
+  if (!Number.isFinite(companyId) || companyId <= 0) {
+    return res.status(400).json({ message: "Invalid company id." });
+  }
+
+  const companyName = normalizeCompanyName(req.body?.company_name);
+  const companyCode = normalizeCompanyCode(req.body?.company_code);
+  const companyEmail = normalizeEmail(req.body?.email);
+  if (!companyName) {
+    return res.status(400).json({ message: "Company name is required." });
+  }
+  if (!companyCode) {
+    return res.status(400).json({ message: "Company code is required." });
+  }
+  if (!companyEmail) {
+    return res.status(400).json({ message: "Valid company email is required." });
+  }
+
+  const fileName = String(req.body?.logo_file_name || "").trim();
+  const hasLogoPayload = Boolean(fileName) || Boolean(String(req.body?.logo_file_data_base64 || "").trim());
+  const ext = path.extname(fileName).toLowerCase();
+  if (hasLogoPayload && (!fileName || !COMPANY_LOGO_EXTENSIONS.has(ext))) {
+    return res.status(400).json({ message: "Invalid logo format. Allowed: .jpg, .jpeg, .bmp, .gif, .tiff, .png" });
+  }
+
+  let logoDataUrlInput = "";
+  let logoBuffer = null;
+  if (hasLogoPayload) {
+    logoDataUrlInput = String(req.body?.logo_file_data_base64 || "").trim();
+    try {
+      logoBuffer = parseBase64Payload(logoDataUrlInput);
+    } catch (_err) {
+      return res.status(400).json({ message: "Invalid logo data." });
+    }
+    if (!logoBuffer || !logoBuffer.length) {
+      return res.status(400).json({ message: "Uploaded logo is empty." });
+    }
+  }
+
+  const cfg = getDbConfig();
+  const mainDbClient = new Client({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: cfg.database || INVENTORY_DB_NAME,
+  });
+  try {
+    await mainDbClient.connect();
+    await ensureCompanyRegistryTable(mainDbClient);
+    await ensureUserMappingTable(mainDbClient);
+
+    const currentRs = await mainDbClient.query(
+      `SELECT id, company_name, company_code, email, folder_name, logo_path, logo_file_name, logo_data_url
+       FROM ${COMPANY_REGISTRY_TABLE}
+       WHERE id = $1
+       LIMIT 1`,
+      [companyId]
+    );
+    if (!currentRs.rowCount) {
+      return res.status(404).json({ message: "Company not found." });
+    }
+    const current = currentRs.rows[0] || {};
+
+    const conflictRs = await mainDbClient.query(
+      `SELECT id
+       FROM ${COMPANY_REGISTRY_TABLE}
+       WHERE id <> $1
+         AND (
+           REGEXP_REPLACE(UPPER(COALESCE(company_code, '')), '[^A-Z0-9_-]+', '', 'g') = $2
+           OR UPPER(REGEXP_REPLACE(COALESCE(company_name, ''), '\s+', ' ', 'g')) = UPPER($3)
+         )
+       LIMIT 1`,
+      [companyId, normalizeCompanyCode(companyCode), normalizeCompanyName(companyName)]
+    );
+    if (conflictRs.rowCount) {
+      return res.status(409).json({ message: "Company name or code already exists." });
+    }
+
+    let folderName = String(current.folder_name || "").trim();
+    let logoPath = String(current.logo_path || "").trim();
+    let logoFileName = String(current.logo_file_name || "").trim();
+    let logoDataUrl = String(current.logo_data_url || "").trim();
+
+    if (hasLogoPayload) {
+      ensureDir(COMPANY_STORAGE_ROOT);
+      let folderPath = "";
+      if (!folderName) {
+        folderPath = resolveCompanyFolder(companyName);
+        let suffix = 1;
+        while (fs.existsSync(folderPath)) {
+          folderPath = path.join(COMPANY_STORAGE_ROOT, `${safeNamePart(companyName)}_${suffix++}`);
+        }
+        folderName = path.basename(folderPath);
+      } else {
+        folderPath = path.resolve(COMPANY_STORAGE_ROOT, folderName);
+      }
+      ensureDir(folderPath);
+      deleteCompanyLogoFiles(folderPath);
+
+      const storedLogoFileName = sanitizeLogoFileName(fileName, ext);
+      const absLogoPath = path.join(folderPath, storedLogoFileName);
+      fs.writeFileSync(absLogoPath, logoBuffer);
+      logoPath = toRelativeStoragePath(absLogoPath);
+      logoFileName = storedLogoFileName;
+      logoDataUrl = logoDataUrlInput || null;
+    }
+
+    const updateRs = await mainDbClient.query(
+      `UPDATE ${COMPANY_REGISTRY_TABLE}
+       SET company_name = $2,
+           company_code = $3,
+           email = $4,
+           folder_name = $5,
+           logo_path = $6,
+           logo_file_name = $7,
+           logo_data_url = $8,
+           "updatedAt" = NOW()
+       WHERE id = $1
+       RETURNING id, company_name, company_code, email, folder_name, logo_path, logo_file_name, logo_data_url, "createdAt", "updatedAt"`,
+      [
+        companyId,
+        companyName,
+        companyCode,
+        companyEmail,
+        folderName || null,
+        logoPath || null,
+        logoFileName || null,
+        logoDataUrl || null,
+      ]
+    );
+
+    const mappedRs = await mainDbClient.query(
+      `SELECT COUNT(1)::int AS count
+       FROM user_mappings
+       WHERE company_profile_id = $1`,
+      [companyId]
+    );
+    const row = updateRs.rows[0] || {};
+    row.mapped_users_count = Number(mappedRs.rows?.[0]?.count || 0);
+
+    return res.json({
+      message: "Company updated successfully.",
+      company: toCompanyResponseRow(row),
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message || "Failed to update company." });
   } finally {
     await mainDbClient.end().catch(() => {});
   }

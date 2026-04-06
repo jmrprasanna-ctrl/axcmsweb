@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Company - AXIS_CMS_WEB</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../../assets/extracted/pages/users/company-create.inline-style-1.css?v=20260407a">
+    <link rel="stylesheet" href="../../assets/css/company-edit.css?v=20260407a">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <img src="../../assets/images/logo.png" alt="Company Logo">
+            <span>AXIS_CMS_WEB</span>
+        </div>
+        <ul class="nav-links" style="visibility:hidden;"></ul>
+    </div>
+
+    <div class="main-content">
+        <div class="company-edit-header">
+            <header><h2>Edit Company</h2></header>
+            <a class="icon-btn back-icon-btn" href="company-create.html" title="Back" aria-label="Back">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+            </a>
+        </div>
+
+        <div class="form-container company-wrap">
+            <div class="company-logo-preview-wrap">
+                <img id="companyLogoPreview" class="company-logo-preview" src="../../assets/images/logo.png" alt="Company Logo">
+                <div class="path-hint">Upload new logo only if you want to replace current logo.</div>
+            </div>
+
+            <div class="company-grid">
+                <div>
+                    <label for="companyName">Company Name</label>
+                    <input id="companyName" type="text" placeholder="Company name">
+                </div>
+                <div>
+                    <label for="companyCode">Company Code</label>
+                    <input id="companyCode" type="text" placeholder="Company code">
+                </div>
+                <div>
+                    <label for="companyEmail">Email</label>
+                    <input id="companyEmail" type="email" placeholder="company@email.com">
+                </div>
+                <div>
+                    <label for="logoFile">Replace Logo (Optional)</label>
+                    <input id="logoFile" type="file" accept=".jpg,.jpeg,.bmp,.gif,.tiff,.tif,.png">
+                    <div class="path-hint">Allowed formats: .jpg, .jpeg, .bmp, .gif, .tiff, .png</div>
+                </div>
+            </div>
+
+            <div class="access-actions" style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
+                <button id="updateCompanyBtn" class="btn btn-primary" type="button">Update Company</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../assets/js/api.js?v=20260407a"></script>
+    <script src="../../assets/js/company-edit.js?v=20260407a"></script>
+</body>
+</html>

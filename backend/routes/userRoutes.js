@@ -10,8 +10,10 @@ const {
   getCreatedDatabases,
   deleteDatabase,
   getCompanies,
+  getCompanyById,
   getCompanyLogo,
   createCompany,
+  updateCompany,
   deleteCompany,
   getMappedMeta,
   getMyCompanies,
@@ -142,8 +144,10 @@ router.post("/databases/create", createDatabase);
 router.get("/databases/created", getCreatedDatabases);
 router.delete("/databases/:databaseName", deleteDatabase);
 router.get("/companies", getCompanies);
+router.get("/companies/:companyId", getCompanyById);
 router.get("/companies/:companyId/logo", getCompanyLogo);
 router.post("/companies/create", createCompany);
+router.put("/companies/:companyId", updateCompany);
 router.delete("/companies/:companyId", deleteCompany);
 router.get("/mapped/meta", getMappedMeta);
 router.get("/mapped/entries", listMappedEntries);

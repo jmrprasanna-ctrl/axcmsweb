@@ -9,6 +9,7 @@ const companyNameEl = document.getElementById("companyName");
 
         let canAddCompany = false;
         let canDeleteCompany = false;
+        let canEditCompany = false;
 
         function formatDate(value){
             if(!value) return "-";
@@ -97,6 +98,12 @@ const companyNameEl = document.getElementById("companyName");
             return "";
         }
 
+        function openCompanyEditPage(companyId){
+            const id = Number(companyId || 0);
+            if(!Number.isFinite(id) || id <= 0) return;
+            window.location.href = `company-edit.html?id=${id}`;
+        }
+
         async function loadCompanies(){
             companyTableBodyEl.innerHTML = `<tr><td colspan="7">Loading...</td></tr>`;
             try{
@@ -109,9 +116,14 @@ const companyNameEl = document.getElementById("companyName");
                 companyTableBodyEl.innerHTML = "";
                 rows.forEach((row) => {
                     const tr = document.createElement("tr");
+                    tr.classList.add("company-row");
+                    tr.setAttribute("data-company-id", String(Number(row.id || 0)));
                     const deleteAction = canDeleteCompany
                         ? `<button class="btn btn-secondary" type="button" data-delete-company-id="${Number(row.id || 0)}" style="min-width:90px;">Delete</button>`
                         : `<span>-</span>`;
+                    const editAction = canEditCompany
+                        ? `<button class="btn btn-primary" type="button" data-edit-company-id="${Number(row.id || 0)}" style="min-width:90px;">Edit</button>`
+                        : "";
                     const mappedCount = Number(row.mapped_users_count || 0);
                     const mappedText = mappedCount > 0 ? `Yes (${mappedCount})` : "No";
                     tr.innerHTML = `
@@ -121,7 +133,7 @@ const companyNameEl = document.getElementById("companyName");
                         <td>${mappedText}</td>
                         <td>${buildLogoCellHtml(row)}</td>
                         <td>${formatDate(row.created_at)}</td>
-                        <td class="actions">${deleteAction}</td>
+                        <td class="actions">${editAction}${editAction && deleteAction ? "&nbsp;" : ""}${deleteAction}</td>
                     `;
                     companyTableBodyEl.appendChild(tr);
                 });
@@ -203,13 +215,28 @@ const companyNameEl = document.getElementById("companyName");
             }
             canAddCompany = !!window.hasUserActionPermission && window.hasUserActionPermission(COMPANY_CREATE_PATH, "add");
             canDeleteCompany = !!window.hasUserActionPermission && window.hasUserActionPermission(COMPANY_CREATE_PATH, "delete");
+            canEditCompany = !!window.hasUserActionPermission && (
+                window.hasUserActionPermission(COMPANY_CREATE_PATH, "edit")
+                || window.hasUserActionPermission(COMPANY_CREATE_PATH, "add")
+            );
             saveCompanyBtnEl.style.display = canAddCompany ? "" : "none";
         }
 
         companyTableBodyEl.addEventListener("click", async (ev) => {
+            const editBtn = ev.target.closest("button[data-edit-company-id]");
+            if(editBtn){
+                openCompanyEditPage(editBtn.getAttribute("data-edit-company-id"));
+                return;
+            }
             const btn = ev.target.closest("button[data-delete-company-id]");
-            if(!btn) return;
-            await deleteCompany(btn.getAttribute("data-delete-company-id"));
+            if(btn){
+                await deleteCompany(btn.getAttribute("data-delete-company-id"));
+                return;
+            }
+            const row = ev.target.closest("tr[data-company-id]");
+            if(!row) return;
+            if(ev.target.closest("button, a, input, select, textarea, label")) return;
+            openCompanyEditPage(row.getAttribute("data-company-id"));
         });
         companyNameEl.style.textTransform = "uppercase";
         companyNameEl.addEventListener("input", () => {

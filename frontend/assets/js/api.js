@@ -92,6 +92,7 @@ const BASELINE_LEFT_PANEL_PATHS = [
     "/users/profile-view.html",
     "/users/add-profile.html",
     "/users/user-access.html",
+    "/users/company-edit.html",
     "/users/user-logged.html",
     "/support/email-setup.html"
 ];
