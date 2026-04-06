@@ -236,7 +236,10 @@ async function loadSystemHealthPreview(){
             }
         }
 
-        window.addEventListener('DOMContentLoaded', async () => {
+        let __userListBootstrapped = false;
+        async function bootstrapUserListPage(){
+            if(__userListBootstrapped) return;
+            __userListBootstrapped = true;
             if(typeof window.__waitForUserAccessPermissions === "function"){
                 await window.__waitForUserAccessPermissions();
             }
@@ -248,4 +251,10 @@ async function loadSystemHealthPreview(){
             }
             await loadSystemHealthPreview();
             await loadUsers();
-        });
+        }
+
+        if(document.readyState === "loading"){
+            window.addEventListener("DOMContentLoaded", bootstrapUserListPage);
+        }else{
+            bootstrapUserListPage();
+        }
