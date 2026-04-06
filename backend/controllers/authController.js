@@ -139,7 +139,7 @@ async function resolveRememberedCompanyCode(client, userKeyRaw = "") {
   const userKey = normalizeUserKey(userKeyRaw);
   if (!userKey) return "";
   await ensureLoginCompanyCodeMemoryTable(client);
-  const rs = await client.query(
+  const directRs = await client.query(
     `SELECT company_code
      FROM user_login_company_codes
      WHERE user_key = $1
@@ -147,7 +147,30 @@ async function resolveRememberedCompanyCode(client, userKeyRaw = "") {
      LIMIT 1`,
     [userKey]
   );
-  return normalizeCompanyCode(rs.rows?.[0]?.company_code || "");
+  const directCode = normalizeCompanyCode(directRs.rows?.[0]?.company_code || "");
+  if (directCode) return directCode;
+
+  // Fallback: resolve by account identity (email/username), then use latest code by user_id.
+  const userRs = await client.query(
+    `SELECT id
+     FROM users
+     WHERE LOWER(TRIM(email)) = $1 OR LOWER(TRIM(username)) = $1
+     ORDER BY id DESC
+     LIMIT 1`,
+    [userKey]
+  );
+  const userId = Number(userRs.rows?.[0]?.id || 0);
+  if (!userId) return "";
+
+  const byUserRs = await client.query(
+    `SELECT company_code
+     FROM user_login_company_codes
+     WHERE user_id = $1
+     ORDER BY last_used_at DESC NULLS LAST, "updatedAt" DESC NULLS LAST, id DESC
+     LIMIT 1`,
+    [userId]
+  );
+  return normalizeCompanyCode(byUserRs.rows?.[0]?.company_code || "");
 }
 
 async function fetchBrandingByCode(client, companyCodeRaw = "") {
