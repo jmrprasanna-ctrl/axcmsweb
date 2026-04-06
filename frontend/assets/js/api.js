@@ -473,7 +473,6 @@ function renderSidebarMenuByAccess(){
         { path: "/support/court-list.html", label: "Court List" },
         { path: "/users/user-list.html", label: "Users" },
         { path: "/users/preference.html", label: "Preference" },
-        { path: "/users/add-user.html", label: "Add User" },
         { path: "/users/profile-list.html", label: "Profile" },
         { path: "/users/user-access.html", label: "Access" },
         { path: "/users/user-logged.html", label: "Logged" },
@@ -540,7 +539,6 @@ function renderSidebarMenuByAccess(){
             label: "Users",
             children: [
                 { path: "/users/user-list.html", label: "User List" },
-                { path: "/users/add-user.html", label: "Add User" },
                 { path: "/users/profile-list.html", label: "Profile" },
                 { path: "/users/preference.html", label: "Preference" },
                 { path: "/users/user-access.html", label: "Access" },
