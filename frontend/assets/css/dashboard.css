@@ -823,7 +823,7 @@ body {
   .topbar-right {
     width: 100%;
     justify-content: flex-start;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 8px;
   }
 
@@ -837,20 +837,17 @@ body {
   }
 
   .topbar-actions {
-    width: auto;
+    width: 100%;
     justify-content: flex-start;
     flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-
-  .topbar-actions::-webkit-scrollbar {
-    display: none;
+    gap: 8px;
+    overflow: visible;
   }
 
   .topbar-actions .icon-btn {
     flex: 0 0 auto;
+    width: 42px;
+    height: 42px;
   }
 
   .user-menu {
@@ -858,6 +855,7 @@ body {
     left: auto;
     min-width: 220px;
     max-width: min(88vw, 280px);
+    z-index: 1500;
   }
 
   .cards {
