@@ -483,7 +483,6 @@ function renderSidebarMenuByAccess(){
         { path: "/users/preference.html", label: "Preference" },
         { path: "/users/profile-list.html", label: "Profile" },
         { path: "/users/user-access.html", label: "Access" },
-        { path: "/users/company-create.html", label: "Company Create" },
         { path: "/users/backup.html", label: "Backup" },
         { path: "/users/user-logged.html", label: "Logged" },
         { path: "/support/email-setup.html", label: "Email" }
@@ -555,7 +554,6 @@ function renderSidebarMenuByAccess(){
                 { path: "/users/profile-list.html", label: "Profile" },
                 { path: "/users/preference.html", label: "Preference" },
                 { path: "/users/user-access.html", label: "Access" },
-                { path: "/users/company-create.html", label: "Company Create" },
                 { path: "/users/backup.html", label: "Backup" },
                 { path: "/users/user-logged.html", label: "Logged" },
                 { path: "/support/email-setup.html", label: "Email" }
