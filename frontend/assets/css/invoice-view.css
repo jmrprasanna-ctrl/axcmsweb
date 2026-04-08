@@ -11,6 +11,14 @@ body {
   padding: 20px;
 }
 
+.invoice-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
 .invoice-title {
   margin: 0;
   color: #102c46;
@@ -117,6 +125,10 @@ body {
 @media (max-width: 900px) {
   .invoice-main {
     padding: 12px;
+  }
+
+  .invoice-page-header {
+    margin-bottom: 8px;
   }
 
   .invoice-address-controls {

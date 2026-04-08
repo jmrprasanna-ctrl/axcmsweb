@@ -10,8 +10,10 @@
 </head>
 <body>
 <div class="main-content invoice-main">
-    <h1 class="invoice-title">Invoice Details</h1>
-    <p class="invoice-subtitle">View, print, and manage invoice details quickly.</p>
+    <div class="invoice-page-header">
+        <h1 class="invoice-title">Invoice Details</h1>
+        <button class="icon-btn back-icon-btn" type="button" onclick="window.location.href='create-invoice.html'" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+    </div>
     <div class="invoice-address-controls">
         <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
             <input type="checkbox" id="addressColomboChk">
@@ -141,7 +143,6 @@
         <button class="btn btn-primary" onclick="printPDF()">Print PDF</button>
         <button class="btn btn-primary" onclick="emailInvoice()">email</button>
         <button class="btn btn-primary" onclick="emailQuotation()">Quatation Email</button>
-        <button class="icon-btn back-icon-btn" type="button" onclick="window.location.href='create-invoice.html'" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
     </div>
 </div>
 
