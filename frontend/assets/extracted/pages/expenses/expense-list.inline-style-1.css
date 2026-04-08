@@ -1,4 +1,14 @@
-.form-actions{
+.expense-list-page-header{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:12px;
+        margin-bottom:12px;
+    }
+    .expense-list-page-header .back-icon-btn{
+        margin-top:0;
+    }
+    .form-actions{
         display: flex;
         align-items: flex-end;
         gap: 12px;
@@ -15,6 +25,38 @@
     .action-row .btn,
     .action-row button{
         margin-top:0;
+    }
+    .add-icon-btn,
+    .save-pdf-icon-btn{
+        width:44px;
+        height:44px;
+        min-width:44px;
+        padding:0;
+        border-radius:14px;
+        margin-top:0;
+    }
+    .add-icon-btn svg,
+    .save-pdf-icon-btn svg{
+        width:20px;
+        height:20px;
+    }
+    .add-icon-btn{
+        border-color:#9bc6f0;
+        background:#edf6ff;
+        color:#125d9d;
+    }
+    .add-icon-btn:hover{
+        border-color:#73addf;
+        background:#dfefff;
+    }
+    .save-pdf-icon-btn{
+        border-color:#d9b874;
+        background:#fff7e6;
+        color:#8c5c00;
+    }
+    .save-pdf-icon-btn:hover{
+        border-color:#c7993f;
+        background:#fff1d3;
     }
     .date-filter{
         display: grid;
