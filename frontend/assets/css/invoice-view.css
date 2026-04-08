@@ -19,6 +19,13 @@ body {
   letter-spacing: -0.02em;
 }
 
+.invoice-subtitle {
+  margin: 8px 0 0;
+  color: #35516e;
+  font-size: 0.98rem;
+  font-weight: 500;
+}
+
 .invoice-address-controls {
   margin: 14px 0 12px;
   padding: 12px 14px;
@@ -177,6 +184,10 @@ body.theme-dark {
 
 body.theme-dark .invoice-title {
   color: #e7f1fb;
+}
+
+body.theme-dark .invoice-subtitle {
+  color: #b9cbe0;
 }
 
 body.theme-dark .invoice-address-controls,
