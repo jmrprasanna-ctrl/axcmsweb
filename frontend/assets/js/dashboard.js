@@ -180,7 +180,7 @@ const DASHBOARD_MENU_ENTRIES = [
     { path: "/customers/client-list.html", label: "Client" },
     { path: "/cases/case-list.html", label: "Cases" },
     { path: "/cases/finished.html", label: "Finished" },
-    { path: "/invoices/Payments-list.html", label: "Invoices" },
+    { path: "/invoices/create-invoice.html", label: "Invoices" },
     { path: "/expenses/expense-list.html", label: "Expenses" },
     { path: "/finance/finance.html", label: "Finance" },
     { path: "/users/user-list.html", label: "Users" }

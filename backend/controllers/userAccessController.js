@@ -132,7 +132,6 @@ const MANUAL_ACCESS_MODULE_OPTIONS = [
   {
     module: "Invoices",
     items: [
-      { path: "/invoices/Payments-list.html", label: "Payments List", actions: ["view", "add", "edit", "delete"] },
       { path: "/invoices/create-invoice.html", label: "Create Invoice", actions: ["view", "add", "edit"] },
       { path: "/invoices/view-invoice.html", label: "View Invoice", actions: ["view"] },
     ],
@@ -207,7 +206,8 @@ const AUTO_ACCESS_EXCLUDED_PREFIXES = [
 const LEGACY_PATH_ALIASES = new Map([
   ["/customers/customer-list.html", ["/customers/client-list.html"]],
   ["/customers/add-customer.html", ["/customers/Add-Client.html"]],
-  ["/invoices/invoice-list.html", ["/invoices/Payments-list.html"]],
+  ["/invoices/invoice-list.html", ["/invoices/create-invoice.html"]],
+  ["/invoices/payments-list.html", ["/invoices/create-invoice.html"]],
   ["/support/support.html", ["/support/lawyer-list.html", "/support/court-list.html"]],
   ["/tools/check-backup.html", ["/users/backup.html"]],
   ["/tools/backup-download.html", ["/users/backup.html"]],

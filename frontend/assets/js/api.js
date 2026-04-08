@@ -79,7 +79,7 @@ const BASELINE_LEFT_PANEL_PATHS = [
     "/calendar.html",
     "/customers/client-list.html",
     "/customers/Add-Client.html",
-    "/invoices/Payments-list.html",
+    "/invoices/create-invoice.html",
     "/expenses/expense-list.html",
     "/finance/finance.html",
     "/support/lawyer-list.html",
@@ -469,9 +469,8 @@ function renderSidebarMenuByAccess(){
         { path: "/cases/witness-list.html", label: "List of witnesses" },
         { path: "/cases/judgment-list.html", label: "Dudgement" },
         { path: "/cases/finished.html", label: "Finished" },
-        { path: "/invoices/Payments-list.html", label: "Payments List" },
-        { path: "/invoices/view-invoice.html", label: "View Invoice" },
         { path: "/invoices/create-invoice.html", label: "Create Invoice" },
+        { path: "/invoices/view-invoice.html", label: "View Invoice" },
         { path: "/expenses/expense-list.html", label: "Expense List" },
         { path: "/expenses/edit-expense.html", label: "Edit Expense" },
         { path: "/expenses/add-expense.html", label: "Add Expense" },
@@ -526,12 +525,11 @@ function renderSidebarMenuByAccess(){
         },
         { path: "/cases/finished.html", label: "Finished" },
         {
-            path: "/invoices/Payments-list.html",
-            label: "Payments",
+            path: "/invoices/create-invoice.html",
+            label: "Invoices",
             children: [
-                { path: "/invoices/Payments-list.html", label: "Payments List" },
-                { path: "/invoices/view-invoice.html", label: "View Invoice" },
-                { path: "/invoices/create-invoice.html", label: "Create Invoice" }
+                { path: "/invoices/create-invoice.html", label: "Create Invoice" },
+                { path: "/invoices/view-invoice.html", label: "View Invoice" }
             ]
         },
         {

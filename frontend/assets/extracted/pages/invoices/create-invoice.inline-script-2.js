@@ -875,7 +875,7 @@ if(importantTableBody){
 const backToInvoiceListBtn = document.getElementById("backToInvoiceListBtn");
 if(backToInvoiceListBtn){
     backToInvoiceListBtn.addEventListener("click", () => {
-        window.location.href = "Payments-list.html";
+        window.location.href = "../dashboard.html";
     });
 }
 const invoiceDateInput = document.getElementById("invoiceDate");
@@ -893,3 +893,4 @@ function logout(){
     localStorage.removeItem("role");
     window.location.href="../login.html";
 }
+
