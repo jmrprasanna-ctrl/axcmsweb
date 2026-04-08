@@ -23,14 +23,17 @@
         <li><a href="../dashboard.html">Dashboard</a></li>
         <li><a href="../customers/client-list.html">Client</a></li>
         <li><a href="../invoices/create-invoice.html">Invoices</a></li>
-        <li><a href="../expenses/expense-list.html">Expenses</a></li>`r`n        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+        <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
     </ul>
 </div>
 
                      
 <div class="main-content add-product-main invoice-main">
-    <h1 class="invoice-title">Invoice</h1>
-    <p class="invoice-subtitle">Create and save invoice records quickly.</p>
+    <div class="invoice-page-header">
+        <h1 class="invoice-title">Invoice</h1>
+        <button class="icon-btn back-icon-btn" id="backToInvoiceListBtn" type="button" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+    </div>
     <div class="add-product-shell invoice-shell">
         <form id="invoiceForm">
             <div class="add-product-grid invoice-grid">
@@ -71,8 +74,7 @@
                 </div>
             </div>
             <div class="add-product-actions">
-                <button type="submit">Save</button>
-                <button class="icon-btn back-icon-btn" id="backToInvoiceListBtn" type="button" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+                <button class="btn save-icon-btn" type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 4.5h11l3 3V19a1.5 1.5 0 0 1-1.5 1.5h-12A1.5 1.5 0 0 1 4 19V6a1.5 1.5 0 0 1 1-1.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path><path d="M8 4.5v5h7v-5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path><path d="M8 15.5h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg></button>
             </div>
         </form>
     </div>
