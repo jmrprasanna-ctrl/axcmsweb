@@ -189,7 +189,7 @@ const ACCESS_MODULE_OPTIONS = [
       { path: "/users/db-create.html", label: "DB Create", actions: ["view", "add", "delete"] },
       { path: "/users/company-create.html", label: "Company Create", actions: ["view", "add", "edit", "delete"] },
       { path: "/users/company-edit.html", label: "Company Edit", actions: ["view", "edit"] },
-      { path: "/users/mapped.html", label: "Mapped", actions: ["view", "add"] },
+      { path: "/users/mapped.html", label: "User Mapped", actions: ["view", "add"] },
       { path: "/users/inv-map.html", label: "Inv Map", actions: ["view", "add", "delete"] },
       { path: "/users/preference.html", label: "Preference", actions: ["view", "edit"] },
       { path: "/users/user-logged.html", label: "User Logged Times", actions: ["view"] },
@@ -2579,7 +2579,7 @@ exports.getMappedByUser = async (req, res) => {
 exports.verifyMapping = async (req, res) => {
   const canAdd = await hasMappedActionPermission(req, "add");
   if (!canAdd) {
-    return res.status(403).json({ message: "Forbidden: Missing Mapped add permission." });
+    return res.status(403).json({ message: "Forbidden: Missing User Mapped add permission." });
   }
   const userId = Number(req.body?.user_id || 0);
   const databaseName = normalizeDatabaseName(req.body?.database_name);
@@ -2617,7 +2617,7 @@ exports.verifyMapping = async (req, res) => {
 exports.saveMapping = async (req, res) => {
   const canAdd = await hasMappedActionPermission(req, "add");
   if (!canAdd) {
-    return res.status(403).json({ message: "Forbidden: Missing Mapped add permission." });
+    return res.status(403).json({ message: "Forbidden: Missing User Mapped add permission." });
   }
   const userId = Number(req.body?.user_id || 0);
   const databaseName = normalizeDatabaseName(req.body?.database_name);
@@ -2671,7 +2671,7 @@ exports.saveMapping = async (req, res) => {
     await syncMappedEmailSetupForDatabase(result.normalized).catch(() => {});
 
     res.json({
-      message: "Mapped successfully.",
+      message: "User mapped successfully.",
       mapping: {
         user_id: result.normalized.user_id,
         database_name: result.normalized.database_name,
@@ -2824,7 +2824,7 @@ exports.getMyCompanies = async (req, res) => {
 exports.listMappedEntries = async (req, res) => {
   const canView = await hasMappedActionPermission(req, "view");
   if (!canView) {
-    return res.status(403).json({ message: "Forbidden: Missing Mapped view permission." });
+    return res.status(403).json({ message: "Forbidden: Missing User Mapped view permission." });
   }
 
   const cfg = getDbConfig();

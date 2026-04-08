@@ -172,7 +172,7 @@ const userSelectEl = document.getElementById("userSelect");
 
         async function verifyMapping(){
             if(!canAddMapped){
-                alert("You do not have add permission for Mapped page.");
+                alert("You do not have add permission for User Mapped page.");
                 return;
             }
             const payload = selectedPayload();
@@ -199,7 +199,7 @@ const userSelectEl = document.getElementById("userSelect");
 
         async function saveMapping(){
             if(!canAddMapped){
-                alert("You do not have add permission for Mapped page.");
+                alert("You do not have add permission for User Mapped page.");
                 return;
             }
             if(!isVerified){
@@ -213,7 +213,7 @@ const userSelectEl = document.getElementById("userSelect");
             }
             try{
                 const res = await request("/users/mapped/save", "POST", payload);
-                showMessageBox(res.message || "Mapped successfully");
+                showMessageBox(res.message || "User mapped successfully");
                 upsertMappedEntryFromSave(res && res.mapping ? res.mapping : null);
                 await loadMappedEntries();
             }catch(err){
