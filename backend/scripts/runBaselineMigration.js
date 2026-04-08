@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
 
-const DEFAULT_FILE = path.resolve(__dirname, "..", "migrations", "sql", "20260401_baseline_full.sql");
+const DEFAULT_FILE = path.resolve(__dirname, "..", "..", "database", "axiscmsdb.sql");
 
 function parseArg(name) {
   const prefix = `--${name}=`;
@@ -20,7 +20,7 @@ function normalizeDbName(value) {
 function getDatabases() {
   const fromArg = parseArg("databases");
   const fromEnv = String(process.env.DB_MIGRATION_DATABASES || "").trim();
-  const source = fromArg || fromEnv || "inventory,demo";
+  const source = fromArg || fromEnv || "axiscmsdb,demo";
   const dbs = source
     .split(",")
     .map((x) => normalizeDbName(x))
@@ -77,7 +77,7 @@ async function main() {
 
   const databases = getDatabases();
   if (!databases.length) {
-    throw new Error("No valid databases provided. Use --databases=inventory,demo");
+    throw new Error("No valid databases provided. Use --databases=axiscmsdb,demo");
   }
 
   console.log("==> Running baseline migration");

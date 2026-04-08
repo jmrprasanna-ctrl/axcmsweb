@@ -1,49 +1,20 @@
-# Migration Strategy (Scalable)
+# Migration Strategy (Single SQL)
 
-This project now supports a baseline-cutoff migration flow so we do not need to maintain an ever-growing active migration list forever.
+This project now uses one canonical SQL file:
 
-## Current Commands
+- `database/axiscmsdb.sql`
 
-- `npm run migrate:baseline`
-  - Apply one full baseline SQL file (good for new databases).
-- `npm run migrate:sql`
-  - Apply incremental SQL files from `backend/migrations/sql`.
-- `npm run migrate:mark-baseline -- --through=<file.sql> --databases=<db1,db2>`
-  - Mark all migrations up to a cutoff file as already applied in `schema_migrations`.
+## Runtime Behavior
 
-## Cutoff Mode (Important)
+- `npm run migrate` runs `backend/migrations/runMigrations.js`.
+- The runner applies only `database/axiscmsdb.sql`.
+- Applied state is tracked in `schema_migrations` with key `axiscmsdb.sql`.
+- If a database already has legacy migration records, the runner safely marks `axiscmsdb.sql` as applied and skips re-running SQL.
+- If a database has existing AXIS tables but no migration history, the runner also marks `axiscmsdb.sql` as applied to avoid destructive reinitialization.
 
-`runMigrations.js` supports:
+## Related Scripts
 
-- `MIGRATION_BASELINE_CUTOFF=<file.sql>`
-
-Behavior:
-
-1. If cutoff file is **already recorded** in `schema_migrations`, then all files `<= cutoff` are skipped.
-2. If cutoff file is **not recorded**, normal migration execution continues.
-
-This lets us "freeze" old migrations and keep only recent incremental files active.
-
-## Recommended Future Process
-
-1. Keep one stable baseline file for fresh setup.
-2. Create incremental migrations normally.
-3. Every 1-3 months:
-   - Create a new baseline snapshot.
-   - Mark old migrations as applied (`migrate:mark-baseline`).
-   - Set `MIGRATION_BASELINE_CUTOFF` in environment.
-   - Optionally move old migration files to archive.
-
-## Example
-
-```bash
-# 1) Mark all old migrations through this file
-npm run migrate:mark-baseline -- --through=20260407_update_expenses_client_and_categories.sql --databases=axiscmsdb,demo
-
-# 2) Enable cutoff
-set MIGRATION_BASELINE_CUTOFF=20260407_update_expenses_client_and_categories.sql
-
-# 3) Run normal incremental migration command
-npm run migrate:sql
-```
-
+- `node backend/scripts/runBaselineMigration.js`
+  - Applies `database/axiscmsdb.sql` directly (default DBs: `axiscmsdb,demo`).
+- `node backend/migrations/markBaselineApplied.js --databases=axiscmsdb,demo`
+  - Marks `axiscmsdb.sql` as applied without executing SQL.

@@ -4,8 +4,8 @@ const path = require("path");
 const { Client } = require("pg");
 
 const MIGRATIONS_TABLE = "schema_migrations";
-const MIGRATIONS_DIR = path.resolve(__dirname, "sql");
-const MIGRATION_BASELINE_CUTOFF = String(process.env.MIGRATION_BASELINE_CUTOFF || "").trim();
+const CANONICAL_MIGRATION_FILE = path.resolve(__dirname, "..", "..", "database", "axiscmsdb.sql");
+const CANONICAL_MIGRATION_KEY = "axiscmsdb.sql";
 
 function getDbConfig(database) {
   return {
@@ -31,79 +31,64 @@ async function listTargetDatabases() {
     const rs = await admin.query("SELECT datname FROM pg_database WHERE datistemplate = false");
     const existing = new Set((rs.rows || []).map((r) => normalizeDatabaseName(r.datname)).filter(Boolean));
     const requested = new Set(
-      ["inventory", "demo", normalizeDatabaseName(process.env.DB_NAME || "inventory")].filter(Boolean)
+      ["axiscmsdb", "demo", normalizeDatabaseName(process.env.DB_NAME || "axiscmsdb"), "inventory"].filter(Boolean)
     );
 
-    const inventoryClient = new Client(getDbConfig("inventory"));
-    try {
-      await inventoryClient.connect();
+    const discoveryDb = existing.has("axiscmsdb") ? "axiscmsdb" : (existing.has("inventory") ? "inventory" : "");
+    if (discoveryDb) {
+      const discoveryClient = new Client(getDbConfig(discoveryDb));
+      try {
+        await discoveryClient.connect();
 
-      const profileTableRs = await inventoryClient.query("SELECT to_regclass('public.company_profiles') AS name");
-      if (profileTableRs.rows?.[0]?.name) {
-        const profileDbRs = await inventoryClient.query(
-          `SELECT DISTINCT LOWER(TRIM(database_name)) AS database_name
-           FROM company_profiles
-           WHERE database_name IS NOT NULL AND TRIM(database_name) <> ''`
-        );
-        for (const row of profileDbRs.rows || []) {
-          const name = normalizeDatabaseName(row.database_name);
-          if (name) requested.add(name);
+        const profileTableRs = await discoveryClient.query("SELECT to_regclass('public.company_profiles') AS name");
+        if (profileTableRs.rows?.[0]?.name) {
+          const profileDbRs = await discoveryClient.query(
+            `SELECT DISTINCT LOWER(TRIM(database_name)) AS database_name
+             FROM company_profiles
+             WHERE database_name IS NOT NULL AND TRIM(database_name) <> ''`
+          );
+          for (const row of profileDbRs.rows || []) {
+            const name = normalizeDatabaseName(row.database_name);
+            if (name) requested.add(name);
+          }
         }
-      }
 
-      const userMappingsTableRs = await inventoryClient.query("SELECT to_regclass('public.user_mappings') AS name");
-      if (userMappingsTableRs.rows?.[0]?.name) {
-        const mapDbRs = await inventoryClient.query(
-          `SELECT DISTINCT LOWER(TRIM(database_name)) AS database_name
-           FROM user_mappings
-           WHERE database_name IS NOT NULL AND TRIM(database_name) <> ''`
-        );
-        for (const row of mapDbRs.rows || []) {
-          const name = normalizeDatabaseName(row.database_name);
-          if (name) requested.add(name);
+        const userMappingsTableRs = await discoveryClient.query("SELECT to_regclass('public.user_mappings') AS name");
+        if (userMappingsTableRs.rows?.[0]?.name) {
+          const mapDbRs = await discoveryClient.query(
+            `SELECT DISTINCT LOWER(TRIM(database_name)) AS database_name
+             FROM user_mappings
+             WHERE database_name IS NOT NULL AND TRIM(database_name) <> ''`
+          );
+          for (const row of mapDbRs.rows || []) {
+            const name = normalizeDatabaseName(row.database_name);
+            if (name) requested.add(name);
+          }
         }
-      }
 
-      const createdDbTableRs = await inventoryClient.query("SELECT to_regclass('public.company_databases') AS name");
-      if (createdDbTableRs.rows?.[0]?.name) {
-        const createdDbRs = await inventoryClient.query(
-          `SELECT DISTINCT LOWER(TRIM(database_name)) AS database_name
-           FROM company_databases
-           WHERE database_name IS NOT NULL AND TRIM(database_name) <> ''`
-        );
-        for (const row of createdDbRs.rows || []) {
-          const name = normalizeDatabaseName(row.database_name);
-          if (name) requested.add(name);
+        const createdDbTableRs = await discoveryClient.query("SELECT to_regclass('public.company_databases') AS name");
+        if (createdDbTableRs.rows?.[0]?.name) {
+          const createdDbRs = await discoveryClient.query(
+            `SELECT DISTINCT LOWER(TRIM(database_name)) AS database_name
+             FROM company_databases
+             WHERE database_name IS NOT NULL AND TRIM(database_name) <> ''`
+          );
+          for (const row of createdDbRs.rows || []) {
+            const name = normalizeDatabaseName(row.database_name);
+            if (name) requested.add(name);
+          }
         }
+      } catch (_err) {
+        // Ignore discovery failures and continue with known defaults.
+      } finally {
+        await discoveryClient.end().catch(() => {});
       }
-    } catch (_err) {
-                                                                      
-    } finally {
-      await inventoryClient.end().catch(() => {});
     }
 
     return [...requested].filter((db) => existing.has(db)).sort((a, b) => a.localeCompare(b));
   } finally {
     await admin.end().catch(() => {});
   }
-}
-
-function getMigrationFiles() {
-  if (!fs.existsSync(MIGRATIONS_DIR)) return [];
-  return fs
-    .readdirSync(MIGRATIONS_DIR)
-    .filter((name) => name.toLowerCase().endsWith(".sql"))
-    .sort((a, b) => a.localeCompare(b));
-}
-
-function normalizeCutoff(fileName, migrationFiles) {
-  const clean = String(fileName || "").trim();
-  if (!clean) return "";
-  if (!migrationFiles.includes(clean)) {
-    console.warn(`[migrate] warning: MIGRATION_BASELINE_CUTOFF '${clean}' not found in migrations list`);
-    return "";
-  }
-  return clean;
 }
 
 async function ensureMigrationsTable(client) {
@@ -116,55 +101,95 @@ async function ensureMigrationsTable(client) {
   `);
 }
 
-async function runForDatabase(databaseName, migrationFiles, baselineCutoff = "") {
+async function hasExistingBusinessSchema(client) {
+  const rs = await client.query(`
+    SELECT EXISTS (
+      SELECT 1
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_name IN (
+          'users',
+          'customers',
+          'invoices',
+          'expenses',
+          'cases',
+          'plaints',
+          'answers',
+          'witnesses',
+          'judgments'
+        )
+    ) AS has_schema
+  `);
+  return Boolean(rs.rows?.[0]?.has_schema);
+}
+
+async function runForDatabase(databaseName, sqlText) {
   const client = new Client(getDbConfig(databaseName));
   await client.connect();
   try {
     await ensureMigrationsTable(client);
-    const appliedRs = await client.query(`SELECT file_name FROM ${MIGRATIONS_TABLE}`);
-    const applied = new Set((appliedRs.rows || []).map((r) => String(r.file_name || "").trim()));
-    const baselineIsApplied = baselineCutoff ? applied.has(baselineCutoff) : false;
 
-    for (const fileName of migrationFiles) {
-      if (baselineIsApplied && baselineCutoff && fileName.localeCompare(baselineCutoff) <= 0) {
-        continue;
-      }
-      if (applied.has(fileName)) continue;
-      const fullPath = path.join(MIGRATIONS_DIR, fileName);
-      const sql = fs.readFileSync(fullPath, "utf8");
-      await client.query("BEGIN");
-      try {
-        await client.query(sql);
-        await client.query(`INSERT INTO ${MIGRATIONS_TABLE} (file_name) VALUES ($1)`, [fileName]);
-        await client.query("COMMIT");
-        console.log(`[migrate] ${databaseName}: applied ${fileName}`);
-      } catch (err) {
-        await client.query("ROLLBACK");
-        throw err;
-      }
+    const appliedRs = await client.query(`SELECT file_name FROM ${MIGRATIONS_TABLE}`);
+    const appliedFiles = (appliedRs.rows || []).map((r) => String(r.file_name || "").trim()).filter(Boolean);
+    const applied = new Set(appliedFiles);
+
+    if (applied.has(CANONICAL_MIGRATION_KEY)) {
+      console.log(`[migrate] ${databaseName}: canonical migration already applied`);
+      return;
     }
+
+    if (appliedFiles.length > 0) {
+      await client.query(
+        `INSERT INTO ${MIGRATIONS_TABLE} (file_name)
+         VALUES ($1)
+         ON CONFLICT (file_name) DO NOTHING`,
+        [CANONICAL_MIGRATION_KEY]
+      );
+      console.log(`[migrate] ${databaseName}: legacy migrations detected, marked ${CANONICAL_MIGRATION_KEY} as applied`);
+      return;
+    }
+
+    const hasSchema = await hasExistingBusinessSchema(client);
+    if (hasSchema) {
+      await client.query(
+        `INSERT INTO ${MIGRATIONS_TABLE} (file_name)
+         VALUES ($1)
+         ON CONFLICT (file_name) DO NOTHING`,
+        [CANONICAL_MIGRATION_KEY]
+      );
+      console.log(
+        `[migrate] ${databaseName}: existing schema detected with no migration history, marked ${CANONICAL_MIGRATION_KEY} as applied`
+      );
+      return;
+    }
+
+    await client.query(sqlText);
+    await client.query(
+      `INSERT INTO ${MIGRATIONS_TABLE} (file_name)
+       VALUES ($1)
+       ON CONFLICT (file_name) DO NOTHING`,
+      [CANONICAL_MIGRATION_KEY]
+    );
+    console.log(`[migrate] ${databaseName}: applied ${CANONICAL_MIGRATION_KEY}`);
   } finally {
     await client.end().catch(() => {});
   }
 }
 
 async function main() {
-  const migrationFiles = getMigrationFiles();
-  if (!migrationFiles.length) {
-    console.log("[migrate] no sql files found");
-    return;
+  if (!fs.existsSync(CANONICAL_MIGRATION_FILE)) {
+    throw new Error(`Canonical SQL file not found: ${CANONICAL_MIGRATION_FILE}`);
   }
-  const baselineCutoff = normalizeCutoff(MIGRATION_BASELINE_CUTOFF, migrationFiles);
-  if (baselineCutoff) {
-    console.log(`[migrate] baseline cutoff enabled: ${baselineCutoff}`);
-  }
+
+  const sqlText = fs.readFileSync(CANONICAL_MIGRATION_FILE, "utf8");
   const dbs = await listTargetDatabases();
   if (!dbs.length) {
     console.log("[migrate] no target databases found");
     return;
   }
+
   for (const dbName of dbs) {
-    await runForDatabase(dbName, migrationFiles, baselineCutoff);
+    await runForDatabase(dbName, sqlText);
   }
   console.log("[migrate] complete");
 }

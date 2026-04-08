@@ -1,10 +1,8 @@
 require("dotenv").config();
-const fs = require("fs");
-const path = require("path");
 const { Client } = require("pg");
 
 const MIGRATIONS_TABLE = "schema_migrations";
-const MIGRATIONS_DIR = path.resolve(__dirname, "sql");
+const CANONICAL_MIGRATION_KEY = "axiscmsdb.sql";
 
 function parseArg(name) {
   const prefix = `--${name}=`;
@@ -29,14 +27,6 @@ function normalizeDatabaseName(name) {
   return normalized;
 }
 
-function getMigrationFiles() {
-  if (!fs.existsSync(MIGRATIONS_DIR)) return [];
-  return fs
-    .readdirSync(MIGRATIONS_DIR)
-    .filter((name) => name.toLowerCase().endsWith(".sql"))
-    .sort((a, b) => a.localeCompare(b));
-}
-
 function getTargetDatabases() {
   const fromArg = parseArg("databases");
   const fromEnv = String(process.env.DB_MIGRATION_DATABASES || "").trim();
@@ -58,53 +48,32 @@ async function ensureMigrationsTable(client) {
   `);
 }
 
-async function markForDatabase(databaseName, filesToMark) {
+async function markForDatabase(databaseName) {
   const client = new Client(getDbConfig(databaseName));
   await client.connect();
   try {
     await ensureMigrationsTable(client);
-    for (const fileName of filesToMark) {
-      await client.query(
-        `INSERT INTO ${MIGRATIONS_TABLE} (file_name)
-         VALUES ($1)
-         ON CONFLICT (file_name) DO NOTHING`,
-        [fileName]
-      );
-    }
-    console.log(`[migrate] ${databaseName}: marked ${filesToMark.length} migration(s) as applied`);
+    await client.query(
+      `INSERT INTO ${MIGRATIONS_TABLE} (file_name)
+       VALUES ($1)
+       ON CONFLICT (file_name) DO NOTHING`,
+      [CANONICAL_MIGRATION_KEY]
+    );
+    console.log(`[migrate] ${databaseName}: marked ${CANONICAL_MIGRATION_KEY} as applied`);
   } finally {
     await client.end().catch(() => {});
   }
 }
 
 async function main() {
-  const allFiles = getMigrationFiles();
-  if (!allFiles.length) {
-    throw new Error("No sql migration files found.");
-  }
-
-  const through = parseArg("through") || String(process.env.MIGRATION_BASELINE_CUTOFF || "").trim();
-  if (!through) {
-    throw new Error("Missing cutoff migration. Use --through=<file.sql>.");
-  }
-  if (!allFiles.includes(through)) {
-    throw new Error(`Cutoff migration not found in sql folder: ${through}`);
-  }
-
-  const filesToMark = allFiles.filter((name) => name.localeCompare(through) <= 0);
-  if (!filesToMark.length) {
-    throw new Error("No migration files matched cutoff.");
-  }
-
   const databases = getTargetDatabases();
   if (!databases.length) {
     throw new Error("No target databases found. Use --databases=db1,db2");
   }
 
-  console.log(`[migrate] marking baseline through ${through}`);
   console.log(`[migrate] databases: ${databases.join(", ")}`);
   for (const dbName of databases) {
-    await markForDatabase(dbName, filesToMark);
+    await markForDatabase(dbName);
   }
   console.log("[migrate] done");
 }
