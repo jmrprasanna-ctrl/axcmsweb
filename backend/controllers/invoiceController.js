@@ -743,25 +743,29 @@ exports.getSealVImage = async (req,res)=>{
 };
 
 exports.createInvoice = async (req,res)=>{
-    const { invoice_no, invoice_date, quotation_date, quotation2_date, quotation3_date, quotation2_customer_name, quotation3_customer_name, customer_id, items, importants, machine_description, serial_no, machine_count, support_technician, support_technician_percentage, payment_method } = req.body;
-    if(!customer_id || !invoice_no || !items || !items.length) {
+    const {
+        invoice_no,
+        invoice_date,
+        quotation_date,
+        quotation2_date,
+        quotation3_date,
+        quotation2_customer_name,
+        quotation3_customer_name,
+        customer_id,
+        items,
+        importants,
+        payment_method
+    } = req.body;
+    if(!customer_id) {
         return res.status(400).json({message:"Invalid data"});
     }
     try{
+        const normalizedItems = Array.isArray(items) ? items : [];
         let total_amount = 0;
-        for(const item of items){
+        for(const item of normalizedItems){
             const gross = Number(item.gross) || 0;
             total_amount += gross;
         }
-        const parsedCount = machine_count === undefined || machine_count === null || machine_count === ""
-            ? 0
-            : Number(machine_count);
-        const parsedSupportTechnicianPercentage =
-            support_technician_percentage === undefined ||
-            support_technician_percentage === null ||
-            support_technician_percentage === ""
-                ? null
-                : Number(support_technician_percentage);
         const parsedInvoiceDate = String(invoice_date || "").trim();
         const invoiceDateValue = parsedInvoiceDate || new Date().toISOString().slice(0, 10);
         const isValidInvoiceDate = /^\d{4}-\d{2}-\d{2}$/.test(invoiceDateValue) && !Number.isNaN(new Date(`${invoiceDateValue}T00:00:00`).getTime());
@@ -809,17 +813,12 @@ exports.createInvoice = async (req,res)=>{
             quotation2_customer_name: quotation2CustomerNameValue,
             quotation3_customer_name: quotation3CustomerNameValue,
             customer_id,
-            machine_description: String(machine_description || "").trim() || null,
-            serial_no: String(serial_no || "").trim() || null,
-            machine_count: Number.isFinite(parsedCount) && parsedCount >= 0 ? parsedCount : 0,
-            support_technician: String(support_technician || "").trim() || null,
-            support_technician_percentage: Number.isFinite(parsedSupportTechnicianPercentage) ? parsedSupportTechnicianPercentage : null,
             payment_method: normalizePaymentMethod(payment_method),
             payment_status: "Pending",
             cheque_no: null,
             total_amount
         });
-        for(const item of items){
+        for(const item of normalizedItems){
             const productId = Number(item.productId);
             if(!productId){
                 return res.status(400).json({ message: "Invalid product in invoice items" });

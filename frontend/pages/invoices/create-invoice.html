@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Create Invoice - AXIS_CMS_WEB</title>
+<title>Invoice - AXIS_CMS_WEB</title>
 <script src="../../assets/extracted/pages/invoices/create-invoice.inline-script-1.js"></script>
 <link rel="stylesheet" href="../../assets/css/style.css">
 <link rel="stylesheet" href="../../assets/css/dashboard.css">
@@ -31,9 +31,9 @@
     <div class="add-product-shell invoice-shell">
         <div class="add-product-header">
             <div>
-                <h2 class="add-product-title">Create Invoice</h2>
+                <h2 class="add-product-title">Invoice</h2>
+                <p class="add-product-subtitle">Create and save invoice records quickly.</p>
             </div>
-            <div class="add-product-badge">Billing</div>
         </div>
 
         <form id="invoiceForm">
@@ -43,18 +43,6 @@
                     <select id="customer" required>
                         <option value="">Select Customer</option>
                     </select>
-                </div>
-
-                <div class="field">
-                    <label for="machine">Machine</label>
-                    <select id="machine">
-                        <option value="">Select Customer First</option>
-                    </select>
-                </div>
-
-                <div class="field">
-                    <label for="machineSerialNo">Serial No</label>
-                    <input class="readonly-input" type="text" id="machineSerialNo" readonly>
                 </div>
 
                 <div class="field">
@@ -72,32 +60,6 @@
                     <input class="readonly-input" type="text" id="tel" readonly>
                 </div>
 
-                <div class="field">
-                    <label for="count">Count</label>
-                    <input type="number" id="count" min="0" step="1" placeholder="Enter count">
-                </div>
-
-                <div class="field">
-                    <label for="supportTechnician">Support Technician</label>
-                    <select id="supportTechnician">
-                        <option value="">Select Technician (Optional)</option>
-                    </select>
-                </div>
-
-                <div class="field">
-                    <label for="supportTechnicianPercentage">Support Technician Percentage (%)</label>
-                    <input type="number" id="supportTechnicianPercentage" min="0" step="0.01" placeholder="Enter percentage" disabled>
-                </div>
-
-                <div class="field">
-                    <label for="paymentMethod">Payment Method</label>
-                    <select id="paymentMethod">
-                        <option value="Cash" selected>Cash</option>
-                        <option value="Cheque">Cheque</option>
-                        <option value="Credit">Credit</option>
-                    </select>
-                </div>
-
                 <div id="vatNoWrap" class="field is-hidden">
                     <label for="vatNo">VAT No</label>
                     <input class="readonly-input" type="text" id="vatNo" readonly>
@@ -108,68 +70,8 @@
                 </div>
 
                 <div class="field">
-                    <label for="invoiceNo">Invoice No</label>
-                    <input class="readonly-input" type="text" id="invoiceNo" readonly>
-                </div>
-
-                <div class="field">
                     <label for="invoiceDate">Invoice Date</label>
                     <input type="date" id="invoiceDate" required>
-                </div>
-                <div class="field">
-                    <label for="quotationDate">Quotation Date</label>
-                    <input type="date" id="quotationDate" required>
-                </div>
-
-                <div class="card product-card field-span-full">
-                    <div class="product-toolbar">
-                        <button class="btn btn-inline-add" id="addProductRowBtn" type="button">Add Product</button>
-                        <span class="product-hint">Search by Product ID or Description</span>
-                    </div>
-                        <div class="table-scroll">
-                            <table class="table product-table">
-                                <thead>
-                                    <tr>
-                                        <th class="w-300">Product</th>
-                                        <th class="w-240">Description</th>
-                                        <th class="w-90">Qty</th>
-                                        <th class="w-110">Rate</th>
-                                        <th class="w-90">VAT %</th>
-                                        <th class="w-130">Gross</th>
-                                        <th class="w-120">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="productRows"></tbody>
-                            </table>
-                        </div>
-                        <div class="product-total-row">
-                            <span class="product-total-label">TOTAL =</span>
-                            <span id="productsTableTotal" class="product-total-value">0.00</span>
-                        </div>
-                    </div>
-
-                <div class="field-span-full">
-                    <div class="important-actions">
-                        <button class="btn btn-inline" id="addImportantBtn" type="button">Important</button>
-                        <select id="supportImportantSelect" class="support-important-select">
-                            <option value="">Select Support Important</option>
-                        </select>
-                        <button class="btn btn-inline" id="addImportantFromSupportBtn" type="button">Add important</button>
-                    </div>
-                    <div class="card card-mt-12">
-                        <div class="table-scroll">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th class="w-80">Line</th>
-                                        <th>Important Note</th>
-                                        <th class="w-140">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="important-table-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
                 </div>
             </div>
             <div class="add-product-actions">
