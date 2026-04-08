@@ -1296,55 +1296,7 @@ async function emailQuotation(){
 }
 
 async function emailQuotations(){
-    if(!latestInvoiceData){
-        alert("Invoice details are not ready yet.");
-        return;
-    }
-    const invoiceId = new URLSearchParams(window.location.search).get("id");
-    if(!invoiceId){
-        alert("Invoice id is missing.");
-        return;
-    }
-    try{
-        const attachments = [];
-        const defs = [
-            {
-                feature: "quotation2",
-                page: "view-quotation-2.html",
-                buildFnName: "buildQuotation2RenderedPdf"
-            },
-            {
-                feature: "quotation3",
-                page: "view-quotation-3.html",
-                buildFnName: "buildQuotation3RenderedPdf"
-            }
-        ];
-        for(const def of defs){
-            if(!hasMappedFeature(def.feature)) continue;
-            const rendered = await buildRenderedPdfFromQuotationPage(invoiceId, def.page, def.buildFnName);
-            const dataUrl = await blobToDataUrl(rendered.pdfBlob);
-            attachments.push({
-                attachment_pdf_base64: dataUrl,
-                attachment_file_name: rendered.fileName
-            });
-        }
-        if(!attachments.length){
-            alert("No Quotation functions are mapped for this user/database.");
-            return;
-        }
-        const res = await request(`/invoices/${invoiceId}/send-email`, "POST", {
-            attachment_list: attachments,
-            email_type: "quotation23",
-            require_rendered_attachment: true
-        });
-        if(typeof showMessageBox === "function"){
-            showMessageBox(res.message || "Quotation 2/3 email sent");
-        }else{
-            alert(res.message || "Quotation 2/3 email sent");
-        }
-    }catch(err){
-        alert(err.message || "Failed to send Quotation 2/3 email");
-    }
+    alert("Quotation 2/3 pages are removed from this system.");
 }
 
 function waitForIframeLoad(frame){

@@ -980,8 +980,6 @@ async function loadUserAccessPermissions(){
         const dynamicPages = Array.from(new Set([
             ...normalizedAllowedPages,
             ...pagesFromActions,
-            ...(normalizedActionKeys.includes("/users/technician-list.html::add") ? ["/users/add-technician.html"] : []),
-            ...(normalizedActionKeys.includes("/users/technician-list.html::edit") ? ["/users/edit-technician.html"] : [])
         ]));
         if(typeof data?.has_access_config === "boolean"){
             let nextConfigState = data.has_access_config;

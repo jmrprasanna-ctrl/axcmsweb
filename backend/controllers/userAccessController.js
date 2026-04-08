@@ -135,9 +135,6 @@ const MANUAL_ACCESS_MODULE_OPTIONS = [
       { path: "/invoices/Payments-list.html", label: "Payments List", actions: ["view", "add", "edit", "delete"] },
       { path: "/invoices/create-invoice.html", label: "Create Invoice", actions: ["view", "add", "edit"] },
       { path: "/invoices/view-invoice.html", label: "View Invoice", actions: ["view"] },
-      { path: "/invoices/view-quotation.html", label: "View Quotation", actions: ["view"] },
-      { path: "/invoices/view-quotation-2.html", label: "View Quotation 2", actions: ["view"] },
-      { path: "/invoices/view-quotation-3.html", label: "View Quotation 3", actions: ["view"] },
     ],
   },
   {
@@ -162,9 +159,6 @@ const MANUAL_ACCESS_MODULE_OPTIONS = [
       { path: "/support/add-lawyer.html", label: "Add Lawyer", actions: ["view", "add"] },
       { path: "/support/add-court.html", label: "Add Court", actions: ["view", "add"] },
       { path: "/support/email-setup.html", label: "Email Setup", actions: ["view", "edit"] },
-      { path: "/users/technician-list.html", label: "Support Technician", actions: ["view", "add", "edit", "delete"] },
-      { path: "/users/add-technician.html", label: "Add Technician", actions: ["view", "add"] },
-      { path: "/users/edit-technician.html", label: "Edit Technician", actions: ["view", "edit"] },
       { path: "/support/support.html", label: "Support (Legacy)", actions: ["view", "add", "edit", "delete"] },
     ],
   },
@@ -386,22 +380,6 @@ function expandImplicitActionDependencies(actionKeys) {
     add("/users/edit-user.html", "view");
     add("/users/edit-user.html", "edit");
   }
-  if (set.has(toActionKey("/users/technician-list.html", "edit"))) {
-    add("/users/edit-technician.html", "view");
-    add("/users/edit-technician.html", "edit");
-  }
-  if (set.has(toActionKey("/users/technician-list.html", "add"))) {
-    add("/users/add-technician.html", "view");
-    add("/users/add-technician.html", "add");
-  }
-  if (
-    set.has(toActionKey("/users/technician-list.html", "add")) ||
-    set.has(toActionKey("/users/technician-list.html", "edit")) ||
-    set.has(toActionKey("/users/technician-list.html", "delete"))
-  ) {
-    add("/users/technician-list.html", "view");
-  }
-
   return normalizeActions(Array.from(set));
 }
 

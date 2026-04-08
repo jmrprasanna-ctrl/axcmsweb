@@ -1015,9 +1015,7 @@ async function loadUserAccessPermissions(){
             ...normalizedAllowedPages,
             ...pagesFromActions,
             ...(hasLegacySupportPage ? ["/support/lawyer-list.html", "/support/court-list.html"] : []),
-            ...(hasLegacySupportAddAction ? ["/support/add-lawyer.html", "/support/add-court.html"] : []),
-            ...(normalizedActionKeys.includes("/users/technician-list.html::add") ? ["/users/add-technician.html"] : []),
-            ...(normalizedActionKeys.includes("/users/technician-list.html::edit") ? ["/users/edit-technician.html"] : [])
+            ...(hasLegacySupportAddAction ? ["/support/add-lawyer.html", "/support/add-court.html"] : [])
         ]));
         if(typeof data?.has_access_config === "boolean"){
             let nextConfigState = data.has_access_config;

@@ -57,9 +57,6 @@ let selectedYear = String(new Date().getFullYear());
                     <td>
                         <div class="invoice-action-row">
                             <button class="btn btn-success invoice-action-btn" onclick="viewInvoice(${inv.id})">INV 1</button>
-                            <button class="btn btn-primary btn-inline invoice-action-btn" onclick="viewQuatation(${inv.id})">QUT 1</button>
-                            <button class="btn btn-primary btn-inline invoice-action-btn" onclick="viewQuatation2(${inv.id})">QUT 2</button>
-                            <button class="btn btn-primary btn-inline invoice-action-btn" onclick="viewQuatation3(${inv.id})">QUT 3</button>
                             ${isAdmin() ? `<button class="btn btn-danger btn-inline invoice-action-btn" onclick="deleteInvoice(${inv.id})">Delete</button>` : ""}
                         </div>
                     </td>
@@ -103,18 +100,6 @@ let selectedYear = String(new Date().getFullYear());
 
         function viewInvoice(id){
             window.location.href = `view-invoice.html?id=${id}`;
-        }
-
-        function viewQuatation(id){
-            window.location.href = `view-quotation.html?id=${id}`;
-        }
-
-        function viewQuatation2(id){
-            window.location.href = `view-quotation-2.html?id=${id}`;
-        }
-
-        function viewQuatation3(id){
-            window.location.href = `view-quotation-3.html?id=${id}`;
         }
 
         async function deleteInvoice(id){
