@@ -343,7 +343,7 @@
         if(userAccessBackBtnEl){
             userAccessBackBtnEl.addEventListener("click", (ev) => {
                 ev.preventDefault();
-                const target = "user-list.html";
+                const target = "../dashboard.html";
                 try{
                     window.location.href = target;
                 }catch(_err){
