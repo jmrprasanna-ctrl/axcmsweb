@@ -460,9 +460,11 @@ function renderSidebarMenuByAccess(){
         { path: "/cases/answer.html", label: "Answer" },
         { path: "/cases/witness-list.html", label: "List of witnesses" },
         { path: "/cases/judgment-list.html", label: "Dudgement" },
-        { path: "/invoices/Payments-list.html", label: "Invoices" },
+        { path: "/invoices/Payments-list.html", label: "Payments List" },
+        { path: "/invoices/view-invoice.html", label: "View Invoice" },
         { path: "/invoices/create-invoice.html", label: "Create Invoice" },
-        { path: "/expenses/expense-list.html", label: "Expenses" },
+        { path: "/expenses/expense-list.html", label: "Expense List" },
+        { path: "/expenses/edit-expense.html", label: "Edit Expense" },
         { path: "/expenses/add-expense.html", label: "Add Expense" },
         { path: "/finance/finance.html", label: "Finance" },
         { path: "/support/support.html", label: "Support" },
@@ -521,13 +523,18 @@ function renderSidebarMenuByAccess(){
             label: "Payments",
             children: [
                 { path: "/invoices/Payments-list.html", label: "Payments List" },
+                { path: "/invoices/view-invoice.html", label: "View Invoice" },
                 { path: "/invoices/create-invoice.html", label: "Create Invoice" }
             ]
         },
         {
             path: "/expenses/expense-list.html",
             label: "Expenses",
-            children: [{ path: "/expenses/add-expense.html", label: "Add Expense" }]
+            children: [
+                { path: "/expenses/expense-list.html", label: "Expense List" },
+                { path: "/expenses/edit-expense.html", label: "Edit Expense" },
+                { path: "/expenses/add-expense.html", label: "Add Expense" }
+            ]
         },
         { path: "/finance/finance.html", label: "Finance" },
         {
