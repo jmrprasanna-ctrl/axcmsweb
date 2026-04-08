@@ -97,7 +97,8 @@ const userSelectEl = document.getElementById("userSelect");
 
         async function loadUsers(){
             const res = await request("/users/access-users", "GET");
-            const users = Array.isArray(res.users) ? res.users : [];
+            const allUsers = Array.isArray(res.users) ? res.users : [];
+            const users = allUsers.filter((u) => String(u?.mapped_database_name || "").trim());
             userSelectEl.innerHTML = `<option value="">Select user</option>`;
             users.forEach((u) => {
                 const opt = document.createElement("option");
