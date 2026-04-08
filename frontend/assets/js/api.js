@@ -483,11 +483,7 @@ function renderSidebarMenuByAccess(){
         { path: "/users/preference.html", label: "Preference" },
         { path: "/users/profile-list.html", label: "Profile" },
         { path: "/users/user-access.html", label: "Access" },
-        { path: "/users/mapped.html", label: "Mapped" },
-        { path: "/users/inv-map.html", label: "Inv Map" },
-        { path: "/users/db-create.html", label: "DB Create" },
         { path: "/users/company-create.html", label: "Company Create" },
-        { path: "/users/company-edit.html", label: "Company Edit" },
         { path: "/users/backup.html", label: "Backup" },
         { path: "/users/user-logged.html", label: "Logged" },
         { path: "/support/email-setup.html", label: "Email" }
@@ -559,11 +555,7 @@ function renderSidebarMenuByAccess(){
                 { path: "/users/profile-list.html", label: "Profile" },
                 { path: "/users/preference.html", label: "Preference" },
                 { path: "/users/user-access.html", label: "Access" },
-                { path: "/users/mapped.html", label: "Mapped" },
-                { path: "/users/inv-map.html", label: "Inv Map" },
-                { path: "/users/db-create.html", label: "DB Create" },
                 { path: "/users/company-create.html", label: "Company Create" },
-                { path: "/users/company-edit.html", label: "Company Edit" },
                 { path: "/users/backup.html", label: "Backup" },
                 { path: "/users/user-logged.html", label: "Logged" },
                 { path: "/support/email-setup.html", label: "Email" }
