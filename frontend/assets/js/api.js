@@ -266,7 +266,8 @@ function enforceUserAccess(){
         return;
     }
     const path = window.location.pathname.replace(/\\/g,"/");
-    const allowed = USER_ALLOWED_PATHS_RUNTIME.some(suffix => path.endsWith(suffix));
+    const normalizedPath = path.toLowerCase();
+    const allowed = USER_ALLOWED_PATHS_RUNTIME.some((suffix) => normalizedPath.endsWith(String(suffix || "").toLowerCase()));
     if(allowed) return;
     const idx = path.lastIndexOf("/pages/");
     if(idx !== -1){
@@ -301,7 +302,8 @@ function applyUserNavRestrictions(){
         if(!href || href.startsWith("#") || href.toLowerCase().includes("logout")) return;
         let normalized = href.replace(/\\/g,"/");
         if(!normalized.startsWith("/")) normalized = "/" + normalized;
-        const isAllowed = allowed.some(suffix => normalized.endsWith(suffix));
+        const normalizedLower = normalized.toLowerCase();
+        const isAllowed = allowed.some((suffix) => normalizedLower.endsWith(String(suffix || "").toLowerCase()));
         const financeAliasAllowed = normalized.endsWith("/finance.html") && hasUserGrantedPath("/finance/finance.html");
         const allowThisLink = isAllowed || financeAliasAllowed;
         if(!allowThisLink){
