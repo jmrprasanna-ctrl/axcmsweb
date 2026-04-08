@@ -1,9 +1,19 @@
 const params = new URLSearchParams(window.location.search);
 const expenseId = params.get("id");
+const role = (localStorage.getItem("role") || "").toLowerCase();
+const selectedDb = (localStorage.getItem("selectedDatabaseName") || "").toLowerCase();
+const isTrainingUser = role === "user" && selectedDb === "demo";
+const canManage = role === "admin" || role === "manager" || isTrainingUser;
+const canDeleteExpense = canManage || (role === "user" && typeof hasUserActionPermission === "function" && hasUserActionPermission("/expenses/expense-list.html", "delete"));
+const deleteExpenseBtn = document.getElementById("deleteExpenseBtn");
 
 if(!expenseId){
     alert("Missing expense id.");
     window.location.href = "expense-list.html";
+}
+
+if(deleteExpenseBtn && !canDeleteExpense){
+    deleteExpenseBtn.style.display = "none";
 }
 
 async function loadExpense(){
@@ -41,6 +51,23 @@ document.getElementById("expenseForm").addEventListener("submit", async function
         alert(err.message || "Failed to update expense");
     }
 });
+
+if(deleteExpenseBtn){
+    deleteExpenseBtn.addEventListener("click", async () => {
+        if(!canDeleteExpense){
+            alert("You do not have permission to delete expenses.");
+            return;
+        }
+        if(!confirm("Delete this expense?")) return;
+        try{
+            await request(`/expenses/${expenseId}`,"DELETE");
+            showMessageBox("Expense deleted");
+            window.location.href = "expense-list.html";
+        }catch(err){
+            alert(err.message || "Failed to delete expense");
+        }
+    });
+}
 
 function logout(){
     localStorage.removeItem("token");

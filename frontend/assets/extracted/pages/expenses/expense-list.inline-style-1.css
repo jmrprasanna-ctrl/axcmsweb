@@ -97,6 +97,12 @@
         font-weight:700;
         color:#0f6abf;
     }
+    .expense-row-clickable{
+        cursor:pointer;
+    }
+    .expense-row-clickable:hover td{
+        background:#eef6ff;
+    }
     @media (max-width: 900px){
         .summary-row{ grid-template-columns:1fr; }
     }

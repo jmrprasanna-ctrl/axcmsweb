@@ -2,7 +2,27 @@
         display: flex;
         gap: 12px;
         flex-wrap: wrap;
+        align-items: center;
         margin-top: 12px;
+    }
+.delete-icon-btn{
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        padding: 0;
+        border-radius: 14px;
+        border: 1px solid #f2b8b8;
+        background: #fff1f1;
+        color: #b42323;
+        margin-top: 0;
+    }
+.delete-icon-btn svg{
+        width: 20px;
+        height: 20px;
+    }
+.delete-icon-btn:hover{
+        border-color: #e28f8f;
+        background: #ffe5e5;
     }
     .btn-secondary{
         background: #e9f3fc;

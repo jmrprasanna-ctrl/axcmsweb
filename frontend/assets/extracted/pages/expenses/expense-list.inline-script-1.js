@@ -19,20 +19,11 @@ const canAccessPath = (path) => (canManage)
     : (role === "user" && allowedPaths.has(String(path || "").trim().toLowerCase()));
 const canAddExpense = canAccessPath("/expenses/add-expense.html");
 const canEditExpense = canManage || (role === "user" && typeof hasUserActionPermission === "function" && hasUserActionPermission("/expenses/expense-list.html", "edit"));
-const canDeleteExpense = canManage || (role === "user" && typeof hasUserActionPermission === "function" && hasUserActionPermission("/expenses/expense-list.html", "delete"));
-const isReadOnlyUser = !canEditExpense && !canDeleteExpense;
 let allExpenses = [];
 
 const addExpenseBtn = document.getElementById("addExpenseBtn");
 if(addExpenseBtn && !canAddExpense){
     addExpenseBtn.style.display = "none";
-}
-
-if(isReadOnlyUser){
-    const actionHeader = document.querySelector("#expenseTable thead th:last-child");
-    if(actionHeader && actionHeader.innerText.toLowerCase().includes("action")){
-        actionHeader.remove();
-    }
 }
 
 function toDateOnly(value){
@@ -103,12 +94,18 @@ function renderExpenses(expenses){
     tbody.innerHTML = "";
     if(!expenses.length){
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td colspan="${isReadOnlyUser ? 5 : 6}">No data found.</td>`;
+        tr.innerHTML = `<td colspan="5">No data found.</td>`;
         tbody.appendChild(tr);
         return;
     }
     expenses.forEach(exp=>{
         const tr = document.createElement("tr");
+        if(canEditExpense){
+            tr.classList.add("expense-row-clickable");
+            tr.addEventListener("click", () => {
+                window.location.href = `edit-expense.html?id=${exp.id}`;
+            });
+        }
         const dateText = expenseDateValue(exp) ? new Date(expenseDateValue(exp)).toLocaleDateString() : "";
         tr.innerHTML = `
             <td>${exp.title}</td>
@@ -117,14 +114,6 @@ function renderExpenses(expenses){
             <td>${dateText}</td>
             <td>${exp.category}</td>
         `;
-        if(!isReadOnlyUser){
-            tr.innerHTML += `
-                <td>
-                    ${canEditExpense ? `<a class="btn" href="edit-expense.html?id=${exp.id}">Edit</a>` : ""}
-                    ${canDeleteExpense ? `<button class="btn btn-danger btn-inline" type="button" onclick="deleteExpense(${exp.id})">Delete</button>` : ""}
-                </td>
-            `;
-        }
         tbody.appendChild(tr);
     });
 }
@@ -168,17 +157,6 @@ function exportPDF(){
         y+=8;
     });
     doc.save("Expenses_List.pdf");
-}
-
-async function deleteExpense(id){
-    if(!confirm("Delete this expense?")) return;
-    try{
-        await request(`/expenses/${id}`,"DELETE");
-        showMessageBox("Expense deleted");
-        loadExpenses();
-    }catch(err){
-        alert(err.message || "Failed to delete expense");
-    }
 }
 
 function logout(){

@@ -474,7 +474,6 @@ function renderSidebarMenuByAccess(){
         { path: "/invoices/create-invoice.html", label: "Create Invoice" },
         { path: "/invoices/view-invoice.html", label: "View Invoice" },
         { path: "/expenses/expense-list.html", label: "Expense List" },
-        { path: "/expenses/edit-expense.html", label: "Edit Expense" },
         { path: "/expenses/add-expense.html", label: "Add Expense" },
         { path: "/finance/finance.html", label: "Finance" },
         { path: "/support/lawyer-list.html", label: "Lawyer List" },
@@ -533,8 +532,7 @@ function renderSidebarMenuByAccess(){
             path: "/expenses/expense-list.html",
             label: "Expenses",
             children: [
-                { path: "/expenses/expense-list.html", label: "Expense List" },
-                { path: "/expenses/edit-expense.html", label: "Edit Expense" }
+                { path: "/expenses/expense-list.html", label: "Expense List" }
             ]
         },
         { path: "/finance/finance.html", label: "Finance" },
