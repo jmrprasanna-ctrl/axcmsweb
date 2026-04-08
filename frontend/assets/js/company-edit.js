@@ -3,6 +3,7 @@ const companyCodeEl = document.getElementById("companyCode");
 const companyEmailEl = document.getElementById("companyEmail");
 const logoFileEl = document.getElementById("logoFile");
 const updateCompanyBtnEl = document.getElementById("updateCompanyBtn");
+const deleteCompanyBtnEl = document.getElementById("deleteCompanyBtn");
 const companyLogoPreviewEl = document.getElementById("companyLogoPreview");
 
 const ALLOWED_EXT = new Set([".jpg", ".jpeg", ".bmp", ".gif", ".tiff", ".tif", ".png"]);
@@ -126,6 +127,14 @@ async function updateCompany(){
     window.location.href = "company-create.html";
 }
 
+async function deleteCompany(){
+    const ok = window.confirm("Delete this company and logo folder?");
+    if(!ok) return;
+    await request(`/users/companies/${companyId}`, "DELETE");
+    showMessageBox("Company deleted");
+    window.location.href = "company-create.html";
+}
+
 async function applyPermissionState(){
     if(typeof window.__waitForUserAccessPermissions === "function"){
         await window.__waitForUserAccessPermissions();
@@ -138,6 +147,10 @@ async function applyPermissionState(){
         alert("You do not have edit permission for Company page.");
         window.location.href = "company-create.html";
         return false;
+    }
+    const canDelete = !!window.hasUserActionPermission && window.hasUserActionPermission(COMPANY_CREATE_PATH, "delete");
+    if(deleteCompanyBtnEl){
+        deleteCompanyBtnEl.style.display = canDelete ? "" : "none";
     }
     return true;
 }
@@ -173,6 +186,16 @@ updateCompanyBtnEl.addEventListener("click", async () => {
         alert(err.message || "Failed to update company.");
     }
 });
+
+if(deleteCompanyBtnEl){
+    deleteCompanyBtnEl.addEventListener("click", async () => {
+        try{
+            await deleteCompany();
+        }catch(err){
+            alert(err.message || "Failed to delete company.");
+        }
+    });
+}
 
 logoFileEl.addEventListener("change", async () => {
     const file = logoFileEl.files && logoFileEl.files[0];

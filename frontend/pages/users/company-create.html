@@ -6,7 +6,7 @@
     <title>Company Create - AXIS_CMS_WEB</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="../../assets/css/dashboard.css">
-    <link rel="stylesheet" href="../../assets/extracted/pages/users/company-create.inline-style-1.css?v=20260406e">
+    <link rel="stylesheet" href="../../assets/extracted/pages/users/company-create.inline-style-1.css?v=20260408a">
 </head>
 <body>
     <div class="sidebar">
@@ -23,7 +23,10 @@
     </div>
 
     <div class="main-content">
-        <header><h2>Company Create</h2></header>
+        <header class="company-create-header">
+            <h2>Company Create</h2>
+            <a class="icon-btn back-icon-btn" href="user-access.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+        </header>
 
         <div class="form-container company-wrap">
             <div class="company-grid">
@@ -46,9 +49,13 @@
                 </div>
             </div>
 
-            <div class="access-actions" style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
-                <button id="saveCompanyBtn" class="btn btn-primary" type="button" onclick="saveCompany()">Save</button>
-                <a class="icon-btn back-icon-btn" href="user-access.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+            <div class="access-actions company-create-actions" style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
+                <button id="saveCompanyBtn" class="icon-btn save-company-icon-btn" type="button" onclick="saveCompany()" title="Save" aria-label="Save">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M5 4.5h11l3 3v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 3 19.5V6a1.5 1.5 0 0 1 1.5-1.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"></path>
+                        <path d="M8 4.5v5h7v-5M8 19h8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                </button>
             </div>
 
             <div class="company-table-wrap">
@@ -62,11 +69,10 @@
                             <th>Mapped</th>
                             <th>Logo File</th>
                             <th>Created Date</th>
-                            <th style="width: 120px;">Action</th>
                         </tr>
                     </thead>
                     <tbody id="companyTableBody">
-                        <tr><td colspan="7">Loading...</td></tr>
+                        <tr><td colspan="6">Loading...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -74,7 +80,7 @@
     </div>
 
     <script src="../../assets/js/api.js"></script>
-    <script src="../../assets/extracted/pages/users/company-create.inline-script-1.js?v=20260406h"></script>
+    <script src="../../assets/extracted/pages/users/company-create.inline-script-1.js?v=20260408a"></script>
 </body>
 </html>
 

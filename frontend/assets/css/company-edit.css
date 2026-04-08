@@ -21,3 +21,19 @@
   object-fit:cover;
   background:#f4f8fd;
 }
+
+.company-edit-actions{
+  align-items:center;
+}
+
+.delete-company-icon-btn{
+  margin-top:0;
+  color:#a62f2f;
+  border-color:#f1c9c9;
+  background:#fff5f5;
+}
+
+.delete-company-icon-btn:hover{
+  border-color:#df9b9b;
+  background:#ffecec;
+}

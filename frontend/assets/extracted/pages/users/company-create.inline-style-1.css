@@ -1,12 +1,15 @@
-.company-wrap{max-width:900px}
+.company-create-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+        .company-wrap{max-width:900px}
         .company-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+        .company-create-actions{align-items:center}
+        .save-company-icon-btn{margin-top:0;border-color:#89b9e8;background:#e9f3fe;color:#0f5aa1}
+        .save-company-icon-btn:hover{border-color:#5c99d9;background:#dbecff}
         .company-table-wrap{margin-top:20px;overflow:auto}
         .company-table{width:100%;border-collapse:collapse;background:#fff}
         .company-table th,.company-table td{border-bottom:1px solid #e5edf5;padding:10px 8px;text-align:left;font-size:.9rem}
         .company-table th{background:#f5f9ff;color:#234b71}
         .company-table tr.company-row{cursor:pointer}
         .company-table tr.company-row:hover{background:#f7fbff}
-        .company-table td.actions{text-align:right}
         .company-logo-cell{display:flex;align-items:center;gap:8px;min-width:130px}
         .company-logo-thumb{width:34px;height:34px;border-radius:8px;object-fit:cover;border:1px solid #dce7f5;background:#fff}
         .company-logo-file{font-size:.85rem;color:#35526f;word-break:break-word}
