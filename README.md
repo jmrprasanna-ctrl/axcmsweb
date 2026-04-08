@@ -119,10 +119,26 @@ bash deploy/ubuntu24/aws_update.sh main
 
 # Optional: remove system sample/test data from inventory + demo DB while updating
 RUN_DB_CLEANUP=true bash deploy/ubuntu24/aws_update.sh main
+
+# Optional: skip schema migration on update
+RUN_SCHEMA_MIGRATION=false bash deploy/ubuntu24/aws_update.sh main
 ```
 
 Legacy command still works:
 
 ```bash
 bash deploy.sh main
+```
+
+For Amazon Linux 2023 (tracked scripts):
+
+```bash
+# First-time bootstrap (installs packages, pulls repo, configures apache, runs migration, starts PM2)
+bash deploy/al2023/al2023_bootstrap.sh https://github.com/your-user/AXIS_CMS_WEB.git
+
+# Regular update deploy
+bash deploy/al2023/al2023_update.sh main
+
+# One-command wrapper from repo root
+bash deploy-al2023.sh main
 ```

@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 set -euo pipefail
 
 BRANCH="${1:-main}"
@@ -11,10 +12,15 @@ API_HEALTH_RETRIES="${API_HEALTH_RETRIES:-30}"
 API_HEALTH_RETRY_DELAY_SECONDS="${API_HEALTH_RETRY_DELAY_SECONDS:-2}"
 API_HEALTH_STARTUP_GRACE_SECONDS="${API_HEALTH_STARTUP_GRACE_SECONDS:-3}"
 
-echo "==> AWS update started"
+echo "==> AWS AL2023 update started"
 echo "    app: ${APP_DIR}"
 echo "    branch: ${BRANCH}"
 echo "    pm2: ${PM2_NAME}"
+
+if [[ ! -d "${APP_DIR}" ]]; then
+  echo "ERROR: app directory not found: ${APP_DIR}"
+  exit 1
+fi
 
 cd "${APP_DIR}"
 
@@ -23,13 +29,9 @@ git fetch origin
 git checkout "${BRANCH}"
 git pull --ff-only origin "${BRANCH}"
 
-echo "==> Installing Node dependencies (no lockfile write)"
+echo "==> Installing dependencies"
 npm install --no-package-lock
-
-if [[ -f "${APP_DIR}/backend/package.json" ]]; then
-  echo "==> Installing backend dependencies (no lockfile write)"
-  npm --prefix backend install --no-package-lock
-fi
+npm --prefix backend install --no-package-lock
 
 if [[ "${RUN_DB_CLEANUP}" == "true" ]]; then
   echo "==> Running sample/test data cleanup (axiscmsdb + demo)"
