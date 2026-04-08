@@ -1,4 +1,5 @@
-.mapped-wrap{max-width:1180px;width:100%;margin:0 auto}
+.mapped-page-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+        .mapped-wrap{max-width:1180px;width:100%;margin:0 auto}
         .mapped-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
         .mapped-info{background:#f7fbff;border:1px solid #d8e8f8;border-radius:10px;padding:12px 14px;margin-top:12px}
         .mapped-row{display:grid;grid-template-columns:220px 1fr;gap:10px;padding:4px 0}
@@ -8,6 +9,9 @@
         .mapped-table-scroll{overflow:auto;border:1px solid #d8e8f8;border-radius:10px;background:#fff}
         .mapped-table{min-width:920px}
         .mapped-table td, .mapped-table th{white-space:nowrap}
+        .mapped-delete-btn{width:36px;height:36px;min-width:36px;border-radius:10px;padding:0;margin-top:0;color:#a62f2f;border-color:#f1c9c9;background:#fff5f5}
+        .mapped-delete-btn:hover{border-color:#df9b9b;background:#ffecec}
+        .mapped-delete-btn svg{width:18px;height:18px}
         @media (max-width: 900px){
             .mapped-grid{grid-template-columns:1fr}
             .mapped-row{grid-template-columns:1fr}

@@ -16,6 +16,7 @@ const userSelectEl = document.getElementById("userSelect");
 
         const MAPPED_PATH = "/users/mapped.html";
         let canAddMapped = false;
+        let canDeleteMapped = false;
         let isVerified = false;
         let users = [];
         let databases = [];
@@ -172,7 +173,7 @@ const userSelectEl = document.getElementById("userSelect");
 
         async function verifyMapping(){
             if(!canAddMapped){
-                alert("You do not have add permission for User Mapped page.");
+                alert("You do not have add permission for Mapped page.");
                 return;
             }
             const payload = selectedPayload();
@@ -199,7 +200,7 @@ const userSelectEl = document.getElementById("userSelect");
 
         async function saveMapping(){
             if(!canAddMapped){
-                alert("You do not have add permission for User Mapped page.");
+                alert("You do not have add permission for Mapped page.");
                 return;
             }
             if(!isVerified){
@@ -233,7 +234,7 @@ const userSelectEl = document.getElementById("userSelect");
         function renderMappedEntries(entries){
             if(!mappedEntriesBodyEl) return;
             if(!Array.isArray(entries) || !entries.length){
-                mappedEntriesBodyEl.innerHTML = `<tr><td colspan="7">No mapped data yet.</td></tr>`;
+                mappedEntriesBodyEl.innerHTML = `<tr><td colspan="8">No mapped data yet.</td></tr>`;
                 return;
             }
             mappedEntriesCache = entries.slice();
@@ -241,6 +242,13 @@ const userSelectEl = document.getElementById("userSelect");
                 const userLabel = row.username
                     ? `${row.username}${row.company_code ? ` [${row.company_code}]` : ""}`
                     : `User #${Number(row.user_id || 0) || "-"}`;
+                const actionHtml = canDeleteMapped
+                    ? `<button class="icon-btn mapped-delete-btn" type="button" data-delete-entry-id="${Number(row.id || 0)}" title="Delete" aria-label="Delete">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M4.5 7h15M9.5 3.5h5M8 7v11.5m8-11.5v11.5M6.5 7l1 13a1.5 1.5 0 0 0 1.5 1.4h6a1.5 1.5 0 0 0 1.5-1.4l1-13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path>
+                        </svg>
+                    </button>`
+                    : "-";
                 return `<tr>
                     <td>${escapeHtml(userLabel)}</td>
                     <td>${escapeHtml(row.user_email || "-")}</td>
@@ -249,6 +257,7 @@ const userSelectEl = document.getElementById("userSelect");
                     <td>${escapeHtml(row.company_email || "-")}</td>
                     <td>${escapeHtml(row.mapped_email || "-")}</td>
                     <td>${row.is_verified ? "Yes" : "No"}</td>
+                    <td>${actionHtml}</td>
                 </tr>`;
             }).join("");
         }
@@ -284,7 +293,30 @@ const userSelectEl = document.getElementById("userSelect");
                 const res = await request("/users/mapped/entries", "GET");
                 renderMappedEntries(Array.isArray(res.entries) ? res.entries : []);
             }catch(err){
-                mappedEntriesBodyEl.innerHTML = `<tr><td colspan="7">${escapeHtml(err.message || "Failed to load mapped data.")}</td></tr>`;
+                mappedEntriesBodyEl.innerHTML = `<tr><td colspan="8">${escapeHtml(err.message || "Failed to load mapped data.")}</td></tr>`;
+            }
+        }
+
+        async function deleteMappedEntry(entryId){
+            if(!canDeleteMapped){
+                alert("You do not have delete permission for Mapped page.");
+                return;
+            }
+            const id = Number(entryId || 0);
+            if(!id) return;
+            if(!confirm("Delete this mapped entry?")){
+                return;
+            }
+            try{
+                const res = await request(`/users/mapped/entries/${id}`, "DELETE");
+                showMessageBox(res.message || "Mapped entry deleted");
+                mappedEntriesCache = mappedEntriesCache.filter((x) => Number(x.id || 0) !== id);
+                renderMappedEntries(mappedEntriesCache);
+                if(!mappedEntriesCache.length){
+                    await loadMappedEntries();
+                }
+            }catch(err){
+                alert(err.message || "Failed to delete mapped entry");
             }
         }
 
@@ -293,6 +325,10 @@ const userSelectEl = document.getElementById("userSelect");
                 await window.__waitForUserAccessPermissions();
             }
             canAddMapped = !!window.hasUserActionPermission && window.hasUserActionPermission(MAPPED_PATH, "add");
+            canDeleteMapped = !!window.hasUserActionPermission && (
+                window.hasUserActionPermission(MAPPED_PATH, "delete") ||
+                window.hasUserActionPermission(MAPPED_PATH, "add")
+            );
             verifyBtnEl.style.display = canAddMapped ? "" : "none";
             mappedBtnEl.style.display = canAddMapped ? "" : "none";
         }
@@ -317,6 +353,15 @@ const userSelectEl = document.getElementById("userSelect");
 
         window.verifyMapping = verifyMapping;
         window.saveMapping = saveMapping;
+        window.deleteMappedEntry = deleteMappedEntry;
+
+        if(mappedEntriesBodyEl){
+            mappedEntriesBodyEl.addEventListener("click", (event) => {
+                const target = event.target && event.target.closest ? event.target.closest("[data-delete-entry-id]") : null;
+                if(!target) return;
+                deleteMappedEntry(target.getAttribute("data-delete-entry-id"));
+            });
+        }
 
         (async function init(){
             const role = (localStorage.getItem("role") || "").toLowerCase();

@@ -189,7 +189,7 @@ const ACCESS_MODULE_OPTIONS = [
       { path: "/users/db-create.html", label: "DB Create", actions: ["view", "add", "delete"] },
       { path: "/users/company-create.html", label: "Company Create", actions: ["view", "add", "edit", "delete"] },
       { path: "/users/company-edit.html", label: "Company Edit", actions: ["view", "edit"] },
-      { path: "/users/mapped.html", label: "User Mapped", actions: ["view", "add"] },
+      { path: "/users/mapped.html", label: "Mapped", actions: ["view", "add", "delete"] },
       { path: "/users/inv-map.html", label: "Inv Map", actions: ["view", "add", "delete"] },
       { path: "/users/preference.html", label: "Preference", actions: ["view", "edit"] },
       { path: "/users/user-logged.html", label: "User Logged Times", actions: ["view"] },
@@ -1234,7 +1234,12 @@ async function hasMappedActionPermission(req, action) {
 
   if (!row) return true;
   const allowedActions = parseAllowedActions(row);
-  return allowedActions.includes(actionKey);
+  if (allowedActions.includes(actionKey)) return true;
+  if (String(action || "").toLowerCase() === "delete") {
+    const addActionKey = toActionKey("/users/mapped.html", "add");
+    if (allowedActions.includes(addActionKey)) return true;
+  }
+  return false;
 }
 
 async function hasInvMapActionPermission(req, action) {
@@ -2579,7 +2584,7 @@ exports.getMappedByUser = async (req, res) => {
 exports.verifyMapping = async (req, res) => {
   const canAdd = await hasMappedActionPermission(req, "add");
   if (!canAdd) {
-    return res.status(403).json({ message: "Forbidden: Missing User Mapped add permission." });
+    return res.status(403).json({ message: "Forbidden: Missing Mapped add permission." });
   }
   const userId = Number(req.body?.user_id || 0);
   const databaseName = normalizeDatabaseName(req.body?.database_name);
@@ -2617,7 +2622,7 @@ exports.verifyMapping = async (req, res) => {
 exports.saveMapping = async (req, res) => {
   const canAdd = await hasMappedActionPermission(req, "add");
   if (!canAdd) {
-    return res.status(403).json({ message: "Forbidden: Missing User Mapped add permission." });
+    return res.status(403).json({ message: "Forbidden: Missing Mapped add permission." });
   }
   const userId = Number(req.body?.user_id || 0);
   const databaseName = normalizeDatabaseName(req.body?.database_name);
@@ -2824,7 +2829,7 @@ exports.getMyCompanies = async (req, res) => {
 exports.listMappedEntries = async (req, res) => {
   const canView = await hasMappedActionPermission(req, "view");
   if (!canView) {
-    return res.status(403).json({ message: "Forbidden: Missing User Mapped view permission." });
+    return res.status(403).json({ message: "Forbidden: Missing Mapped view permission." });
   }
 
   const cfg = getDbConfig();
@@ -2876,6 +2881,46 @@ exports.listMappedEntries = async (req, res) => {
     res.json({ entries });
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to load mapped entries." });
+  } finally {
+    await mainDbClient.end().catch(() => {});
+  }
+};
+
+exports.deleteMappedEntry = async (req, res) => {
+  const canDelete = await hasMappedActionPermission(req, "delete");
+  if (!canDelete) {
+    return res.status(403).json({ message: "Forbidden: Missing Mapped delete permission." });
+  }
+
+  const entryId = Number(req.params.entryId || 0);
+  if (!Number.isFinite(entryId) || entryId <= 0) {
+    return res.status(400).json({ message: "Invalid entry id." });
+  }
+
+  const cfg = getDbConfig();
+  const mainDbClient = new Client({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: cfg.database || INVENTORY_DB_NAME,
+  });
+
+  try {
+    await mainDbClient.connect();
+    await ensureUserMappingTable(mainDbClient);
+    const rs = await mainDbClient.query(
+      `DELETE FROM user_mappings
+       WHERE id = $1
+       RETURNING id`,
+      [entryId]
+    );
+    if (!rs.rowCount) {
+      return res.status(404).json({ message: "Mapped entry not found." });
+    }
+    return res.json({ message: "Mapped entry deleted successfully." });
+  } catch (err) {
+    return res.status(500).json({ message: err.message || "Failed to delete mapped entry." });
   } finally {
     await mainDbClient.end().catch(() => {});
   }

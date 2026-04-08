@@ -23,7 +23,10 @@
     </div>
 
     <div class="main-content">
-        <header><h2>Mapped</h2></header>
+        <header class="mapped-page-header">
+            <h2>Mapped</h2>
+            <a class="icon-btn back-icon-btn" href="user-access.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+        </header>
 
         <div class="form-container mapped-wrap">
             <div class="mapped-grid">
@@ -64,7 +67,6 @@
             <div class="access-actions" style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
                 <button id="verifyBtn" class="btn btn-secondary" type="button" onclick="verifyMapping()">Verify</button>
                 <button id="mappedBtn" class="btn btn-primary" type="button" onclick="saveMapping()">Mapped</button>
-                <a class="icon-btn back-icon-btn" href="user-access.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
             </div>
 
             <div class="mapped-table-wrap">
@@ -82,11 +84,12 @@
                                 <th>Company Email</th>
                                 <th>Mapped Email</th>
                                 <th>Verified</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody id="mappedEntriesBody">
                             <tr>
-                                <td colspan="7">No mapped data yet.</td>
+                                <td colspan="8">No mapped data yet.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -96,7 +99,7 @@
     </div>
 
     <script src="../../assets/js/api.js"></script>
-    <script src="../../assets/extracted/pages/users/mapped.inline-script-1.js?v=20260408a"></script>
+    <script src="../../assets/extracted/pages/users/mapped.inline-script-1.js?v=20260408b"></script>
 </body>
 </html>
 
