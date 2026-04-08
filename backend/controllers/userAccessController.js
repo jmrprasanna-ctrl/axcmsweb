@@ -172,6 +172,7 @@ const MANUAL_ACCESS_MODULE_OPTIONS = [
       { path: "/users/profile-view.html", label: "Profile View", actions: ["view"] },
       { path: "/users/add-profile.html", label: "Add Profile", actions: ["view", "add"] },
       { path: "/users/user-access.html", label: "User Access", actions: ["view", "edit"] },
+      { path: "/users/backup.html", label: "Backup", actions: ["view", "add", "edit"] },
       { path: "/users/preference.html", label: "Preference", actions: ["view", "edit"] },
       { path: "/users/user-logged.html", label: "User Logged", actions: ["view"] },
     ],
@@ -208,6 +209,9 @@ const LEGACY_PATH_ALIASES = new Map([
   ["/customers/add-customer.html", ["/customers/Add-Client.html"]],
   ["/invoices/invoice-list.html", ["/invoices/Payments-list.html"]],
   ["/support/support.html", ["/support/lawyer-list.html", "/support/court-list.html"]],
+  ["/tools/check-backup.html", ["/users/backup.html"]],
+  ["/tools/backup-download.html", ["/users/backup.html"]],
+  ["/tools/upload-db.html", ["/users/backup.html"]],
 ]);
 
 function normalizeAccessPath(pathValue) {

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backup - AXIS_CMS_WEB</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../../assets/extracted/pages/users/backup.inline-style-1.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <img src="../../assets/images/logo.png" alt="Company Logo">
+            <span>AXIS_CMS_WEB</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="../dashboard.html">Dashboard</a></li>
+            <li><a href="../customers/client-list.html">Client</a></li>
+            <li><a href="../invoices/Payments-list.html">Invoices</a></li>
+            <li><a href="../expenses/expense-list.html">Expenses</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="backup-page-header">
+            <header>
+                <h2>Backup</h2>
+            </header>
+            <a class="icon-btn back-icon-btn" href="user-list.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+        </div>
+
+        <div class="card backup-card">
+            <div class="backup-actions">
+                <button id="btnCheckTools" class="btn btn-primary" type="button">Check Tools</button>
+                <button id="btnBackup" class="btn btn-primary" type="button">Backup</button>
+                <button id="btnUploadDb" class="btn btn-primary" type="button">Upload DB</button>
+                <input id="restore-db-file" type="file" accept=".sql" class="is-hidden">
+            </div>
+            <p class="muted" id="backupInfo">Use these tools to verify backup support, download SQL backup, and restore SQL backup.</p>
+        </div>
+    </div>
+
+    <script src="../../assets/js/api.js?v=20260409bk01"></script>
+    <script src="../../assets/extracted/pages/users/backup.inline-script-1.js?v=20260409bk01"></script>
+</body>
+</html>

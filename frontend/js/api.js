@@ -88,6 +88,7 @@ const BASELINE_LEFT_PANEL_PATHS = [
     "/users/profile-list.html",
     "/users/add-profile.html",
     "/users/user-access.html",
+    "/users/backup.html",
     "/users/user-logged.html",
     "/support/email-setup.html"
 ];
@@ -472,6 +473,7 @@ function renderSidebarMenuByAccess(){
         { path: "/users/add-user.html", label: "Add User" },
         { path: "/users/profile-list.html", label: "Profile" },
         { path: "/users/user-access.html", label: "Access" },
+        { path: "/users/backup.html", label: "Backup" },
         { path: "/users/user-logged.html", label: "Logged" },
         { path: "/support/email-setup.html", label: "Email" }
     ];
@@ -542,6 +544,7 @@ function renderSidebarMenuByAccess(){
                 { path: "/users/profile-list.html", label: "Profile" },
                 { path: "/users/preference.html", label: "Preference" },
                 { path: "/users/user-access.html", label: "Access" },
+                { path: "/users/backup.html", label: "Backup" },
                 { path: "/users/user-logged.html", label: "Logged" },
                 { path: "/support/email-setup.html", label: "Email" }
             ]

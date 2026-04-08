@@ -1,0 +1,42 @@
+.backup-page-header{
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .backup-page-header header{
+            margin: 0;
+        }
+        .backup-page-header .back-icon-btn{
+            margin-left: auto;
+            flex: 0 0 auto;
+        }
+        .backup-card{
+            display: grid;
+            gap: 12px;
+        }
+        .backup-actions{
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .is-hidden{
+            display: none;
+        }
+        #backupInfo{
+            margin: 0;
+        }
+        @media (max-width: 900px){
+            .backup-page-header{
+                align-items: center;
+            }
+            .backup-actions{
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .backup-actions .btn{
+                width: 100%;
+            }
+        }
