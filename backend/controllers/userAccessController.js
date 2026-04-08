@@ -105,7 +105,7 @@ const MANUAL_ACCESS_MODULE_OPTIONS = [
   {
     module: "Core",
     items: [
-      { path: "/dashboard.html", label: "Pulmo Web System Dashboard", actions: ["view"] },
+      { path: "/dashboard.html", label: "Dashboard", actions: ["view"] },
       { path: "/calendar.html", label: "Calendar", actions: ["view"] },
     ],
   },
