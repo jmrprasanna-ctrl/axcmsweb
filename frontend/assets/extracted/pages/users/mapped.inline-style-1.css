@@ -9,6 +9,12 @@
         .mapped-table-scroll{overflow:auto;border:1px solid #d8e8f8;border-radius:10px;background:#fff}
         .mapped-table{min-width:920px}
         .mapped-table td, .mapped-table th{white-space:nowrap}
+        .mapped-actions{align-items:center}
+        .mapped-action-btn{margin-top:0}
+        .verify-icon-btn{border-color:#d9b874;background:#fff7e6;color:#8c5c00}
+        .verify-icon-btn:hover{border-color:#c7993f;background:#fff1d3}
+        .mapped-save-icon-btn{border-color:#89b9e8;background:#e9f3fe;color:#0f5aa1}
+        .mapped-save-icon-btn:hover{border-color:#5c99d9;background:#dbecff}
         .mapped-delete-btn{width:36px;height:36px;min-width:36px;border-radius:10px;padding:0;margin-top:0;color:#a62f2f;border-color:#f1c9c9;background:#fff5f5}
         .mapped-delete-btn:hover{border-color:#df9b9b;background:#ffecec}
         .mapped-delete-btn svg{width:18px;height:18px}

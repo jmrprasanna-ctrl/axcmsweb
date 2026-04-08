@@ -64,9 +64,18 @@
                 </div>
             </div>
 
-            <div class="access-actions" style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
-                <button id="verifyBtn" class="btn btn-secondary" type="button" onclick="verifyMapping()">Verify</button>
-                <button id="mappedBtn" class="btn btn-primary" type="button" onclick="saveMapping()">Mapped</button>
+            <div class="access-actions mapped-actions" style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
+                <button id="verifyBtn" class="icon-btn mapped-action-btn verify-icon-btn" type="button" onclick="verifyMapping()" title="Verify" aria-label="Verify">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M6 12.8l3.1 3.1L18 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                </button>
+                <button id="mappedBtn" class="icon-btn mapped-action-btn mapped-save-icon-btn" type="button" onclick="saveMapping()" title="Mapped" aria-label="Mapped">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M6 6h10l2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path>
+                        <path d="M8 6v5h8V6" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path>
+                    </svg>
+                </button>
             </div>
 
             <div class="mapped-table-wrap">
