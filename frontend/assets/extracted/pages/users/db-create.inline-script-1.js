@@ -88,7 +88,11 @@ const databaseNameEl = document.getElementById("databaseName");
                 rows.forEach((row) => {
                     const tr = document.createElement("tr");
                     const deleteAction = canDeleteDb
-                        ? `<button class="btn btn-secondary" type="button" data-delete-db="${String(row.name || "")}" style="min-width:90px;">Delete</button>`
+                        ? `<button class="icon-btn delete-db-icon-btn" type="button" data-delete-db="${String(row.name || "")}" title="Delete" aria-label="Delete">
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M4.5 7h15M9.5 3.5h5M8 7v11.5m8-11.5v11.5M6.5 7l1 13a1.5 1.5 0 0 0 1.5 1.4h6a1.5 1.5 0 0 0 1.5-1.4l1-13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path>
+                            </svg>
+                        </button>`
                         : `<span>-</span>`;
                     tr.innerHTML = `
                         <td>${String(row.name || "")}</td>

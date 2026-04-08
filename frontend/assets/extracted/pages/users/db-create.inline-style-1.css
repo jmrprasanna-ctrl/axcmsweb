@@ -1,10 +1,17 @@
-.db-create-wrap{max-width:760px}
+.db-create-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+        .db-create-wrap{max-width:760px}
         .db-create-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+        .db-create-actions{align-items:center}
+        .save-db-icon-btn{margin-top:0;border-color:#89b9e8;background:#e9f3fe;color:#0f5aa1}
+        .save-db-icon-btn:hover{border-color:#5c99d9;background:#dbecff}
         .db-table-wrap{margin-top:20px;overflow:auto}
         .db-table{width:100%;border-collapse:collapse;background:#fff}
         .db-table th,.db-table td{border-bottom:1px solid #e5edf5;padding:10px 8px;text-align:left;font-size:.9rem}
         .db-table th{background:#f5f9ff;color:#234b71}
         .db-table td.actions{text-align:right}
+        .delete-db-icon-btn{width:36px;height:36px;min-width:36px;border-radius:10px;padding:0;margin-top:0;color:#a62f2f;border-color:#f1c9c9;background:#fff5f5}
+        .delete-db-icon-btn:hover{border-color:#df9b9b;background:#ffecec}
+        .delete-db-icon-btn svg{width:18px;height:18px}
         @media (max-width: 900px){
             .db-create-grid{grid-template-columns:1fr}
         }
