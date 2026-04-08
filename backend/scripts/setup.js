@@ -31,6 +31,13 @@ async function run() {
   console.log(`- Quotation 2 template: ${checks.templateFiles.quotation2.exists ? "OK" : "MISSING"} -> ${checks.templateFiles.quotation2.path}`);
   console.log(`- Quotation 3 template: ${checks.templateFiles.quotation3.exists ? "OK" : "MISSING"} -> ${checks.templateFiles.quotation3.path}`);
 
+  console.log("\nFrontend Scripts:");
+  console.log(`- Canonical API script: ${checks.frontend.apiScripts.canonical.exists ? "OK" : "MISSING"} -> ${checks.frontend.apiScripts.canonical.path}`);
+  console.log(`- Legacy API script: ${checks.frontend.apiScripts.legacy.exists ? "FOUND (remove)" : "NOT FOUND"} -> ${checks.frontend.apiScripts.legacy.path}`);
+  if (checks.frontend.hasDuplicateApiScript) {
+    console.warn("  WARNING: Duplicate API scripts detected. Keep only frontend/assets/js/api.js");
+  }
+
   if (dbConnected) {
     const syncOptions = DB_SYNC_FORCE ? { force: true } : { alter: DB_SYNC_ALTER };
     console.log(`\nSyncing database schema (${DB_SYNC_FORCE ? "force=true" : `alter=${DB_SYNC_ALTER}`})...`);

@@ -49,6 +49,7 @@ function checkCommand(command, args = ["--version"]) {
 async function getRuntimeChecks() {
   const pgDumpPath = (process.env.PG_DUMP_PATH || (process.platform === "win32" ? "pg_dump.exe" : "pg_dump")).trim();
   const psqlPath = (process.env.PSQL_PATH || (process.platform === "win32" ? "psql.exe" : "psql")).trim();
+  const frontendRoot = path.resolve(__dirname, "..", "..", "frontend");
 
   const templatePaths = getTemplatePaths();
   const templateFiles = {
@@ -76,10 +77,19 @@ async function getRuntimeChecks() {
     DB_USER: !!String(process.env.DB_USER || "").trim(),
   };
 
+  const frontend = {
+    apiScripts: {
+      canonical: checkFile(path.join(frontendRoot, "assets", "js", "api.js")),
+      legacy: checkFile(path.join(frontendRoot, "js", "api.js")),
+    },
+  };
+  frontend.hasDuplicateApiScript = frontend.apiScripts.canonical.exists && frontend.apiScripts.legacy.exists;
+
   return {
     env,
     tools,
     templateFiles,
+    frontend,
   };
 }
 
@@ -90,9 +100,10 @@ function summarizeStatus(checks, dbConnected) {
     checks.templateFiles.quotation.exists &&
     checks.templateFiles.quotation2.exists &&
     checks.templateFiles.quotation3.exists;
+  const frontendOk = checks.frontend?.apiScripts?.canonical?.exists === true;
 
   return {
-    ok: Boolean(dbConnected) && toolOk && templatesOk,
+    ok: Boolean(dbConnected) && toolOk && templatesOk && frontendOk,
     dbConnected: Boolean(dbConnected),
     checks,
   };

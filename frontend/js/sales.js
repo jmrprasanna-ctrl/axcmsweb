@@ -1,4 +1,12 @@
-import { getData, deleteData } from "./api.js";
+function requireApiRequest() {
+    if (typeof window.request !== "function") {
+        throw new Error("API helper not loaded. Expected ../../assets/js/api.js before sales.js");
+    }
+    return window.request;
+}
+
+const getData = (endpoint) => requireApiRequest()(`/${String(endpoint || "").replace(/^\/+/, "")}`, "GET");
+const deleteData = (endpoint) => requireApiRequest()(`/${String(endpoint || "").replace(/^\/+/, "")}`, "DELETE");
 
 const loadSales = async () => {
     const sales = await getData("invoices");

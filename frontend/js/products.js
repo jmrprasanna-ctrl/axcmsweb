@@ -1,5 +1,15 @@
                              
-import { getData, postData, putData, deleteData } from './api.js';
+function requireApiRequest() {
+    if (typeof window.request !== "function") {
+        throw new Error("API helper not loaded. Expected ../assets/js/api.js before products.js");
+    }
+    return window.request;
+}
+
+const getData = (endpoint) => requireApiRequest()(`/${String(endpoint || "").replace(/^\/+/, "")}`, "GET");
+const postData = (endpoint, payload) => requireApiRequest()(`/${String(endpoint || "").replace(/^\/+/, "")}`, "POST", payload);
+const putData = (endpoint, payload) => requireApiRequest()(`/${String(endpoint || "").replace(/^\/+/, "")}`, "PUT", payload);
+const deleteData = (endpoint) => requireApiRequest()(`/${String(endpoint || "").replace(/^\/+/, "")}`, "DELETE");
 
 const loadProducts = async () => {
     const products = await getData('products');

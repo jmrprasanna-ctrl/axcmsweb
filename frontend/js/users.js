@@ -1,5 +1,14 @@
                           
-import { getData, postData, deleteData } from './api.js';
+function requireApiRequest() {
+    if (typeof window.request !== "function") {
+        throw new Error("API helper not loaded. Expected ../assets/js/api.js before users.js");
+    }
+    return window.request;
+}
+
+const getData = (endpoint) => requireApiRequest()(`/${String(endpoint || "").replace(/^\/+/, "")}`, "GET");
+const postData = (endpoint, payload) => requireApiRequest()(`/${String(endpoint || "").replace(/^\/+/, "")}`, "POST", payload);
+const deleteData = (endpoint) => requireApiRequest()(`/${String(endpoint || "").replace(/^\/+/, "")}`, "DELETE");
 
 const loadUsers = async () => {
     const users = await getData('users');

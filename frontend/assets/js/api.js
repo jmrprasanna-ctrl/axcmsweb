@@ -537,8 +537,7 @@ function renderSidebarMenuByAccess(){
             label: "Expenses",
             children: [
                 { path: "/expenses/expense-list.html", label: "Expense List" },
-                { path: "/expenses/edit-expense.html", label: "Edit Expense" },
-                { path: "/expenses/add-expense.html", label: "Add Expense" }
+                { path: "/expenses/edit-expense.html", label: "Edit Expense" }
             ]
         },
         { path: "/finance/finance.html", label: "Finance" },
