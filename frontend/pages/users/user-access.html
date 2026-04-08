@@ -18,7 +18,7 @@
             <li><a href="../dashboard.html">Dashboard</a></li>
             <li><a href="../customers/client-list.html">Client</a></li>
             <li><a href="../invoices/Payments-list.html">Invoices</a></li>
-            <li><a href="../expenses/expense-list.html">Expenses</a></li>`r`n            <li><a href="../analytics/sales-chart.html">Analytics</a></li>
+            <li><a href="../expenses/expense-list.html">Expenses</a></li>
         </ul>
     </div>
 
@@ -26,8 +26,10 @@
         <div class="user-access-page-header">
             <header>
                 <h2>User Access</h2>
+                <p class="muted">Grant dashboard pages by module. Unticked pages will not appear for mapped users.</p>
                 <div class="user-access-top-actions">
                     <button class="btn btn-primary" id="loadAccessBtn" type="button">Load</button>
+                    <a class="btn btn-primary" href="../dashboard.html">Pulmo Web System</a>
                     <a class="btn btn-primary" href="db-create.html">DB Create</a>
                     <a class="btn btn-primary" href="company-create.html">Company Create</a>
                     <a class="btn btn-primary" href="mapped.html">Mapped</a>
@@ -62,6 +64,13 @@
             </div>
 
             <label>Page Access Matrix (View / Add / Edit / Delete)</label>
+            <div class="access-toolbar">
+                <input type="text" id="accessSearchInput" placeholder="Search page path or label...">
+                <label class="toolbar-toggle">
+                    <input type="checkbox" id="showSelectedOnly">
+                    <span>Show selected only</span>
+                </label>
+            </div>
             <div class="access-matrix" id="accessMatrix"></div>
 
             <div class="access-actions">
@@ -86,8 +95,8 @@
         </div>
     </div>
 
-    <script src="../../assets/js/api.js?v=20260406ua04"></script>
-    <script src="../../assets/extracted/pages/users/user-access.inline-script-1.js?v=20260406ua04"></script>
+    <script src="../../assets/js/api.js?v=20260408ua01"></script>
+    <script src="../../assets/extracted/pages/users/user-access.inline-script-1.js?v=20260408ua01"></script>
 </body>
 </html>
 

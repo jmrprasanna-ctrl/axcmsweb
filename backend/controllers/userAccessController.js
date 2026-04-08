@@ -101,51 +101,38 @@ const DEFAULT_CATEGORY_MODELS = {
   Service: ["OTHER"],
 };
 
-const ACCESS_MODULE_OPTIONS = [
+const MANUAL_ACCESS_MODULE_OPTIONS = [
   {
-    module: "Products",
+    module: "Core",
     items: [
-      { path: "/products/product-list.html", label: "Products List", actions: ["view", "add", "edit", "delete"] },
-      { path: "/products/add-product.html", label: "Add Product", actions: ["view", "add"] },
-      { path: "/products/edit-product.html", label: "Edit Product", actions: ["view", "edit"] },
-      { path: "/products/general-machine.html", label: "General Machines", actions: ["view", "add", "edit", "delete"] },
-      { path: "/products/add-general-machine.html", label: "Add General Machine", actions: ["view", "add"] },
-      { path: "/products/edit-general-machine.html", label: "Edit General Machine", actions: ["view", "edit"] },
-      { path: "/products/machine.html", label: "Rental Machines", actions: ["view", "add", "edit", "delete"] },
-      { path: "/products/add-rental-machine.html", label: "Add Rental Machine", actions: ["view", "add"] },
-      { path: "/products/edit-rental-machine.html", label: "Edit Rental Machine", actions: ["view", "edit"] },
-      { path: "/products/add-rental-count.html", label: "Rental Count", actions: ["view", "add", "edit", "delete"] },
-      { path: "/products/add-rental-consumable.html", label: "Rental Consumables", actions: ["view", "add", "edit", "delete"] },
+      { path: "/dashboard.html", label: "Pulmo Web System Dashboard", actions: ["view"] },
+      { path: "/calendar.html", label: "Calendar", actions: ["view"] },
     ],
   },
   {
     module: "Customers",
     items: [
-      { path: "/customers/customer-list.html", label: "Customers List", actions: ["view", "add", "edit", "delete"] },
-      { path: "/customers/add-customer.html", label: "Add Customer", actions: ["view", "add"] },
-      { path: "/customers/edit-customer.html", label: "Edit Customer", actions: ["view", "edit"] },
+      { path: "/customers/client-list.html", label: "Client List", actions: ["view", "add", "edit", "delete"] },
+      { path: "/customers/Add-Client.html", label: "Add Client", actions: ["view", "add"] },
+      { path: "/customers/edit-customer.html", label: "Edit Client", actions: ["view", "edit"] },
     ],
   },
   {
-    module: "Vendors",
+    module: "Cases",
     items: [
-      { path: "/vendors/list-vendor.html", label: "Vendors List", actions: ["view", "add", "edit", "delete"] },
-      { path: "/vendors/add-vendor.html", label: "Add Vendor", actions: ["view", "add"] },
-      { path: "/vendors/edit-vendor.html", label: "Edit Vendor", actions: ["view", "edit"] },
-    ],
-  },
-  {
-    module: "Expenses",
-    items: [
-      { path: "/expenses/expense-list.html", label: "Expenses List", actions: ["view", "add", "edit", "delete"] },
-      { path: "/expenses/add-expense.html", label: "Add Expense", actions: ["view", "add"] },
-      { path: "/expenses/edit-expense.html", label: "Edit Expense", actions: ["view", "edit"] },
+      { path: "/cases/case-list.html", label: "Case List", actions: ["view", "add", "edit", "delete"] },
+      { path: "/cases/new-case.html", label: "New Case", actions: ["view", "add"] },
+      { path: "/cases/plaint.html", label: "Plaint", actions: ["view", "add", "edit", "delete"] },
+      { path: "/cases/answer.html", label: "Answer", actions: ["view", "add", "edit", "delete"] },
+      { path: "/cases/witness-list.html", label: "List of Witnesses", actions: ["view", "add", "edit", "delete"] },
+      { path: "/cases/judgment-list.html", label: "Judgment", actions: ["view", "add", "edit", "delete"] },
+      { path: "/cases/finished.html", label: "Finished", actions: ["view"] },
     ],
   },
   {
     module: "Invoices",
     items: [
-      { path: "/invoices/invoice-list.html", label: "Invoice List", actions: ["view", "add", "edit", "delete"] },
+      { path: "/invoices/Payments-list.html", label: "Payments List", actions: ["view", "add", "edit", "delete"] },
       { path: "/invoices/create-invoice.html", label: "Create Invoice", actions: ["view", "add", "edit"] },
       { path: "/invoices/view-invoice.html", label: "View Invoice", actions: ["view"] },
       { path: "/invoices/view-quotation.html", label: "View Quotation", actions: ["view"] },
@@ -154,28 +141,31 @@ const ACCESS_MODULE_OPTIONS = [
     ],
   },
   {
-    module: "Reports & Analytics",
+    module: "Expenses",
     items: [
-      { path: "/reports/sales-report.html", label: "Sales Report", actions: ["view"] },
-      { path: "/analytics/sales-chart.html", label: "Sales Chart", actions: ["view"] },
-      { path: "/finance/finance.html", label: "Finance", actions: ["view"] },
-      { path: "/finance/payments.html", label: "Payments", actions: ["view"] },
-      { path: "/finance/pendings.html", label: "Pendings", actions: ["view"] },
-      { path: "/stock/stock.html", label: "Stock", actions: ["view", "edit"] },
+      { path: "/expenses/expense-list.html", label: "Expense List", actions: ["view", "add", "edit", "delete"] },
+      { path: "/expenses/add-expense.html", label: "Add Expense", actions: ["view", "add"] },
+      { path: "/expenses/edit-expense.html", label: "Edit Expense", actions: ["view", "edit"] },
     ],
   },
   {
-    module: "Communication",
+    module: "Finance",
     items: [
-      { path: "/messages/messages.html", label: "Messages", actions: ["view", "add", "delete"] },
-      { path: "/notifications/notifications.html", label: "Notifications", actions: ["view"] },
+      { path: "/finance/finance.html", label: "Finance", actions: ["view"] },
+    ],
+  },
+  {
+    module: "Support",
+    items: [
       { path: "/support/lawyer-list.html", label: "Lawyer List", actions: ["view", "add", "edit", "delete"] },
       { path: "/support/court-list.html", label: "Court List", actions: ["view", "add", "edit", "delete"] },
       { path: "/support/add-lawyer.html", label: "Add Lawyer", actions: ["view", "add"] },
       { path: "/support/add-court.html", label: "Add Court", actions: ["view", "add"] },
-      { path: "/support/support.html", label: "Support (Legacy)", actions: ["view", "add", "edit", "delete"] },
-      { path: "/support/warrenty.html", label: "Warrenty", actions: ["view"] },
+      { path: "/support/email-setup.html", label: "Email Setup", actions: ["view", "edit"] },
       { path: "/users/technician-list.html", label: "Support Technician", actions: ["view", "add", "edit", "delete"] },
+      { path: "/users/add-technician.html", label: "Add Technician", actions: ["view", "add"] },
+      { path: "/users/edit-technician.html", label: "Edit Technician", actions: ["view", "edit"] },
+      { path: "/support/support.html", label: "Support (Legacy)", actions: ["view", "add", "edit", "delete"] },
     ],
   },
   {
@@ -184,34 +174,154 @@ const ACCESS_MODULE_OPTIONS = [
       { path: "/users/user-list.html", label: "User List", actions: ["view", "add", "edit", "delete"] },
       { path: "/users/add-user.html", label: "Add User", actions: ["view", "add"] },
       { path: "/users/edit-user.html", label: "Edit User", actions: ["view", "edit"] },
+      { path: "/users/profile-list.html", label: "Profile List", actions: ["view"] },
       { path: "/users/profile-view.html", label: "Profile View", actions: ["view"] },
+      { path: "/users/add-profile.html", label: "Add Profile", actions: ["view", "add"] },
       { path: "/users/user-access.html", label: "User Access", actions: ["view", "edit"] },
+      { path: "/users/preference.html", label: "Preference", actions: ["view", "edit"] },
+      { path: "/users/user-logged.html", label: "User Logged", actions: ["view"] },
+    ],
+  },
+  {
+    module: "Admin",
+    items: [
       { path: "/users/db-create.html", label: "DB Create", actions: ["view", "add", "delete"] },
       { path: "/users/company-create.html", label: "Company Create", actions: ["view", "add", "edit", "delete"] },
       { path: "/users/company-edit.html", label: "Company Edit", actions: ["view", "edit"] },
       { path: "/users/mapped.html", label: "Mapped", actions: ["view", "add", "delete"] },
       { path: "/users/inv-map.html", label: "Inv Map", actions: ["view", "add", "delete"] },
-      { path: "/users/preference.html", label: "Preference", actions: ["view", "edit"] },
-      { path: "/users/user-logged.html", label: "User Logged Times", actions: ["view"] },
-      { path: "/support/email-setup.html", label: "Email Setup", actions: ["view", "edit"] },
-      { path: "/tools/check-backup.html", label: "Check Tools Button", actions: ["view"] },
-      { path: "/tools/backup-download.html", label: "Backup Button", actions: ["view"] },
-      { path: "/tools/upload-db.html", label: "Upload DB Button", actions: ["view"] },
-    ],
-  },
-  {
-    module: "Core",
-    items: [
-      { path: "/dashboard.html", label: "Dashboard", actions: ["view"] },
-      { path: "/users/super-user-admin.html", label: "Super User Admin", actions: ["view"] },
     ],
   },
 ];
+
+const FRONTEND_PAGES_ROOT = path.resolve(__dirname, "../../frontend/pages");
+const AUTO_ACCESS_EXCLUDED_PATHS = new Set([
+  "/login.html",
+  "/loading.html",
+]);
+const AUTO_ACCESS_EXCLUDED_PREFIXES = [
+  "/products/",
+  "/vendors/",
+  "/messages/",
+  "/notifications/",
+  "/reports/",
+  "/analytics/",
+  "/sales/",
+];
+
+const LEGACY_PATH_ALIASES = new Map([
+  ["/customers/customer-list.html", ["/customers/client-list.html"]],
+  ["/customers/add-customer.html", ["/customers/Add-Client.html"]],
+  ["/invoices/invoice-list.html", ["/invoices/Payments-list.html"]],
+  ["/support/support.html", ["/support/lawyer-list.html", "/support/court-list.html"]],
+]);
+
+function normalizeAccessPath(pathValue) {
+  return String(pathValue || "").trim().replace(/\\/g, "/").toLowerCase();
+}
+
+function formatAccessLabelFromPath(pathValue) {
+  const cleanPath = String(pathValue || "").trim().replace(/\\/g, "/");
+  const filename = cleanPath.split("/").pop() || "";
+  const withoutExt = filename.replace(/\.html$/i, "");
+  const words = withoutExt
+    .replace(/[-_]+/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((token) => token.charAt(0).toUpperCase() + token.slice(1));
+  return words.join(" ") || cleanPath;
+}
+
+function discoverUnmappedHtmlAccessItems(existingPathSet) {
+  const discovered = [];
+  const seen = new Set();
+  if (!fs.existsSync(FRONTEND_PAGES_ROOT)) {
+    return discovered;
+  }
+
+  const walk = (dirPath) => {
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+    entries.forEach((entry) => {
+      const nextPath = path.join(dirPath, entry.name);
+      if (entry.isDirectory()) {
+        walk(nextPath);
+        return;
+      }
+      if (!entry.isFile() || !/\.html$/i.test(entry.name)) {
+        return;
+      }
+      const relPath = path.relative(FRONTEND_PAGES_ROOT, nextPath).replace(/\\/g, "/");
+      const webPath = `/${relPath}`;
+      const normalized = normalizeAccessPath(webPath);
+      const isExcludedPrefix = AUTO_ACCESS_EXCLUDED_PREFIXES.some((prefix) => normalized.startsWith(prefix));
+      if (
+        !normalized ||
+        seen.has(normalized) ||
+        AUTO_ACCESS_EXCLUDED_PATHS.has(normalized) ||
+        isExcludedPrefix ||
+        existingPathSet.has(normalized)
+      ) {
+        return;
+      }
+      seen.add(normalized);
+      discovered.push({
+        path: webPath,
+        label: formatAccessLabelFromPath(webPath),
+        actions: ["view"],
+      });
+    });
+  };
+
+  walk(FRONTEND_PAGES_ROOT);
+  discovered.sort((a, b) => String(a.path || "").localeCompare(String(b.path || "")));
+  return discovered;
+}
+
+function buildAccessModuleOptions() {
+  const modules = MANUAL_ACCESS_MODULE_OPTIONS.map((group) => ({
+    module: group.module,
+    items: Array.isArray(group.items) ? group.items.slice() : [],
+  }));
+  const existingPathSet = new Set(
+    modules.flatMap((group) => (group.items || []).map((item) => normalizeAccessPath(item.path)))
+  );
+  const autoItems = discoverUnmappedHtmlAccessItems(existingPathSet);
+  if (autoItems.length) {
+    modules.push({
+      module: "Other Pages (Auto)",
+      items: autoItems,
+    });
+  }
+  return modules;
+}
+
+const ACCESS_MODULE_OPTIONS = buildAccessModuleOptions();
 
 const EXCLUDED_PAGES = new Set([]);
 
 function toActionKey(path, action) {
   return `${String(path || "").trim().toLowerCase()}::${String(action || "").trim().toLowerCase()}`;
+}
+
+function expandCanonicalPagePaths(pathValue) {
+  const raw = String(pathValue || "").trim().replace(/\\/g, "/");
+  if (!raw) return [];
+  const normalized = normalizeAccessPath(raw);
+  const aliases = LEGACY_PATH_ALIASES.get(normalized);
+  if (Array.isArray(aliases) && aliases.length) {
+    return aliases.slice();
+  }
+  return [raw];
+}
+
+function expandCanonicalActionKeys(actionKeyValue) {
+  const normalized = String(actionKeyValue || "").trim().toLowerCase();
+  const idx = normalized.lastIndexOf("::");
+  if (idx === -1) return [];
+  const action = normalized.slice(idx + 2);
+  const pathPart = normalized.slice(0, idx);
+  const canonicalPaths = expandCanonicalPagePaths(pathPart);
+  return canonicalPaths.map((canonicalPath) => toActionKey(canonicalPath, action));
 }
 
 const ACCESS_PAGE_OPTIONS = ACCESS_MODULE_OPTIONS
@@ -232,6 +342,7 @@ function normalizePages(rawPages) {
   return Array.from(
     new Set(
       list
+        .flatMap((p) => expandCanonicalPagePaths(p))
         .map((p) => String(p || "").trim())
         .filter(Boolean)
         .filter((p) => !EXCLUDED_PAGES.has(p.toLowerCase()))
@@ -245,7 +356,7 @@ function normalizeActions(rawActions) {
   return Array.from(
     new Set(
       list
-        .map((x) => String(x || "").trim().toLowerCase())
+        .flatMap((x) => expandCanonicalActionKeys(x))
         .filter(Boolean)
         .filter((x) => ACCESS_ACTION_SET.has(x))
     )
@@ -256,30 +367,24 @@ function expandImplicitActionDependencies(actionKeys) {
   const set = new Set((Array.isArray(actionKeys) ? actionKeys : []).map((x) => String(x || "").trim().toLowerCase()).filter(Boolean));
   const add = (path, action) => set.add(toActionKey(path, action));
 
-                                                                              
-  if (set.has(toActionKey("/products/product-list.html", "edit"))) {
-    add("/products/edit-product.html", "view");
-    add("/products/edit-product.html", "edit");
-  }
-  if (set.has(toActionKey("/products/general-machine.html", "edit"))) {
-    add("/products/edit-general-machine.html", "view");
-    add("/products/edit-general-machine.html", "edit");
-  }
-  if (set.has(toActionKey("/products/machine.html", "edit"))) {
-    add("/products/edit-rental-machine.html", "view");
-    add("/products/edit-rental-machine.html", "edit");
-  }
-  if (set.has(toActionKey("/customers/customer-list.html", "edit"))) {
+  if (
+    set.has(toActionKey("/customers/client-list.html", "edit")) ||
+    set.has(toActionKey("/customers/customer-list.html", "edit"))
+  ) {
     add("/customers/edit-customer.html", "view");
     add("/customers/edit-customer.html", "edit");
-  }
-  if (set.has(toActionKey("/vendors/list-vendor.html", "edit"))) {
-    add("/vendors/edit-vendor.html", "view");
-    add("/vendors/edit-vendor.html", "edit");
   }
   if (set.has(toActionKey("/expenses/expense-list.html", "edit"))) {
     add("/expenses/edit-expense.html", "view");
     add("/expenses/edit-expense.html", "edit");
+  }
+  if (set.has(toActionKey("/users/user-list.html", "add"))) {
+    add("/users/add-user.html", "view");
+    add("/users/add-user.html", "add");
+  }
+  if (set.has(toActionKey("/users/user-list.html", "edit"))) {
+    add("/users/edit-user.html", "view");
+    add("/users/edit-user.html", "edit");
   }
   if (set.has(toActionKey("/users/technician-list.html", "edit"))) {
     add("/users/edit-technician.html", "view");

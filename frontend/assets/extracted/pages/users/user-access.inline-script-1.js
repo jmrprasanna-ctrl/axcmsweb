@@ -3,6 +3,8 @@
         const superUserCheckboxEl = document.getElementById("superUserCheckbox");
         const accessMatrixEl = document.getElementById("accessMatrix");
         const userAccessBackBtnEl = document.getElementById("userAccessBackBtn");
+        const accessSearchInputEl = document.getElementById("accessSearchInput");
+        const showSelectedOnlyEl = document.getElementById("showSelectedOnly");
         let moduleOptions = [];
         let defaultDatabaseName = "axiscmsdb";
 
@@ -30,10 +32,17 @@
             moduleOptions.forEach((group) => {
                 const card = document.createElement("div");
                 card.className = "module-card";
+                card.dataset.moduleName = String(group.module || "").toLowerCase();
 
                 const header = document.createElement("div");
                 header.className = "module-head";
-                header.textContent = group.module || "Module";
+                const heading = document.createElement("span");
+                heading.textContent = group.module || "Module";
+                const meta = document.createElement("span");
+                meta.className = "module-meta";
+                meta.textContent = `${Array.isArray(group.items) ? group.items.length : 0} pages`;
+                header.appendChild(heading);
+                header.appendChild(meta);
                 card.appendChild(header);
 
                 const table = document.createElement("table");
@@ -55,6 +64,8 @@
                 (Array.isArray(group.items) ? group.items : []).forEach((item) => {
                     const actions = new Set((Array.isArray(item.actions) ? item.actions : []).map((a) => String(a || "").toLowerCase()));
                     const row = document.createElement("tr");
+                    const rowSearchBlob = `${item.label || ""} ${item.path || ""}`.toLowerCase();
+                    row.dataset.searchText = rowSearchBlob;
 
                     const pageCell = document.createElement("td");
                     pageCell.innerHTML = `
@@ -86,6 +97,26 @@
                 card.appendChild(table);
                 accessMatrixEl.appendChild(card);
             });
+            applyMatrixFilters();
+        }
+
+        function applyMatrixFilters(){
+            const q = String(accessSearchInputEl?.value || "").trim().toLowerCase();
+            const showSelectedOnly = !!showSelectedOnlyEl?.checked;
+            accessMatrixEl.querySelectorAll(".module-card").forEach((card) => {
+                const moduleName = String(card.dataset.moduleName || "").toLowerCase();
+                let visibleRows = 0;
+                card.querySelectorAll("tbody tr").forEach((row) => {
+                    const rowText = String(row.dataset.searchText || "").toLowerCase();
+                    const queryMatch = !q || rowText.includes(q) || moduleName.includes(q);
+                    const hasChecked = !!row.querySelector("input[type='checkbox'][data-action-key]:checked");
+                    const selectedMatch = !showSelectedOnly || hasChecked;
+                    const rowVisible = queryMatch && selectedMatch;
+                    row.style.display = rowVisible ? "" : "none";
+                    if(rowVisible) visibleRows += 1;
+                });
+                card.style.display = visibleRows > 0 ? "" : "none";
+            });
         }
 
         function setCheckedActions(actionKeys){
@@ -93,6 +124,7 @@
             accessMatrixEl.querySelectorAll("input[type='checkbox'][data-action-key]").forEach((cb) => {
                 cb.checked = set.has(String(cb.dataset.actionKey || "").toLowerCase());
             });
+            applyMatrixFilters();
         }
 
         async function loadUsers(){
@@ -252,12 +284,14 @@
             accessMatrixEl.querySelectorAll("input[type='checkbox'][data-action-key]").forEach((cb) => {
                 cb.checked = true;
             });
+            applyMatrixFilters();
         }
 
         function clearAccess(){
             accessMatrixEl.querySelectorAll("input[type='checkbox'][data-action-key]").forEach((cb) => {
                 cb.checked = false;
             });
+            applyMatrixFilters();
         }
 
         userSelectEl.addEventListener("change", async () => {
@@ -294,6 +328,18 @@
         if(clearAccessBtn){
             clearAccessBtn.addEventListener("click", clearAccess);
         }
+        if(accessSearchInputEl){
+            accessSearchInputEl.addEventListener("input", applyMatrixFilters);
+        }
+        if(showSelectedOnlyEl){
+            showSelectedOnlyEl.addEventListener("change", applyMatrixFilters);
+        }
+        accessMatrixEl.addEventListener("change", (ev) => {
+            const target = ev.target;
+            if(target && target.matches("input[type='checkbox'][data-action-key]")){
+                applyMatrixFilters();
+            }
+        });
         if(userAccessBackBtnEl){
             userAccessBackBtnEl.addEventListener("click", (ev) => {
                 ev.preventDefault();
