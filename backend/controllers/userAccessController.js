@@ -189,7 +189,7 @@ const ACCESS_MODULE_OPTIONS = [
       { path: "/users/db-create.html", label: "DB Create", actions: ["view", "add", "delete"] },
       { path: "/users/company-create.html", label: "Company Create", actions: ["view", "add", "edit", "delete"] },
       { path: "/users/company-edit.html", label: "Company Edit", actions: ["view", "edit"] },
-      { path: "/users/user-mapped.html", label: "User Mapped", actions: ["view", "add"] },
+      { path: "/users/mapped.html", label: "User Mapped", actions: ["view", "add"] },
       { path: "/users/inv-map.html", label: "Inv Map", actions: ["view", "add", "delete"] },
       { path: "/users/preference.html", label: "Preference", actions: ["view", "edit"] },
       { path: "/users/user-logged.html", label: "User Logged Times", actions: ["view"] },
@@ -1225,7 +1225,7 @@ async function hasMappedActionPermission(req, action) {
   if (!Number.isFinite(userId) || userId <= 0) return false;
 
   const userDatabase = normalizeUserDatabase(req.databaseName || req.user?.database_name || INVENTORY_DB_NAME);
-  const actionKey = toActionKey("/users/user-mapped.html", action);
+  const actionKey = toActionKey("/users/mapped.html", action);
 
   let row = await findAccessFromMainDb(userId, userDatabase);
   if (!row && userDatabase !== INVENTORY_DB_NAME) {

@@ -14,7 +14,7 @@ const userSelectEl = document.getElementById("userSelect");
         const mappedBtnEl = document.getElementById("mappedBtn");
         const mappedEntriesBodyEl = document.getElementById("mappedEntriesBody");
 
-        const MAPPED_PATH = "/users/user-mapped.html";
+        const MAPPED_PATH = "/users/mapped.html";
         let canAddMapped = false;
         let isVerified = false;
         let users = [];
@@ -99,7 +99,7 @@ const userSelectEl = document.getElementById("userSelect");
         }
 
         async function loadMeta(){
-            const res = await request("/users/user-mapped/meta", "GET");
+            const res = await request("/users/mapped/meta", "GET");
             users = Array.isArray(res.users) ? res.users : [];
             databases = Array.isArray(res.databases) ? res.databases : [];
             companies = Array.isArray(res.companies) ? res.companies : [];
@@ -137,7 +137,7 @@ const userSelectEl = document.getElementById("userSelect");
                 return;
             }
             try{
-                const res = await request(`/users/user-mapped/${userId}`, "GET");
+                const res = await request(`/users/mapped/${userId}`, "GET");
                 const m = res && res.mapping ? res.mapping : null;
                 if(!m) return;
                 if(m.database_name){
@@ -181,7 +181,7 @@ const userSelectEl = document.getElementById("userSelect");
                 return;
             }
             try{
-                const res = await request("/users/user-mapped/verify", "POST", payload);
+                const res = await request("/users/mapped/verify", "POST", payload);
                 isVerified = !!res.verified;
                 if(res.names){
                     userCompanyNameEl.textContent = String(res.names.user_company_name || "-");
@@ -212,7 +212,7 @@ const userSelectEl = document.getElementById("userSelect");
                 return;
             }
             try{
-                const res = await request("/users/user-mapped/save", "POST", payload);
+                const res = await request("/users/mapped/save", "POST", payload);
                 showMessageBox(res.message || "User mapped successfully");
                 upsertMappedEntryFromSave(res && res.mapping ? res.mapping : null);
                 await loadMappedEntries();
@@ -281,7 +281,7 @@ const userSelectEl = document.getElementById("userSelect");
         async function loadMappedEntries(){
             if(!mappedEntriesBodyEl) return;
             try{
-                const res = await request("/users/user-mapped/entries", "GET");
+                const res = await request("/users/mapped/entries", "GET");
                 renderMappedEntries(Array.isArray(res.entries) ? res.entries : []);
             }catch(err){
                 mappedEntriesBodyEl.innerHTML = `<tr><td colspan="7">${escapeHtml(err.message || "Failed to load mapped data.")}</td></tr>`;
