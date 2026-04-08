@@ -91,10 +91,11 @@ const BASELINE_LEFT_PANEL_PATHS = [
     "/users/user-logged.html",
     "/support/email-setup.html"
 ];
-const USER_DEFAULT_ALLOWED_PATHS = [
+const CORE_ALLOWED_PATHS = [
     "/login.html",
-    ...BASELINE_LEFT_PANEL_PATHS
+    "/dashboard.html"
 ];
+const USER_DEFAULT_ALLOWED_PATHS = [...CORE_ALLOWED_PATHS];
 let USER_ALLOWED_PATHS_RUNTIME = [...USER_DEFAULT_ALLOWED_PATHS];
 const USER_ALLOWED_CACHE_KEY = "userAllowedPathsRuntime";
 let USER_ALLOWED_ACTIONS_RUNTIME = [];
@@ -109,8 +110,7 @@ function ensureCoreAllowedPaths(paths){
         ? paths.map((x) => String(x || "").trim().toLowerCase()).filter(Boolean)
         : [];
     const merged = new Set([
-        "/login.html",
-        ...BASELINE_LEFT_PANEL_PATHS,
+        ...CORE_ALLOWED_PATHS,
         ...normalized
     ]);
     return Array.from(merged);
@@ -247,7 +247,9 @@ function getAccessConfigState(){
 
 function enforceUserAccess(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
-    if(role !== "user" && role !== "manager") return;
+    const enforceByConfiguredRole =
+        (role === "manager" || role === "admin") && getAccessConfigState() === true;
+    if(role !== "user" && !enforceByConfiguredRole) return;
     const selectedDb = String(localStorage.getItem("selectedDatabaseName") || "").trim().toLowerCase();
     if(role === "user" && selectedDb === "demo"){
         return;
@@ -279,7 +281,8 @@ function enforceManagerAccess(){
 
 function applyUserNavRestrictions(){
     const role = (localStorage.getItem("role") || "").toLowerCase();
-    const enforceByConfiguredRole = role === "manager" && getAccessConfigState() === true;
+    const enforceByConfiguredRole =
+        (role === "manager" || role === "admin") && getAccessConfigState() === true;
     if(role !== "user" && !enforceByConfiguredRole) return;
     const allowed = USER_ALLOWED_PATHS_RUNTIME;
     document.querySelectorAll(".sidebar a").forEach(a=>{
@@ -475,7 +478,7 @@ function renderSidebarMenuByAccess(){
     const shouldEnforceAllowedPages =
         !isCustomersRestrictedPage && !isCasesRestrictedPage && (
         role === "user" ||
-        (role === "manager" && getAccessConfigState() === true)
+        ((role === "manager" || role === "admin") && getAccessConfigState() === true)
         );
     const granted = menuEntries.filter((entry) => hasUserGrantedPath(entry.path));
     const finalMenu = shouldEnforceAllowedPages
@@ -995,12 +998,13 @@ async function loadUserAccessPermissions(){
                 localStorage.setItem(USER_ACCESS_CONFIG_ENABLED_CACHE_KEY, "1");
             }
         }
-        const merged = new Set([
-            "/login.html",
-            ...BASELINE_LEFT_PANEL_PATHS,
-            ...dynamicPages
-        ]);
-        USER_ALLOWED_PATHS_RUNTIME = ensureCoreAllowedPaths(Array.from(merged));
+        const enforceStrictUserAccess =
+            role === "user" ||
+            ((role === "manager" || role === "admin") && USER_ACCESS_CONFIG_APPLIES_RUNTIME === true);
+        const grantedPages = enforceStrictUserAccess
+            ? dynamicPages
+            : [...BASELINE_LEFT_PANEL_PATHS, ...dynamicPages];
+        USER_ALLOWED_PATHS_RUNTIME = ensureCoreAllowedPaths(grantedPages);
         USER_ALLOWED_ACTIONS_RUNTIME = Array.from(new Set(normalizedActionKeys));
         localStorage.setItem(USER_ALLOWED_CACHE_KEY, JSON.stringify(USER_ALLOWED_PATHS_RUNTIME));
         localStorage.setItem(USER_ALLOWED_ACTIONS_CACHE_KEY, JSON.stringify(USER_ALLOWED_ACTIONS_RUNTIME));
