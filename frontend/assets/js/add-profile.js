@@ -108,7 +108,7 @@
         if (selected.department) els.department.value = String(selected.department);
         if (selected.telephone) els.telephone.value = String(selected.telephone);
         try {
-            const mappedRes = await request(`/users/mapped/${Number(selected.id || 0)}`, "GET");
+            const mappedRes = await request(`/users/user-mapped/${Number(selected.id || 0)}`, "GET");
             const mapped = mappedRes && mappedRes.mapping ? mappedRes.mapping : null;
             if (mapped) {
                 if (mapped.company_name) els.company_name.value = String(mapped.company_name).trim();
