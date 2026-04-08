@@ -15,17 +15,8 @@ const userSelectEl = document.getElementById("userSelect");
         const FEATURE_OPTIONS = [
             { key: "logo", label: "Logo", source: "Preference > System Logo" },
             { key: "invoice", label: "Invoice", source: "Preference > Invoice PDF" },
-            { key: "quotation", label: "Quotation", source: "Preference > Quotation PDF" },
-            { key: "quotation2", label: "Quotation 2", source: "Preference > Quotation 2 PDF" },
-            { key: "quotation3", label: "Quotation 3", source: "Preference > Quotation 3 PDF" },
-            { key: "sign_q2", label: "Sign Q2", source: "Preference > SIGN Q2" },
-            { key: "seal_q2", label: "Seal Q2", source: "Preference > SEAL Q2" },
-            { key: "sign_q3", label: "Sign Q3", source: "Preference > SIGN Q3" },
-            { key: "seal_q3", label: "Seal Q3", source: "Preference > SEAL Q3" },
             { key: "sign_c", label: "Sign C", source: "Preference > SIGN C" },
-            { key: "sign_v", label: "Sign V", source: "Preference > SIGN V" },
             { key: "seal_c", label: "Seal C", source: "Preference > SEAL C" },
-            { key: "seal_v", label: "Seal V", source: "Preference > SEAL V" },
             { key: "theme", label: "Theme", source: "Preference > Theme Settings" }
         ];
 

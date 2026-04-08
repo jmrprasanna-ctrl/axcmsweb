@@ -194,19 +194,6 @@ ADD COLUMN IF NOT EXISTS seal_q3_path VARCHAR(500);
                                                                     
 
                                                                       
-ALTER TABLE user_invoice_mappings
-ADD COLUMN IF NOT EXISTS sign_q2_enabled BOOLEAN NOT NULL DEFAULT FALSE;
-
-ALTER TABLE user_invoice_mappings
-ADD COLUMN IF NOT EXISTS seal_q2_enabled BOOLEAN NOT NULL DEFAULT FALSE;
-
-ALTER TABLE user_invoice_mappings
-ADD COLUMN IF NOT EXISTS sign_q3_enabled BOOLEAN NOT NULL DEFAULT FALSE;
-
-ALTER TABLE user_invoice_mappings
-ADD COLUMN IF NOT EXISTS seal_q3_enabled BOOLEAN NOT NULL DEFAULT FALSE;
-                                                                    
-
                                                                        
 ALTER TABLE invoices
 ADD COLUMN IF NOT EXISTS quotation2_customer_name VARCHAR(255);

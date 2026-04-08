@@ -10,7 +10,19 @@ let invMapFlags = null;
 
 function hasMappedFeature(featureKey){
     if(!invMapFlags) return true;
-    return !!invMapFlags[featureKey];
+    if(Object.prototype.hasOwnProperty.call(invMapFlags, featureKey)){
+        return !!invMapFlags[featureKey];
+    }
+    if(featureKey === "quotation" || featureKey === "quotation2" || featureKey === "quotation3"){
+        return !!invMapFlags.invoice;
+    }
+    if(featureKey === "sign_v" || featureKey === "sign_q2" || featureKey === "sign_q3"){
+        return !!invMapFlags.sign_c;
+    }
+    if(featureKey === "seal_v" || featureKey === "seal_q2" || featureKey === "seal_q3"){
+        return !!invMapFlags.seal_c;
+    }
+    return false;
 }
 
 async function loadInvMapFlags(){
