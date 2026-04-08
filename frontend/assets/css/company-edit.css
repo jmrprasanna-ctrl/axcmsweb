@@ -26,14 +26,14 @@
   align-items:center;
 }
 
-.update-company-icon-btn{
+.save-company-icon-btn{
   margin-top:0;
   color:#0f5aa1;
   border-color:#89b9e8;
   background:#e9f3fe;
 }
 
-.update-company-icon-btn:hover{
+.save-company-icon-btn:hover{
   border-color:#5c99d9;
   background:#dbecff;
 }
