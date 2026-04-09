@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google Drive - AXIS_CMS_WEB</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+</head>
+<body>
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>AXIS_CMS_WEB</span>
+    </div>
+    <ul class="nav-links" style="visibility:hidden;">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../contacts/contacts.html">Contacts</a></li>
+        <li><a href="../calendar.html">Calender</a></li>
+        <li><a href="../drawyer/drawyer.html">Drawyer</a></li>
+        <li><a href="../clients/client-list.html">Client</a></li>
+        <li><a href="../cases/case-list.html">Cases</a></li>
+        <li><a href="../invoices/invoice-list.html">Payments</a></li>
+        <li><a href="user-list.html">Users</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header class="support-page-header">
+        <h2>Google Drive Connect</h2>
+        <a class="icon-btn back-icon-btn" href="user-list.html" title="Back" aria-label="Back">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+        </a>
+    </header>
+
+    <div class="form-container" style="max-width: 980px;">
+        <form id="googleDriveForm">
+            <label for="gdEnabled">Enable Google Drive Sync</label>
+            <select id="gdEnabled">
+                <option value="true">Enabled</option>
+                <option value="false">Disabled</option>
+            </select>
+
+            <label for="gdClientId">Client ID</label>
+            <input type="text" id="gdClientId" placeholder="Google OAuth Client ID">
+
+            <label for="gdClientSecret">Client Secret</label>
+            <input type="text" id="gdClientSecret" placeholder="Google OAuth Client Secret">
+
+            <label for="gdRefreshToken">Refresh Token</label>
+            <input type="text" id="gdRefreshToken" placeholder="Google OAuth Refresh Token">
+
+            <label for="gdRootFolder">Root Folder Name</label>
+            <input type="text" id="gdRootFolder" placeholder="AXIS_CMS_DRAWYER">
+
+            <label for="gdAutoSync">Auto Sync New Uploads</label>
+            <select id="gdAutoSync">
+                <option value="true">Enabled</option>
+                <option value="false">Disabled</option>
+            </select>
+
+            <label for="gdCompress">Shrink Before Upload (gzip)</label>
+            <select id="gdCompress">
+                <option value="true">Enabled</option>
+                <option value="false">Disabled</option>
+            </select>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+                <button type="button" class="btn btn-secondary" id="gdTestBtn">Test Connection</button>
+                <button type="button" class="btn btn-secondary" id="gdSyncBtn">Sync Now</button>
+                <button type="submit" class="btn">Save Settings</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script src="../../assets/js/google-drive.js"></script>
+</body>
+</html>

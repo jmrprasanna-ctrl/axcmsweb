@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drawyer - AXIS_CMS_WEB</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<link rel="stylesheet" href="../../assets/css/drawyer.css">
+</head>
+<body>
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../assets/images/logo.png" alt="Logo">
+        <span>AXIS_CMS_WEB</span>
+    </div>
+    <ul class="nav-links" style="visibility:hidden;">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../contacts/contacts.html">Contacts</a></li>
+        <li><a href="../calendar.html">Calender</a></li>
+        <li><a href="../drawyer/drawyer.html">Drawyer</a></li>
+        <li><a href="../clients/client-list.html">Client</a></li>
+        <li><a href="../cases/case-list.html">Cases</a></li>
+        <li><a href="../invoices/invoice-list.html">Payments</a></li>
+        <li><a href="../users/user-list.html">Users</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header class="drawyer-page-header">
+        <h2>Drawyer</h2>
+        <div class="drawyer-actions">
+            <button type="button" class="btn btn-secondary" id="drawyerSyncBtn">Sync Drive</button>
+            <a class="icon-btn back-icon-btn" href="../dashboard.html" title="Back" aria-label="Back">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+            </a>
+        </div>
+    </header>
+
+    <div class="card">
+        <p class="drawyer-hint">Case files grouped by folder (Case/Plaint/Answer/Witness/Judgment). Uploads and captured files appear here.</p>
+        <div id="drawyerCases"></div>
+    </div>
+</div>
+
+<script src="../../assets/js/api.js"></script>
+<script src="../../assets/js/drawyer.js"></script>
+</body>
+</html>

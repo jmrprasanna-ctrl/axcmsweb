@@ -77,6 +77,7 @@ const BASELINE_LEFT_PANEL_PATHS = [
     "/cases/finished.html",
     "/dashboard.html",
     "/contacts/contacts.html",
+    "/drawyer/drawyer.html",
     "/calendar.html",
     "/clients/client-list.html",
     "/clients/Add-Client.html",
@@ -96,6 +97,7 @@ const BASELINE_LEFT_PANEL_PATHS = [
     "/users/user-access.html",
     "/users/backup.html",
     "/users/company-edit.html",
+    "/users/google-drive.html",
     "/users/user-logged.html",
     "/support/email-setup.html"
 ];
@@ -495,6 +497,7 @@ function renderSidebarMenuByAccess(){
     ] : [
         { path: "/dashboard.html", label: "Dashboard" },
         { path: "/contacts/contacts.html", label: "Contacts" },
+        { path: "/drawyer/drawyer.html", label: "Drawyer" },
         { path: "/calendar.html", label: "Calender" },
         { path: "/clients/client-list.html", label: "Client" },
         { path: "/clients/Add-Client.html", label: "Add Client" },
@@ -517,6 +520,7 @@ function renderSidebarMenuByAccess(){
         { path: "/users/profile-list.html", label: "Profile" },
         { path: "/users/user-access.html", label: "Access" },
         { path: "/users/backup.html", label: "Backup" },
+        { path: "/users/google-drive.html", label: "Google Drive" },
         { path: "/users/user-logged.html", label: "Logged" },
         { path: "/support/email-setup.html", label: "Email" }
     ];
@@ -548,6 +552,7 @@ function renderSidebarMenuByAccess(){
     const groups = [
         { path: "/dashboard.html", label: "Dashboard" },
         { path: "/contacts/contacts.html", label: "Contacts" },
+        { path: "/drawyer/drawyer.html", label: "Drawyer" },
         { path: "/calendar.html", label: "Calender" },
         {
             path: "/clients/client-list.html",
@@ -588,6 +593,7 @@ function renderSidebarMenuByAccess(){
                 { path: "/users/preference.html", label: "Preference" },
                 { path: "/users/user-access.html", label: "Access" },
                 { path: "/users/backup.html", label: "Backup" },
+                { path: "/users/google-drive.html", label: "Google Drive" },
                 { path: "/users/user-logged.html", label: "Logged" },
                 { path: "/support/email-setup.html", label: "Email" }
             ]

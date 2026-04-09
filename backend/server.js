@@ -45,6 +45,8 @@ const categoryRoutes = require("./routes/categoryRoutes");
 const expenseRoutes = require("./routes/expenseRoutes");
 const stockRoutes = require("./routes/stockRoutes");
 const reportRoutes = require("./routes/reportRoutes");
+const drawyerRoutes = require("./routes/drawyerRoutes");
+const googleDriveRoutes = require("./routes/googleDriveRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
@@ -647,6 +649,47 @@ async function ensureLawyerEmailSchema() {
   });
 }
 
+async function ensureGoogleDriveSchema() {
+  await runOnBusinessDatabases(async () => {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS google_drive_settings (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER UNIQUE NOT NULL,
+        enabled BOOLEAN NOT NULL DEFAULT FALSE,
+        client_id VARCHAR(300),
+        client_secret VARCHAR(300),
+        refresh_token TEXT,
+        root_folder_name VARCHAR(200) DEFAULT 'AXIS_CMS_DRAWYER',
+        root_folder_id VARCHAR(200),
+        auto_sync BOOLEAN NOT NULL DEFAULT TRUE,
+        compress_before_upload BOOLEAN NOT NULL DEFAULT TRUE,
+        "createdAt" TIMESTAMP DEFAULT NOW(),
+        "updatedAt" TIMESTAMP DEFAULT NOW()
+      );
+    `);
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS google_drive_file_syncs (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        source_table VARCHAR(40) NOT NULL,
+        source_id INTEGER NOT NULL,
+        case_no VARCHAR(120),
+        module_name VARCHAR(40) NOT NULL,
+        file_index INTEGER NOT NULL DEFAULT 0,
+        file_hash VARCHAR(80) NOT NULL,
+        drive_file_id VARCHAR(200),
+        drive_web_view_link TEXT,
+        status VARCHAR(24) NOT NULL DEFAULT 'pending',
+        last_error TEXT,
+        "createdAt" TIMESTAMP DEFAULT NOW(),
+        "updatedAt" TIMESTAMP DEFAULT NOW(),
+        UNIQUE(user_id, file_hash)
+      );
+    `);
+  });
+}
+
 async function ensureInvoiceImportantWarrantySchema() {
   await runOnBusinessDatabases(async () => {
     await db.query(`
@@ -968,6 +1011,8 @@ app.use("/api/invoices/conditions", conditionRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/stocks", stockRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/drawyer", drawyerRoutes);
+app.use("/api/google-drive", googleDriveRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/analytics", analyticsRoutes);
@@ -1045,6 +1090,7 @@ async function startServer() {
     await ensureInvoicePaymentSchema();
     await ensureInvoiceAmountSchema();
     await ensureLawyerEmailSchema();
+    await ensureGoogleDriveSchema();
     await ensureSupportImportantSchema();
     await ensureInvoiceImportantWarrantySchema();
     await ensureDefaultCategories();

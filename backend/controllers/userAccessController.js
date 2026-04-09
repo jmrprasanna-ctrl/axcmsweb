@@ -107,6 +107,7 @@ const MANUAL_ACCESS_MODULE_OPTIONS = [
     items: [
       { path: "/dashboard.html", label: "Dashboard", actions: ["view"] },
       { path: "/contacts/contacts.html", label: "Contacts", actions: ["view"] },
+      { path: "/drawyer/drawyer.html", label: "Drawyer", actions: ["view"] },
       { path: "/calendar.html", label: "Calendar", actions: ["view"] },
     ],
   },
@@ -174,6 +175,7 @@ const MANUAL_ACCESS_MODULE_OPTIONS = [
       { path: "/users/add-profile.html", label: "Add Profile", actions: ["view", "add"] },
       { path: "/users/user-access.html", label: "User Access", actions: ["view", "edit"] },
       { path: "/users/backup.html", label: "Backup", actions: ["view", "add", "edit"] },
+      { path: "/users/google-drive.html", label: "Google Drive", actions: ["view", "edit"] },
       { path: "/users/preference.html", label: "Preference", actions: ["view", "edit"] },
       { path: "/users/user-logged.html", label: "User Logged", actions: ["view"] },
     ],
@@ -216,6 +218,7 @@ const LEGACY_PATH_ALIASES = new Map([
   ["/invoices/create-invoice.html", ["/invoices/create-invoice.html", "/invoices/invoice-list.html"]],
   ["/invoices/view-invoice.html", ["/invoices/view-invoice.html", "/invoices/invoice-list.html"]],
   ["/support/support.html", ["/support/lawyer-list.html", "/support/court-list.html"]],
+  ["/users/google-drive-connect.html", ["/users/google-drive.html"]],
   ["/tools/check-backup.html", ["/users/backup.html"]],
   ["/tools/backup-download.html", ["/users/backup.html"]],
   ["/tools/upload-db.html", ["/users/backup.html"]],
