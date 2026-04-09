@@ -209,6 +209,7 @@ CREATE TABLE invoices (
     payment_status VARCHAR(50) DEFAULT 'Pending',
     payment_date DATE,
     amount FLOAT DEFAULT 0,
+    amount_description VARCHAR(100),
     total_amount FLOAT DEFAULT 0,
     createdAt TIMESTAMP DEFAULT NOW(),
     updatedAt TIMESTAMP DEFAULT NOW()
@@ -218,6 +219,7 @@ ALTER TABLE invoices ADD COLUMN IF NOT EXISTS quotation3_date DATE DEFAULT CURRE
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS quotation2_customer_name VARCHAR(255);
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS quotation3_customer_name VARCHAR(255);
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS amount FLOAT DEFAULT 0;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS amount_description VARCHAR(100);
 UPDATE invoices SET quotation2_date = COALESCE(quotation2_date, quotation_date, invoice_date, CURRENT_DATE) WHERE quotation2_date IS NULL;
 UPDATE invoices SET quotation3_date = COALESCE(quotation3_date, quotation_date, invoice_date, CURRENT_DATE) WHERE quotation3_date IS NULL;
 UPDATE invoices SET amount = COALESCE(amount, total_amount, 0) WHERE amount IS NULL;
@@ -544,6 +546,9 @@ ADD COLUMN IF NOT EXISTS quotation3_date DATE DEFAULT CURRENT_DATE;
 
 ALTER TABLE invoices
 ADD COLUMN IF NOT EXISTS amount FLOAT DEFAULT 0;
+
+ALTER TABLE invoices
+ADD COLUMN IF NOT EXISTS amount_description VARCHAR(100);
 
 UPDATE invoices
 SET quotation2_date = COALESCE(quotation2_date, quotation_date, invoice_date, DATE("createdAt"), CURRENT_DATE)

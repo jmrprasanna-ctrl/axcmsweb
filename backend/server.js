@@ -603,6 +603,10 @@ async function ensureInvoiceAmountSchema() {
       ADD COLUMN IF NOT EXISTS amount DOUBLE PRECISION DEFAULT 0;
     `);
     await db.query(`
+      ALTER TABLE invoices
+      ADD COLUMN IF NOT EXISTS amount_description VARCHAR(100);
+    `);
+    await db.query(`
       UPDATE invoices
       SET amount = COALESCE(amount, total_amount, 0)
       WHERE amount IS NULL;
