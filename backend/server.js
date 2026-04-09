@@ -596,6 +596,28 @@ async function ensureInvoicePaymentSchema() {
   });
 }
 
+async function ensureInvoiceAmountSchema() {
+  await runOnBusinessDatabases(async () => {
+    await db.query(`
+      ALTER TABLE invoices
+      ADD COLUMN IF NOT EXISTS amount DOUBLE PRECISION DEFAULT 0;
+    `);
+    await db.query(`
+      UPDATE invoices
+      SET amount = COALESCE(amount, total_amount, 0)
+      WHERE amount IS NULL;
+    `);
+    await db.query(`
+      ALTER TABLE invoices
+      ALTER COLUMN amount SET DEFAULT 0;
+    `);
+    await db.query(`
+      ALTER TABLE invoices
+      ALTER COLUMN amount SET NOT NULL;
+    `);
+  });
+}
+
 async function ensureSupportImportantSchema() {
   await runOnBusinessDatabases(async () => {
     await db.query(`
@@ -1006,6 +1028,7 @@ async function startServer() {
     await ensureInvoiceDateSchema();
     await ensureInvoiceNumberingSchema();
     await ensureInvoicePaymentSchema();
+    await ensureInvoiceAmountSchema();
     await ensureSupportImportantSchema();
     await ensureInvoiceImportantWarrantySchema();
     await ensureDefaultCategories();

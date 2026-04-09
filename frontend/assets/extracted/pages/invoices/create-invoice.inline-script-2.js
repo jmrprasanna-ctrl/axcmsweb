@@ -73,16 +73,23 @@ document.getElementById("invoiceForm").addEventListener("submit", async function
 
     const customerId = Number(document.getElementById("customer").value);
     const invoiceDate = String(document.getElementById("invoiceDate").value || "").trim();
+    const amountRaw = String(document.getElementById("amount").value || "").trim();
+    const amount = Number(amountRaw);
 
     if (!customerId || !invoiceDate) {
         alert("Select customer and invoice date.");
+        return;
+    }
+    if (!Number.isFinite(amount) || amount < 0) {
+        alert("Enter a valid non-negative amount.");
         return;
     }
 
     try {
         await request("/invoices", "POST", {
             customer_id: customerId,
-            invoice_date: invoiceDate
+            invoice_date: invoiceDate,
+            amount
         });
         showMessageBox("Invoice saved successfully!");
         document.getElementById("invoiceForm").reset();

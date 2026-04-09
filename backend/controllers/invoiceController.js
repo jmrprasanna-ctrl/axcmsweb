@@ -174,6 +174,17 @@ function normalizePaymentStatus(value){
     return "Pending";
 }
 
+function normalizeAmount(value){
+    if(value === undefined || value === null || String(value).trim() === ""){
+        return null;
+    }
+    const parsed = Number(value);
+    if(!Number.isFinite(parsed) || parsed < 0){
+        return NaN;
+    }
+    return Number(parsed.toFixed(2));
+}
+
 function parseBase64Payload(rawValue){
     const raw = String(rawValue || "").trim();
     if(!raw) return Buffer.alloc(0);
@@ -402,6 +413,7 @@ exports.listInvoices = async (req,res)=>{
             customer_mode: inv.Customer ? inv.Customer.customer_mode : "",
             count: Number(inv.machine_count || 0),
             machine_count: Number(inv.machine_count || 0),
+            amount: Number(inv.amount ?? inv.total_amount ?? 0),
             total: inv.total_amount,
             invoice_date: inv.invoice_date || inv.createdAt,
             payment_date: inv.payment_date || null,
@@ -450,6 +462,7 @@ exports.getInvoice = async (req,res)=>{
         });
         const grossTotal = normalizedItems.reduce((sum, item) => sum + (Number(item.gross) || 0), 0);
         const totalAmount = Number(raw.total_amount) || grossTotal;
+        const amount = Number(raw.amount ?? totalAmount) || 0;
         const quotation2Items = buildQuotation2AdjustedItems(normalizedItems);
         const quotation2GrossTotal = quotation2Items.reduce(
             (sum, item) => sum + (Number(item.quotation2_gross) || 0),
@@ -471,6 +484,7 @@ exports.getInvoice = async (req,res)=>{
             },
             print_totals: {
                 gross_total: Number(grossTotal.toFixed(2)),
+                amount: Number(amount.toFixed(2)),
                 total_amount: Number(totalAmount.toFixed(2))
             },
             quotation2_totals: {
@@ -761,11 +775,17 @@ exports.createInvoice = async (req,res)=>{
     }
     try{
         const normalizedItems = Array.isArray(items) ? items : [];
-        let total_amount = 0;
+        let computedTotalAmount = 0;
         for(const item of normalizedItems){
             const gross = Number(item.gross) || 0;
-            total_amount += gross;
+            computedTotalAmount += gross;
         }
+        const requestedAmount = normalizeAmount(req.body.amount);
+        if(Number.isNaN(requestedAmount)){
+            return res.status(400).json({ message: "Invalid amount. Must be a non-negative number." });
+        }
+        const finalAmount = requestedAmount === null ? Number(computedTotalAmount.toFixed(2)) : requestedAmount;
+        const total_amount = finalAmount;
         const parsedInvoiceDate = String(invoice_date || "").trim();
         const invoiceDateValue = parsedInvoiceDate || new Date().toISOString().slice(0, 10);
         const isValidInvoiceDate = /^\d{4}-\d{2}-\d{2}$/.test(invoiceDateValue) && !Number.isNaN(new Date(`${invoiceDateValue}T00:00:00`).getTime());
@@ -816,6 +836,7 @@ exports.createInvoice = async (req,res)=>{
             payment_method: normalizePaymentMethod(payment_method),
             payment_status: "Pending",
             cheque_no: null,
+            amount: finalAmount,
             total_amount
         });
         for(const item of normalizedItems){
@@ -912,6 +933,7 @@ exports.listWarrantyInvoices = async (_req, res) => {
                     invoice_no: inv.invoice_no,
                     invoice_date: inv.invoice_date || inv.createdAt,
                     customer_name: inv.Customer ? inv.Customer.name : "",
+                    amount: Number(inv.amount ?? inv.total_amount ?? 0),
                     total: Number(inv.total_amount || 0),
                     payment_status: inv.payment_status || "Pending",
                     warranty_period: period,
