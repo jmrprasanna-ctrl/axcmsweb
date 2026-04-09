@@ -112,9 +112,9 @@ const MANUAL_ACCESS_MODULE_OPTIONS = [
   {
     module: "Customers",
     items: [
-      { path: "/customers/client-list.html", label: "Client List", actions: ["view", "add", "edit", "delete"] },
-      { path: "/customers/Add-Client.html", label: "Add Client", actions: ["view", "add"] },
-      { path: "/customers/edit-customer.html", label: "Edit Client", actions: ["view", "edit"] },
+      { path: "/clients/client-list.html", label: "Client List", actions: ["view", "add", "edit", "delete"] },
+      { path: "/clients/Add-Client.html", label: "Add Client", actions: ["view", "add"] },
+      { path: "/clients/edit-customer.html", label: "Edit Client", actions: ["view", "edit"] },
     ],
   },
   {
@@ -204,8 +204,11 @@ const AUTO_ACCESS_EXCLUDED_PREFIXES = [
 ];
 
 const LEGACY_PATH_ALIASES = new Map([
-  ["/customers/customer-list.html", ["/customers/client-list.html"]],
-  ["/customers/add-customer.html", ["/customers/Add-Client.html"]],
+  ["/customers/customer-list.html", ["/clients/client-list.html"]],
+  ["/customers/add-customer.html", ["/clients/Add-Client.html"]],
+  ["/customers/client-list.html", ["/clients/client-list.html"]],
+  ["/customers/Add-Client.html", ["/clients/Add-Client.html"]],
+  ["/customers/edit-customer.html", ["/clients/edit-customer.html"]],
   ["/invoices/invoice-list.html", ["/invoices/create-invoice.html"]],
   ["/invoices/payments-list.html", ["/invoices/create-invoice.html"]],
   ["/support/support.html", ["/support/lawyer-list.html", "/support/court-list.html"]],
@@ -366,11 +369,12 @@ function expandImplicitActionDependencies(actionKeys) {
   const add = (path, action) => set.add(toActionKey(path, action));
 
   if (
+    set.has(toActionKey("/clients/client-list.html", "edit")) ||
     set.has(toActionKey("/customers/client-list.html", "edit")) ||
     set.has(toActionKey("/customers/customer-list.html", "edit"))
   ) {
-    add("/customers/edit-customer.html", "view");
-    add("/customers/edit-customer.html", "edit");
+    add("/clients/edit-customer.html", "view");
+    add("/clients/edit-customer.html", "edit");
   }
   if (set.has(toActionKey("/expenses/expense-list.html", "edit"))) {
     add("/expenses/edit-expense.html", "view");

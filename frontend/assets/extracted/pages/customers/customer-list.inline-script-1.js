@@ -1,4 +1,4 @@
-﻿const role = (localStorage.getItem("role") || "").toLowerCase();
+const role = (localStorage.getItem("role") || "").toLowerCase();
 const selectedDb = (localStorage.getItem("selectedDatabaseName") || "").toLowerCase();
 const isTrainingUser = role === "user" && selectedDb === "demo";
 const canManage = role === "admin" || role === "manager" || isTrainingUser;
@@ -13,7 +13,7 @@ const allowedPaths = (() => {
 const canAccessPath = (path) => canManage
     ? true
     : (role === "user" && allowedPaths.has(String(path || "").trim().toLowerCase()));
-const canEditCustomer = canManage || (role === "user" && typeof hasUserActionPermission === "function" && hasUserActionPermission("/customers/client-list.html", "edit"));
+const canEditCustomer = canManage || (role === "user" && typeof hasUserActionPermission === "function" && hasUserActionPermission("/clients/client-list.html", "edit"));
 const customerSearchEl = document.getElementById("customerSearch");
 const exportPdfBtn = document.getElementById("exportPdfBtn");
 let allCustomers = [];
@@ -55,7 +55,7 @@ function applyCustomerFilter(){
 
 async function loadCustomers(){
     try{
-        allCustomers = await request("/customers","GET");
+        allCustomers = await request("/clients","GET");
         applyCustomerFilter();
     }catch(err){
         alert("Failed to load customers");

@@ -12,7 +12,7 @@ const putData = (endpoint, payload) => requireApiRequest()(`/${String(endpoint |
 const deleteData = (endpoint) => requireApiRequest()(`/${String(endpoint || "").replace(/^\/+/, "")}`, "DELETE");
 
 const loadCustomers = async () => {
-    const customers = await getData('customers');
+    const customers = await getData('clients');
     const tbody = document.getElementById('customer-table-body');
     tbody.innerHTML = '';
     customers.forEach(c => {
@@ -41,7 +41,7 @@ const addCustomer = async () => {
         tel: document.getElementById('tel').value,
         email: document.getElementById('email').value
     };
-    await postData('customers', customer);
+    await postData('clients', customer);
     loadCustomers();
 };
 
@@ -49,7 +49,7 @@ window.addCustomer = addCustomer;
 
 const deleteCustomer = async (id) => {
     if (confirm('Are you sure?')) {
-        await deleteData(`customers/${id}`);
+        await deleteData(`clients/${id}`);
         loadCustomers();
     }
 };

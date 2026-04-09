@@ -62,7 +62,7 @@ function renderClientSuggestions(query){
 
 async function loadGeneralClients(){
     try{
-        const customers = await request("/customers","GET");
+        const customers = await request("/clients","GET");
         const names = (Array.isArray(customers) ? customers : [])
             .filter((c) => String(c.customer_mode || "").toLowerCase() === "general")
             .map((c) => String(c.name || "").trim())

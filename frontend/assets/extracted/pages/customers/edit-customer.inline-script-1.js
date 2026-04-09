@@ -1,11 +1,11 @@
-﻿const params = new URLSearchParams(window.location.search);
+const params = new URLSearchParams(window.location.search);
 const customerId = params.get("id");
 const uppercaseFields = ["name", "address", "quotation2Address", "comment"];
 const role = (localStorage.getItem("role") || "").toLowerCase();
 const selectedDb = (localStorage.getItem("selectedDatabaseName") || "").toLowerCase();
 const isTrainingUser = role === "user" && selectedDb === "demo";
 const canManage = role === "admin" || role === "manager" || isTrainingUser;
-const canDeleteCustomer = canManage || (role === "user" && typeof hasUserActionPermission === "function" && hasUserActionPermission("/customers/client-list.html", "delete"));
+const canDeleteCustomer = canManage || (role === "user" && typeof hasUserActionPermission === "function" && hasUserActionPermission("/clients/client-list.html", "delete"));
 
 uppercaseFields.forEach((fieldId) => {
     const field = document.getElementById(fieldId);
@@ -22,7 +22,7 @@ if(!customerId){
 
 async function loadCustomer(){
     try{
-        const customer = await request(`/customers/${customerId}`,"GET");
+        const customer = await request(`/clients/${customerId}`,"GET");
         document.getElementById("name").value = (customer.name || "").toUpperCase();
         document.getElementById("address").value = (customer.address || "").toUpperCase();
         document.getElementById("quotation2Address").value = (customer.quotation2_address || "").toUpperCase();
@@ -44,7 +44,7 @@ async function deleteCustomer(){
     }
     if(!confirm("Delete this customer?")) return;
     try{
-        await request(`/customers/${customerId}`,"DELETE");
+        await request(`/clients/${customerId}`,"DELETE");
         showMessageBox("Customer deleted");
         window.location.href = "client-list.html";
     }catch(err){
@@ -66,7 +66,7 @@ document.getElementById("customerForm").addEventListener("submit", async functio
     };
 
     try{
-        await request(`/customers/${customerId}`,"PUT",data);
+        await request(`/clients/${customerId}`,"PUT",data);
         showMessageBox("Customer updated successfully!");
     }catch(err){
         alert(err.message || "Failed to update customer");

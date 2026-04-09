@@ -48,7 +48,7 @@ function setDefaultEntryDate(){
 
 async function loadRentalCustomers(){
     try{
-        const customers = await request("/customers", "GET");
+        const customers = await request("/clients", "GET");
         rentalCustomers = customers.filter(c => String(c.customer_mode || "").toLowerCase() === "rental");
 
         const customerSelect = document.getElementById("customerId");

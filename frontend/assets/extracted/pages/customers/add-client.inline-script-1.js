@@ -20,7 +20,7 @@ document.getElementById("customerForm").addEventListener("submit", async functio
     };
 
     try{
-        await request("/customers","POST",data);
+        await request("/clients","POST",data);
         showMessageBox("Client added successfully!");
         document.getElementById("customerForm").reset();
     }catch(err){

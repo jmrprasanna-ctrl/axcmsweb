@@ -177,7 +177,7 @@ function toDashboardMenuHref(canonicalPath){
 const DASHBOARD_MENU_ENTRIES = [
     { path: "/dashboard.html", label: "Dashboard" },
     { path: "/calendar.html", label: "Calender" },
-    { path: "/customers/client-list.html", label: "Client" },
+    { path: "/clients/client-list.html", label: "Client" },
     { path: "/cases/case-list.html", label: "Cases" },
     { path: "/cases/finished.html", label: "Finished" },
     { path: "/invoices/create-invoice.html", label: "Invoices" },

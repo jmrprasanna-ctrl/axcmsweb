@@ -45,7 +45,7 @@ function fillCustomerDetails(customerId) {
 }
 
 async function loadCustomers() {
-    const rows = await request("/customers", "GET");
+    const rows = await request("/clients", "GET");
     customersCache = Array.isArray(rows) ? rows : [];
     const customerEl = document.getElementById("customer");
     customerEl.innerHTML = `<option value="">Select Customer</option>`;

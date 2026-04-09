@@ -77,8 +77,8 @@ const BASELINE_LEFT_PANEL_PATHS = [
     "/cases/finished.html",
     "/dashboard.html",
     "/calendar.html",
-    "/customers/client-list.html",
-    "/customers/Add-Client.html",
+    "/clients/client-list.html",
+    "/clients/Add-Client.html",
     "/invoices/create-invoice.html",
     "/expenses/expense-list.html",
     "/finance/finance.html",
@@ -458,13 +458,13 @@ function renderSidebarMenuByAccess(){
         { path: "/cases/judgment-list.html", label: "Dudgement" }
     ] : isCustomersRestrictedPage ? [
         { path: "/dashboard.html", label: "Dashboard" },
-        { path: "/customers/client-list.html", label: "Client" },
-        { path: "/customers/Add-Client.html", label: "Add Client" }
+        { path: "/clients/client-list.html", label: "Client" },
+        { path: "/clients/Add-Client.html", label: "Add Client" }
     ] : [
         { path: "/dashboard.html", label: "Dashboard" },
         { path: "/calendar.html", label: "Calender" },
-        { path: "/customers/client-list.html", label: "Client" },
-        { path: "/customers/Add-Client.html", label: "Add Client" },
+        { path: "/clients/client-list.html", label: "Client" },
+        { path: "/clients/Add-Client.html", label: "Add Client" },
         { path: "/cases/case-list.html", label: "Cases" },
         { path: "/cases/plaint.html", label: "Plaint" },
         { path: "/cases/answer.html", label: "Answer" },
@@ -505,7 +505,7 @@ function renderSidebarMenuByAccess(){
         { path: "/dashboard.html", label: "Dashboard" },
         { path: "/calendar.html", label: "Calender" },
         {
-            path: "/customers/client-list.html",
+            path: "/clients/client-list.html",
             label: "Client"
         },
         {

@@ -171,7 +171,7 @@ function syncCustomerIdFromSearch() {
 }
 
 async function loadCustomers() {
-    allCustomers = await request("/customers", "GET");
+    allCustomers = await request("/clients", "GET");
     renderCustomerOptions(allCustomers);
 }
 

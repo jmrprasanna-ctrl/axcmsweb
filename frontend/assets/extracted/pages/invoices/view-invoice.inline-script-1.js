@@ -400,7 +400,7 @@ async function fetchInvoiceData(){
     let customer = invoice.Customer || {};
     if(customer && customer.id){
         try{
-            customer = await request(`/customers/${customer.id}`, "GET");
+            customer = await request(`/clients/${customer.id}`, "GET");
         }catch(_err){
         }
     }
