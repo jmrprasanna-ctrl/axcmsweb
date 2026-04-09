@@ -38,36 +38,28 @@
         </a>
     </header>
 
-    <div class="contacts-grid">
-        <section class="card">
-            <h3>Lawyer Contacts</h3>
-            <table id="lawyerContactsTable">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Mobile</th>
-                        <th>Email</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </section>
-
-        <section class="card">
-            <h3>Client Contacts</h3>
-            <table id="clientContactsTable">
-                <thead>
-                    <tr>
-                        <th>Client ID</th>
-                        <th>Name</th>
-                        <th>Mobile</th>
-                        <th>Email</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </section>
-    </div>
+    <section class="card contacts-card">
+        <div class="contacts-toolbar">
+            <input type="text" id="contactsSearch" placeholder="Search name, mobile, email, client id">
+            <select id="contactsType">
+                <option value="all">All</option>
+                <option value="lawyer">Lawyer</option>
+                <option value="client">Client</option>
+            </select>
+        </div>
+        <table id="contactsTable">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Client ID</th>
+                    <th>Name</th>
+                    <th>Mobile</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </section>
 </div>
 
 <script src="../../assets/js/api.js"></script>
