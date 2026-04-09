@@ -1,4 +1,4 @@
--- AXIS CMS unified database SQL
+﻿-- AXIS CMS unified database SQL
 -- Consolidated from legacy base schema and historical migrations
 -- Canonical single SQL file for schema setup and migration baseline
 
