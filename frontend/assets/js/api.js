@@ -557,10 +557,7 @@ function renderSidebarMenuByAccess(){
         },
         {
             path: "/expenses/expense-list.html",
-            label: "Expenses",
-            children: [
-                { path: "/expenses/expense-list.html", label: "Expense List" }
-            ]
+            label: "Expenses"
         },
         { path: "/finance/finance.html", label: "Finance" },
         {
