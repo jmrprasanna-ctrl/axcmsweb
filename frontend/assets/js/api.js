@@ -113,9 +113,36 @@ const MAPPED_COMPANY_LOGO_URL_KEY = "mappedCompanyLogoUrl";
 const MAPPED_COMPANY_CODE_KEY = "mappedCompanyCode";
 const MAPPED_COMPANY_EMAIL_KEY = "mappedCompanyEmail";
 
+function canonicalizeAccessPath(pathValue){
+    let raw = String(pathValue || "").trim().replace(/\\/g, "/");
+    if(!raw) return "";
+    if(!raw.startsWith("/")){
+        raw = `/${raw}`;
+    }
+    const lower = raw.toLowerCase();
+    if(lower.startsWith("/customers/")){
+        return `/clients/${raw.slice("/customers/".length)}`;
+    }
+    return raw;
+}
+
+function canonicalizeActionKey(actionKeyValue){
+    const raw = String(actionKeyValue || "").trim().toLowerCase();
+    const idx = raw.lastIndexOf("::");
+    if(idx === -1){
+        return raw;
+    }
+    const pathPart = raw.slice(0, idx);
+    const actionPart = raw.slice(idx + 2);
+    const canonicalPath = canonicalizeAccessPath(pathPart).toLowerCase();
+    return `${canonicalPath}::${actionPart}`;
+}
+
 function ensureCoreAllowedPaths(paths){
     const normalized = Array.isArray(paths)
-        ? paths.map((x) => String(x || "").trim().toLowerCase()).filter(Boolean)
+        ? paths
+            .map((x) => canonicalizeAccessPath(x).toLowerCase())
+            .filter(Boolean)
         : [];
     const merged = new Set([
         ...CORE_ALLOWED_PATHS,
@@ -398,7 +425,7 @@ function normalizeAccessPath(value){
     if(!raw.startsWith("/")){
         raw = `/${raw}`;
     }
-    return raw.toLowerCase();
+    return canonicalizeAccessPath(raw).toLowerCase();
 }
 
 function getPagesRelativePrefix(){
@@ -969,7 +996,9 @@ async function loadUserAccessPermissions(){
             try{
                 const cached = JSON.parse(cachedActionsRaw);
                 if(Array.isArray(cached) && cached.length){
-                    USER_ALLOWED_ACTIONS_RUNTIME = Array.from(new Set(cached.map((x)=>String(x || "").trim().toLowerCase()).filter(Boolean)));
+                    USER_ALLOWED_ACTIONS_RUNTIME = Array.from(
+                        new Set(cached.map((x)=>canonicalizeActionKey(x)).filter(Boolean))
+                    );
                 }
             }catch(_e){}
         }
@@ -1006,11 +1035,11 @@ async function loadUserAccessPermissions(){
         const data = await res.json();
         const dynamicAllowedPages = Array.isArray(data.allowed_pages) ? data.allowed_pages : [];
         const normalizedAllowedPages = dynamicAllowedPages
-            .map((x) => String(x || "").trim().toLowerCase())
+            .map((x) => canonicalizeAccessPath(x).toLowerCase())
             .filter(Boolean);
         const dynamicActions = Array.isArray(data.allowed_actions) ? data.allowed_actions : [];
         const normalizedActionKeys = dynamicActions
-            .map((x) => String(x || "").trim().toLowerCase())
+            .map((x) => canonicalizeActionKey(x))
             .filter((x) => x.includes("::"));
         const pagesFromActions = normalizedActionKeys
             .map((x) => x.slice(0, x.lastIndexOf("::")))
@@ -1366,9 +1395,9 @@ async function forgotPassword(){
     }
 }
 function hasUserGrantedPath(path){
-    const target = String(path || "").trim().toLowerCase();
+    const target = canonicalizeAccessPath(path).toLowerCase();
     if(!target) return false;
-    return USER_ALLOWED_PATHS_RUNTIME.some((x) => String(x || "").trim().toLowerCase() === target);
+    return USER_ALLOWED_PATHS_RUNTIME.some((x) => canonicalizeAccessPath(x).toLowerCase() === target);
 }
 window.hasUserGrantedPath = hasUserGrantedPath;
 
@@ -1385,7 +1414,7 @@ function hasUserActionPermission(path, action){
         return true;
     }
 
-    const actionKey = `${String(path || "").trim().toLowerCase()}::${String(action || "").trim().toLowerCase()}`;
+    const actionKey = `${canonicalizeAccessPath(path).toLowerCase()}::${String(action || "").trim().toLowerCase()}`;
     if(USER_ALLOWED_ACTIONS_RUNTIME.includes(actionKey)){
         return true;
     }
