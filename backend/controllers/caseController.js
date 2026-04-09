@@ -1,6 +1,8 @@
-const { Op } = require("sequelize");
+const { Op, fn, col, where } = require("sequelize");
 const LegalCase = require("../models/Case");
 const Customer = require("../models/Customer");
+const Court = require("../models/Court");
+const Lawyer = require("../models/Lawyer");
 const Plaint = require("../models/Plaint");
 const Answer = require("../models/Answer");
 const Witness = require("../models/Witness");
@@ -113,6 +115,50 @@ async function resolveCustomer(customerIdRaw, customerNameRaw) {
         throw new Error("Customer name is required.");
     }
     return { customer_id: null, customer_name: fallbackName };
+}
+
+function isClientValidationError(message) {
+    const text = String(message || "").toLowerCase();
+    if (!text) return false;
+    return (
+        text.includes("is required") ||
+        text.includes("supports up to 1000 words") ||
+        text.includes("selected court is not in saved courts") ||
+        text.includes("selected lawyer is not in saved lawyers") ||
+        text.includes("customer name is required")
+    );
+}
+
+async function resolveCourtAndLawyer(courtRaw, lawyerRaw) {
+    const court = toUpper(courtRaw);
+    const attend_lawyer = toUpper(lawyerRaw);
+    if (!court) {
+        throw new Error("Court is required.");
+    }
+    if (!attend_lawyer) {
+        throw new Error("Attend Lawyer is required.");
+    }
+
+    const [courtRow, lawyerRow] = await Promise.all([
+        Court.findOne({
+            where: where(fn("LOWER", col("name")), court.toLowerCase()),
+        }),
+        Lawyer.findOne({
+            where: where(fn("LOWER", col("name")), attend_lawyer.toLowerCase()),
+        }),
+    ]);
+
+    if (!courtRow) {
+        throw new Error("Selected court is not in saved courts.");
+    }
+    if (!lawyerRow) {
+        throw new Error("Selected lawyer is not in saved lawyers.");
+    }
+
+    return {
+        court: String(courtRow.name || "").trim(),
+        attend_lawyer: String(lawyerRow.name || "").trim(),
+    };
 }
 
 async function isLatestCaseEntry(row) {
@@ -556,10 +602,10 @@ exports.createCase = async (req, res) => {
         const case_no = toUpper(req.body.case_no);
         const case_date = String(req.body.case_date || "").trim() || sriLankaDateYmd();
         const next_date = String(req.body.next_date || "").trim() || null;
-        const court = toUpper(req.body.court);
+        const courtInput = req.body.court;
         const court_type = toOptionalText(req.body.court_type);
         const category = toOptionalText(req.body.category);
-        const attend_lawyer = toUpper(req.body.attend_lawyer);
+        const lawyerInput = req.body.attend_lawyer;
         const case_step = normalizeCaseStep(req.body.case_step, "STEP");
         const comment = toOptionalText(req.body.comment);
         const upload_method = toOptionalText(req.body.upload_method);
@@ -567,8 +613,7 @@ exports.createCase = async (req, res) => {
         const edit_enabled = false;
 
         if (!case_no) return res.status(400).json({ message: "Case No is required." });
-        if (!court) return res.status(400).json({ message: "Court is required." });
-        if (!attend_lawyer) return res.status(400).json({ message: "Attend Lawyer is required." });
+        const support = await resolveCourtAndLawyer(courtInput, lawyerInput);
         if (countWords(comment) > 1000) {
             return res.status(400).json({ message: "Comment supports up to 1000 words." });
         }
@@ -580,10 +625,10 @@ exports.createCase = async (req, res) => {
             next_date,
             customer_id: customer.customer_id,
             customer_name: customer.customer_name,
-            court,
+            court: support.court,
             court_type,
             category,
-            attend_lawyer,
+            attend_lawyer: support.attend_lawyer,
             case_step,
             comment,
             upload_method,
@@ -595,7 +640,9 @@ exports.createCase = async (req, res) => {
         payload = await applyCaseStepTransition(payload);
         res.status(201).json(payload);
     } catch (err) {
-        res.status(500).json({ message: err.message || "Failed to create case." });
+        const msg = err.message || "Failed to create case.";
+        const code = isClientValidationError(msg) ? 400 : 500;
+        res.status(code).json({ message: msg });
     }
 };
 
@@ -673,8 +720,7 @@ exports.updateCase = async (req, res) => {
 
             if (current.edit_enabled || nextEditEnabled) {
                 if (!case_no) return res.status(400).json({ message: "Case No is required." });
-                if (!court) return res.status(400).json({ message: "Court is required." });
-                if (!attend_lawyer) return res.status(400).json({ message: "Attend Lawyer is required." });
+                const support = await resolveCourtAndLawyer(court, attend_lawyer);
                 if (countWords(comment) > 1000) {
                     return res.status(400).json({ message: "Comment supports up to 1000 words." });
                 }
@@ -688,10 +734,10 @@ exports.updateCase = async (req, res) => {
                 updatePayload.next_date = next_date;
                 updatePayload.customer_id = customer.customer_id;
                 updatePayload.customer_name = customer.customer_name;
-                updatePayload.court = court;
+                updatePayload.court = support.court;
                 updatePayload.court_type = court_type;
                 updatePayload.category = category;
-                updatePayload.attend_lawyer = attend_lawyer;
+                updatePayload.attend_lawyer = support.attend_lawyer;
                 updatePayload.case_step = case_step;
                 updatePayload.comment = comment;
             }
@@ -755,7 +801,9 @@ exports.updateCase = async (req, res) => {
         const transitioned = await applyCaseStepTransition(updated);
         res.json(transitioned);
     } catch (err) {
-        res.status(500).json({ message: err.message || "Failed to update case." });
+        const msg = err.message || "Failed to update case.";
+        const code = isClientValidationError(msg) ? 400 : 500;
+        res.status(code).json({ message: msg });
     }
 };
 

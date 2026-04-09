@@ -19,6 +19,8 @@ const uploadPreviewEl = document.getElementById("uploadPreview");
 const formTitleEl = document.getElementById("formTitle");
 const saveBtnEl = document.getElementById("saveCaseBtn");
 let allCustomers = [];
+let allCourts = [];
+let allLawyers = [];
 let cachedUploads = [];
 let selectedUploadMethod = "folder";
 
@@ -164,6 +166,35 @@ function renderCustomerOptions(rows) {
     });
 }
 
+function renderNameOptions(selectEl, rows, firstLabel) {
+    if (!selectEl) return;
+    selectEl.innerHTML = "";
+    const first = document.createElement("option");
+    first.value = "";
+    first.textContent = firstLabel;
+    selectEl.appendChild(first);
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+        const name = String(row?.name || "").trim();
+        if (!name) return;
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        selectEl.appendChild(option);
+    });
+}
+
+function ensureOptionExists(selectEl, value) {
+    if (!selectEl) return;
+    const clean = String(value || "").trim();
+    if (!clean) return;
+    const has = Array.from(selectEl.options || []).some((opt) => String(opt.value || "").trim() === clean);
+    if (has) return;
+    const option = document.createElement("option");
+    option.value = clean;
+    option.textContent = clean;
+    selectEl.appendChild(option);
+}
+
 function syncCustomerIdFromSearch() {
     const current = String(customerSearchEl?.value || "").trim().toUpperCase();
     const found = allCustomers.find((c) => String(c.name || "").trim().toUpperCase() === current);
@@ -173,6 +204,17 @@ function syncCustomerIdFromSearch() {
 async function loadCustomers() {
     allCustomers = await request("/clients", "GET");
     renderCustomerOptions(allCustomers);
+}
+
+async function loadCourtLawyerOptions() {
+    const [courts, lawyers] = await Promise.all([
+        request("/support/courts", "GET"),
+        request("/support/lawyers", "GET"),
+    ]);
+    allCourts = Array.isArray(courts) ? courts : [];
+    allLawyers = Array.isArray(lawyers) ? lawyers : [];
+    renderNameOptions(courtEl, allCourts, "Select Court");
+    renderNameOptions(lawyerEl, allLawyers, "Select Lawyer");
 }
 
 async function loadCaseForEdit() {
@@ -190,6 +232,8 @@ async function loadCaseForEdit() {
         courtTypeEl.value = row.court_type || "";
     }
     syncCategoryOptions(courtTypeEl?.value || "", row.category || "");
+    ensureOptionExists(courtEl, row.court || "");
+    ensureOptionExists(lawyerEl, row.attend_lawyer || "");
     courtEl.value = row.court || "";
     lawyerEl.value = row.attend_lawyer || "";
     commentEl.value = row.comment || "";
@@ -283,7 +327,7 @@ if (caseFormEl) {
 (async function init() {
     try {
         syncCategoryOptions(courtTypeEl?.value || "", "");
-        await loadCustomers();
+        await Promise.all([loadCustomers(), loadCourtLawyerOptions()]);
         await loadCaseForEdit();
     } catch (err) {
         alert(err.message || "Failed to initialize case form.");
