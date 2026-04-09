@@ -35,6 +35,7 @@ const UserLoginLog = require("./models/UserLoginLog");
 
          
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const contactRoutes = require("./routes/contactRoutes");
 const productRoutes = require("./routes/productRoutes");
 const customerRoutes = require("./routes/customerRoutes");
 const vendorRoutes = require("./routes/vendorRoutes");
@@ -637,6 +638,15 @@ async function ensureSupportImportantSchema() {
   });
 }
 
+async function ensureLawyerEmailSchema() {
+  await runOnBusinessDatabases(async () => {
+    await db.query(`
+      ALTER TABLE lawyers
+      ADD COLUMN IF NOT EXISTS email VARCHAR(200);
+    `);
+  });
+}
+
 async function ensureInvoiceImportantWarrantySchema() {
   await runOnBusinessDatabases(async () => {
     await db.query(`
@@ -948,6 +958,7 @@ app.use("/storage", express.static(path.resolve(__dirname, "storage")));
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/contacts", contactRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/clients", customerRoutes);
 app.use("/api/vendors", vendorRoutes);
@@ -1033,6 +1044,7 @@ async function startServer() {
     await ensureInvoiceNumberingSchema();
     await ensureInvoicePaymentSchema();
     await ensureInvoiceAmountSchema();
+    await ensureLawyerEmailSchema();
     await ensureSupportImportantSchema();
     await ensureInvoiceImportantWarrantySchema();
     await ensureDefaultCategories();

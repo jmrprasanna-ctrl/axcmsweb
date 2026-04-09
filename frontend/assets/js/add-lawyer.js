@@ -41,6 +41,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     const addressInput = document.getElementById("lawyerAddress");
     const areaSelect = document.getElementById("lawyerArea");
     const mobileInput = document.getElementById("lawyerMobile");
+    const emailInput = document.getElementById("lawyerEmail");
     const form = document.getElementById("addLawyerForm");
 
     async function loadCourtAreas(){
@@ -82,12 +83,17 @@ window.addEventListener("DOMContentLoaded", async () => {
         const address = String(addressInput?.value || "").trim().toUpperCase();
         const area = String(areaSelect?.value || "").trim().toUpperCase();
         const mobile = String(mobileInput?.value || "").trim();
+        const email = String(emailInput?.value || "").trim().toLowerCase();
         if (!name) {
             alert("Lawyer name is required.");
             return;
         }
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            alert("Enter a valid email.");
+            return;
+        }
         try {
-            await request("/support/lawyers", "POST", { name, address, area, mobile });
+            await request("/support/lawyers", "POST", { name, address, area, mobile, email });
             showMessageBox("Lawyer added successfully");
             form.reset();
             if (input) input.focus();

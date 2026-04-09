@@ -9,6 +9,7 @@ const Lawyer = db.define(
     address: { type: DataTypes.STRING(255), allowNull: true },
     area: { type: DataTypes.STRING(150), allowNull: true },
     mobile: { type: DataTypes.STRING(60), allowNull: true },
+    email: { type: DataTypes.STRING(200), allowNull: true },
     createdAt: { type: DataTypes.DATE, allowNull: true, defaultValue: DataTypes.NOW },
     updatedAt: { type: DataTypes.DATE, allowNull: true, defaultValue: DataTypes.NOW },
   },

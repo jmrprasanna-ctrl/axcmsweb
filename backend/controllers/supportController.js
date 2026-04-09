@@ -10,6 +10,13 @@ function normalizeText(value) {
   return String(value || "").trim().replace(/\s+/g, " ").toUpperCase();
 }
 
+function normalizeEmail(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!normalized) return "";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) return "";
+  return normalized.slice(0, 200);
+}
+
 async function listRows(model, res, label) {
   try {
     const rows = await model.findAll({ order: [["name", "ASC"], ["id", "DESC"]] });
@@ -25,8 +32,12 @@ async function addRow(model, req, res, label) {
     const address = normalizeText(req.body?.address);
     const area = normalizeText(req.body?.area);
     const mobile = label === "Lawyer" ? normalizeText(req.body?.mobile) : "";
+    const email = label === "Lawyer" ? normalizeEmail(req.body?.email) : "";
     if (!name) {
       return res.status(400).json({ message: `${label} name is required.` });
+    }
+    if (label === "Lawyer" && req.body?.email && !email) {
+      return res.status(400).json({ message: "Valid lawyer email is required." });
     }
 
     const exists = await model.findOne({
@@ -40,7 +51,7 @@ async function addRow(model, req, res, label) {
       name,
       address: address || null,
       area: area || null,
-      ...(label === "Lawyer" ? { mobile: mobile || null } : {})
+      ...(label === "Lawyer" ? { mobile: mobile || null, email: email || null } : {})
     });
     res.status(201).json(created);
   } catch (err) {

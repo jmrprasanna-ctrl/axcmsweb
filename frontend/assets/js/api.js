@@ -76,6 +76,7 @@ const BASELINE_LEFT_PANEL_PATHS = [
     "/cases/edit-judgment.html",
     "/cases/finished.html",
     "/dashboard.html",
+    "/contacts/contacts.html",
     "/calendar.html",
     "/clients/client-list.html",
     "/clients/Add-Client.html",
@@ -493,6 +494,7 @@ function renderSidebarMenuByAccess(){
         { path: "/clients/Add-Client.html", label: "Add Client" }
     ] : [
         { path: "/dashboard.html", label: "Dashboard" },
+        { path: "/contacts/contacts.html", label: "Contacts" },
         { path: "/calendar.html", label: "Calender" },
         { path: "/clients/client-list.html", label: "Client" },
         { path: "/clients/Add-Client.html", label: "Add Client" },
@@ -545,6 +547,7 @@ function renderSidebarMenuByAccess(){
 
     const groups = [
         { path: "/dashboard.html", label: "Dashboard" },
+        { path: "/contacts/contacts.html", label: "Contacts" },
         { path: "/calendar.html", label: "Calender" },
         {
             path: "/clients/client-list.html",

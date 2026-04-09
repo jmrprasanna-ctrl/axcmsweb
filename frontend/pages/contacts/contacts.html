@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Finished Cases - AXIS_CMS_WEB</title>
+<title>Contacts - AXIS_CMS_WEB</title>
 <link rel="stylesheet" href="../../assets/css/style.css">
 <link rel="stylesheet" href="../../assets/css/dashboard.css">
-<link rel="stylesheet" href="../../assets/css/cases.css">
+<link rel="stylesheet" href="../../assets/css/contacts.css">
 </head>
 <body>
 <div class="sidebar">
@@ -19,8 +19,8 @@
         <li><a href="../contacts/contacts.html">Contacts</a></li>
         <li><a href="../calendar.html">Calender</a></li>
         <li><a href="../clients/client-list.html">Client</a></li>
-        <li><a href="case-list.html">Cases</a></li>
-        <li><a href="finished.html">Finished</a></li>
+        <li><a href="../cases/case-list.html">Cases</a></li>
+        <li><a href="../cases/finished.html">Finished</a></li>
         <li><a href="../invoices/invoice-list.html">Payments</a></li>
         <li><a href="../expenses/expense-list.html">Expenses</a></li>
         <li><a href="../finance/finance.html">Finance</a></li>
@@ -29,45 +29,48 @@
 </div>
 
 <div class="main-content">
-    <header class="cases-page-header">
-        <h2>Finished Cases</h2>
+    <header class="contacts-page-header">
+        <h2>Contacts</h2>
         <a class="icon-btn back-icon-btn" href="../dashboard.html" title="Back" aria-label="Back">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
             </svg>
         </a>
     </header>
-    <div class="form-container">
-        <div class="cases-toolbar">
-            <input type="text" id="finishedSearch" class="search-inline" placeholder="Search Case No, Customer, Court, Lawyer">
-        </div>
-        <div class="customer-table-wrap">
-            <table id="finishedCasesTable">
+
+    <div class="contacts-grid">
+        <section class="card">
+            <h3>Lawyer Contacts</h3>
+            <table id="lawyerContactsTable">
                 <thead>
                     <tr>
-                        <th>Date</th>
-                        <th>Case No</th>
-                        <th>Customer Name</th>
-                        <th>Court</th>
-                        <th>Attend Lawyer</th>
-                        <th>Uploads</th>
-                        <th>Status</th>
+                        <th>Name</th>
+                        <th>Mobile</th>
+                        <th>Email</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
             </table>
-        </div>
+        </section>
+
+        <section class="card">
+            <h3>Client Contacts</h3>
+            <table id="clientContactsTable">
+                <thead>
+                    <tr>
+                        <th>Client ID</th>
+                        <th>Name</th>
+                        <th>Mobile</th>
+                        <th>Email</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </section>
     </div>
 </div>
 
-<script src="../../assets/js/api.js?v=20260404p13"></script>
-<script src="../../assets/js/finished-list.js?v=20260403p01"></script>
+<script src="../../assets/js/api.js"></script>
+<script src="../../assets/js/contacts.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-

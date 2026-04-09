@@ -106,6 +106,7 @@ const MANUAL_ACCESS_MODULE_OPTIONS = [
     module: "Core",
     items: [
       { path: "/dashboard.html", label: "Dashboard", actions: ["view"] },
+      { path: "/contacts/contacts.html", label: "Contacts", actions: ["view"] },
       { path: "/calendar.html", label: "Calendar", actions: ["view"] },
     ],
   },
