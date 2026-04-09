@@ -1,0 +1,46 @@
+.invoice-list-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.invoice-list-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.invoice-list-actions .search-inline {
+  margin: 0;
+  flex: 1 1 auto;
+}
+
+.invoice-list-card {
+  margin-top: 0;
+}
+
+#invoiceTable tbody tr {
+  cursor: pointer;
+}
+
+#invoiceTable tbody tr:hover {
+  background: #f4f9ff;
+}
+
+#invoiceTable td.amount-col {
+  font-weight: 700;
+  color: #10395f;
+}
+
+@media (max-width: 900px) {
+  .invoice-list-actions {
+    flex-wrap: wrap;
+  }
+
+  .invoice-list-actions .search-inline {
+    width: 100%;
+  }
+}

@@ -132,6 +132,7 @@ const MANUAL_ACCESS_MODULE_OPTIONS = [
   {
     module: "Invoices",
     items: [
+      { path: "/invoices/invoice-list.html", label: "Invoice List", actions: ["view"] },
       { path: "/invoices/create-invoice.html", label: "Create Invoice", actions: ["view", "add", "edit"] },
       { path: "/invoices/view-invoice.html", label: "View Invoice", actions: ["view"] },
     ],
@@ -209,8 +210,10 @@ const LEGACY_PATH_ALIASES = new Map([
   ["/customers/client-list.html", ["/clients/client-list.html"]],
   ["/customers/Add-Client.html", ["/clients/Add-Client.html"]],
   ["/customers/edit-customer.html", ["/clients/edit-customer.html"]],
-  ["/invoices/invoice-list.html", ["/invoices/create-invoice.html"]],
-  ["/invoices/payments-list.html", ["/invoices/create-invoice.html"]],
+  ["/invoices/payments-list.html", ["/invoices/invoice-list.html"]],
+  ["/invoices/invoice-list.html", ["/invoices/invoice-list.html"]],
+  ["/invoices/create-invoice.html", ["/invoices/create-invoice.html", "/invoices/invoice-list.html"]],
+  ["/invoices/view-invoice.html", ["/invoices/view-invoice.html", "/invoices/invoice-list.html"]],
   ["/support/support.html", ["/support/lawyer-list.html", "/support/court-list.html"]],
   ["/tools/check-backup.html", ["/users/backup.html"]],
   ["/tools/backup-download.html", ["/users/backup.html"]],

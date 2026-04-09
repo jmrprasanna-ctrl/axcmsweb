@@ -110,7 +110,7 @@ document.getElementById("invoiceForm").addEventListener("submit", async function
 const backToInvoiceListBtn = document.getElementById("backToInvoiceListBtn");
 if (backToInvoiceListBtn) {
     backToInvoiceListBtn.addEventListener("click", () => {
-        window.location.href = "view-invoice.html";
+        window.location.href = "invoice-list.html";
     });
 }
 

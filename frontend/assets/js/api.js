@@ -79,6 +79,7 @@ const BASELINE_LEFT_PANEL_PATHS = [
     "/calendar.html",
     "/clients/client-list.html",
     "/clients/Add-Client.html",
+    "/invoices/invoice-list.html",
     "/invoices/create-invoice.html",
     "/expenses/expense-list.html",
     "/finance/finance.html",
@@ -122,6 +123,9 @@ function canonicalizeAccessPath(pathValue){
     const lower = raw.toLowerCase();
     if(lower.startsWith("/customers/")){
         return `/clients/${raw.slice("/customers/".length)}`;
+    }
+    if(lower === "/invoices/payments-list.html"){
+        return "/invoices/invoice-list.html";
     }
     return raw;
 }
@@ -498,6 +502,7 @@ function renderSidebarMenuByAccess(){
         { path: "/cases/witness-list.html", label: "List of witnesses" },
         { path: "/cases/judgment-list.html", label: "Dudgement" },
         { path: "/cases/finished.html", label: "Finished" },
+        { path: "/invoices/invoice-list.html", label: "Invoice List" },
         { path: "/invoices/create-invoice.html", label: "Create Invoice" },
         { path: "/invoices/view-invoice.html", label: "View Invoice" },
         { path: "/expenses/expense-list.html", label: "Expense List" },
@@ -519,9 +524,19 @@ function renderSidebarMenuByAccess(){
         ((role === "manager" || role === "admin") && getAccessConfigState() === true)
         );
     const granted = menuEntries.filter((entry) => hasUserGrantedPath(entry.path));
-    const finalMenu = shouldEnforceAllowedPages
+    const finalMenuBase = shouldEnforceAllowedPages
         ? (granted.length ? granted : [{ path: "/dashboard.html", label: "Dashboard" }])
         : menuEntries;
+    const finalMenu = finalMenuBase.slice();
+    const hasInvoiceList = finalMenu.some((entry) => normalizeAccessPath(entry.path) === "/invoices/invoice-list.html");
+    const hasLegacyInvoiceAccess = finalMenu.some((entry) => {
+        const normalized = normalizeAccessPath(entry.path);
+        return normalized === "/invoices/create-invoice.html" || normalized === "/invoices/view-invoice.html";
+    });
+    if(!hasInvoiceList && hasLegacyInvoiceAccess){
+        finalMenu.push({ path: "/invoices/invoice-list.html", label: "Invoice List" });
+    }
+
     const signature = finalMenu.map((entry) => String(entry.path || "").trim().toLowerCase()).join("|");
     if(window.__lastAccessMenuSignature === signature){
         return;
@@ -547,14 +562,7 @@ function renderSidebarMenuByAccess(){
             ]
         },
         { path: "/cases/finished.html", label: "Finished" },
-        {
-            path: "/invoices/create-invoice.html",
-            label: "Invoices",
-            children: [
-                { path: "/invoices/create-invoice.html", label: "Create Invoice" },
-                { path: "/invoices/view-invoice.html", label: "View Invoice" }
-            ]
-        },
+        { path: "/invoices/invoice-list.html", label: "Invoices" },
         {
             path: "/expenses/expense-list.html",
             label: "Expenses"

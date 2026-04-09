@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Finished Cases - AXIS_CMS_WEB</title>
+<title>Invoice List - AXIS_CMS_WEB</title>
 <link rel="stylesheet" href="../../assets/css/style.css">
 <link rel="stylesheet" href="../../assets/css/dashboard.css">
-<link rel="stylesheet" href="../../assets/css/cases.css">
+<link rel="stylesheet" href="../../assets/css/invoice-list.css">
 </head>
 <body>
 <div class="sidebar">
@@ -14,42 +14,43 @@
         <img src="../../assets/images/logo.png" alt="Logo">
         <span>AXIS_CMS_WEB</span>
     </div>
-    <ul class="nav-links" style="visibility:hidden;">
+    <ul class="nav-links">
         <li><a href="../dashboard.html">Dashboard</a></li>
-        <li><a href="../calendar.html">Calender</a></li>
         <li><a href="../clients/client-list.html">Client</a></li>
-        <li><a href="case-list.html">Cases</a></li>
-        <li><a href="finished.html">Finished</a></li>
-        <li><a href="../invoices/invoice-list.html">Payments</a></li>
+        <li><a href="../invoices/invoice-list.html">Invoices</a></li>
         <li><a href="../expenses/expense-list.html">Expenses</a></li>
-        <li><a href="../finance/finance.html">Finance</a></li>
-        <li><a href="../users/user-list.html">Users</a></li>
+        <li><a href="../analytics/sales-chart.html">Analytics</a></li>
     </ul>
 </div>
 
 <div class="main-content">
-    <header class="cases-page-header">
-        <h2>Finished Cases</h2>
+    <header class="invoice-list-page-header">
+        <h2>Invoice List</h2>
         <a class="icon-btn back-icon-btn" href="../dashboard.html" title="Back" aria-label="Back">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
             </svg>
         </a>
     </header>
+
     <div class="form-container">
-        <div class="cases-toolbar">
-            <input type="text" id="finishedSearch" class="search-inline" placeholder="Search Case No, Customer, Court, Lawyer">
+        <div class="invoice-list-actions">
+            <input type="text" id="invoiceSearch" class="search-inline" placeholder="Search Invoice No, Client, Description, Status">
+            <a class="icon-btn add-icon-btn" href="create-invoice.html" id="addInvoiceBtn" title="Add Invoice" aria-label="Add Invoice">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path>
+                </svg>
+            </a>
         </div>
-        <div class="customer-table-wrap">
-            <table id="finishedCasesTable">
+        <div class="card invoice-list-card">
+            <table id="invoiceTable">
                 <thead>
                     <tr>
+                        <th>Invoice No</th>
                         <th>Date</th>
-                        <th>Case No</th>
-                        <th>Customer Name</th>
-                        <th>Court</th>
-                        <th>Attend Lawyer</th>
-                        <th>Uploads</th>
+                        <th>Client</th>
+                        <th>Description</th>
+                        <th>Amount</th>
                         <th>Status</th>
                     </tr>
                 </thead>
@@ -59,14 +60,7 @@
     </div>
 </div>
 
-<script src="../../assets/js/api.js?v=20260404p13"></script>
-<script src="../../assets/js/finished-list.js?v=20260403p01"></script>
+<script src="../../assets/js/api.js"></script>
+<script src="../../assets/js/invoice-list.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-
