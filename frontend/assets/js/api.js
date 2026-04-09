@@ -1222,6 +1222,12 @@ async function request(endpoint, method="GET", data=null){
     if(data) options.body = JSON.stringify(data);
 
     const path = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+    const legacyFallbackPaths = [];
+    if(path.startsWith("/clients")){
+        legacyFallbackPaths.push(`/customers${path.slice("/clients".length)}`);
+    }else if(path.startsWith("/customers")){
+        legacyFallbackPaths.push(`/clients${path.slice("/customers".length)}`);
+    }
     const authFallbackUrl = `${window.location.origin.replace(/\/+$/, "")}/api${path}`;
     const apiOrigin = BASE_URL.replace(/\/api$/,"");
     const isLoginRequest = method.toUpperCase() === "POST" && path === "/auth/login";
@@ -1270,6 +1276,26 @@ async function request(endpoint, method="GET", data=null){
     }
 
     if(!res.ok){
+        if(res.status === 404 && !isAuthEndpoint && legacyFallbackPaths.length){
+            for(const fallbackPath of legacyFallbackPaths){
+                try{
+                    const fallbackRes = await fetch(BASE_URL + fallbackPath, options);
+                    const fallbackRaw = await fallbackRes.text();
+                    let fallbackResult = {};
+                    if(fallbackRaw){
+                        try{
+                            fallbackResult = JSON.parse(fallbackRaw);
+                        }catch(_err){
+                            fallbackResult = { message: fallbackRaw };
+                        }
+                    }
+                    if(fallbackRes.ok){
+                        return fallbackResult;
+                    }
+                }catch(_err){
+                }
+            }
+        }
         if(res.status === 404 && isAuthEndpoint){
             try{
                 const retryRes = await fetch(authFallbackUrl, options);
