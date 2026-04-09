@@ -30,7 +30,12 @@
     <header class="drawyer-page-header">
         <h2>Drawyer</h2>
         <div class="drawyer-actions">
-            <button type="button" class="btn btn-secondary" id="drawyerSyncBtn">Sync Drive</button>
+            <button type="button" class="icon-btn" id="drawyerSyncBtn" title="Sync Drive" aria-label="Sync Drive">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M20 12a8 8 0 1 1-2.34-5.66" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M20 4v6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
             <a class="icon-btn back-icon-btn" href="../dashboard.html" title="Back" aria-label="Back">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
@@ -40,7 +45,6 @@
     </header>
 
     <div class="card">
-        <p class="drawyer-hint">Case files grouped by folder (Case/Plaint/Answer/Witness/Judgment). Uploads and captured files appear here.</p>
         <div id="drawyerCases"></div>
     </div>
 </div>
