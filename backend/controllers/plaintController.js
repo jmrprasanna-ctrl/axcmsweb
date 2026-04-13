@@ -130,8 +130,72 @@ async function promoteLinkedCaseToAnswerStep(caseIdRaw) {
     return caseRow;
 }
 
+async function ensurePlaintEntriesForPlaintStepCases() {
+    const plaintStepCases = await LegalCase.findAll({
+        where: { case_step: "PLAINT_STEP" },
+        attributes: [
+            "id",
+            "case_date",
+            "customer_id",
+            "customer_name",
+            "case_no",
+            "court",
+            "attend_lawyer",
+            "comment",
+            "upload_method",
+            "uploads_json",
+        ],
+        order: [["case_date", "DESC"], ["id", "DESC"]],
+    });
+    if (!Array.isArray(plaintStepCases) || !plaintStepCases.length) return;
+
+    const caseIds = plaintStepCases
+        .map((row) => Number(row.id || 0))
+        .filter((id) => Number.isFinite(id) && id > 0);
+    if (!caseIds.length) return;
+
+    const existingRows = await Plaint.findAll({
+        where: { case_id: caseIds },
+        attributes: ["id", "case_id"],
+        raw: true,
+    });
+    const existingCaseIds = new Set(
+        (Array.isArray(existingRows) ? existingRows : [])
+            .map((row) => Number(row.case_id || 0))
+            .filter((id) => Number.isFinite(id) && id > 0)
+    );
+
+    for (const row of plaintStepCases) {
+        const plain = row.toJSON ? row.toJSON() : row;
+        const caseId = Number(plain.id || 0);
+        if (!Number.isFinite(caseId) || caseId <= 0) continue;
+        if (existingCaseIds.has(caseId)) continue;
+
+        await Plaint.create({
+            plaint_date: String(plain.case_date || "").trim() || new Date().toISOString().slice(0, 10),
+            case_id: caseId,
+            customer_id: Number(plain.customer_id || 0) > 0 ? Number(plain.customer_id) : null,
+            customer_name: String(plain.customer_name || "").trim(),
+            case_no: String(plain.case_no || "").trim(),
+            court: String(plain.court || "").trim(),
+            attend_lawyer: String(plain.attend_lawyer || "").trim(),
+            plaint_step: "STEP",
+            comment: toOptionalText(plain.comment),
+            upload_method: toOptionalText(plain.upload_method),
+            uploads_json: normalizeUploads(plain.uploads_json),
+            answer: null,
+            witness_list: null,
+            dudgement: null,
+            finished: false,
+            edit_enabled: false,
+        });
+        existingCaseIds.add(caseId);
+    }
+}
+
 exports.getPlaints = async (req, res) => {
     try {
+        await ensurePlaintEntriesForPlaintStepCases();
         const q = String(req.query.q || "").trim();
         const step = normalizePlaintStep(req.query.step, "");
         const where = {};
