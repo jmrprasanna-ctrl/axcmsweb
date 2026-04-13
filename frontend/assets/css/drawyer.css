@@ -10,6 +10,23 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.drawyer-actions .icon-btn,
+.drawyer-actions .back-icon-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-grid;
+  place-items: center;
+}
+
+.drawyer-actions .icon-btn svg,
+.drawyer-actions .back-icon-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .drawyer-hint {
