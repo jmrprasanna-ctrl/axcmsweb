@@ -118,7 +118,11 @@ function addServiceRow(initial = {}) {
             <input class="service-amount" type="number" min="0" step="0.01" value="${Number(initial.amount || 0)}" placeholder="0.00" required>
         </td>
         <td>
-            <button class="btn btn-inline btn-danger service-remove-btn" type="button">Remove</button>
+            <button class="icon-btn delete-line-icon-btn service-remove-btn" type="button" title="Delete" aria-label="Delete">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M6 7h12M9.5 7V5.5h5V7M10 10.5v6M14 10.5v6M7.5 7l.7 10.2a1.5 1.5 0 0 0 1.5 1.4h4.6a1.5 1.5 0 0 0 1.5-1.4L16.5 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+            </button>
         </td>
     `;
 

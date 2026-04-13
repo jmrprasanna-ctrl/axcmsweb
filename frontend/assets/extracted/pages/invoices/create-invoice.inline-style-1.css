@@ -202,10 +202,26 @@ html, body { overflow-x: hidden; }
     font-size: 17px;
     color: #14385d;
 }
-.invoice-services-hint {
-    margin: 8px 0 12px;
-    color: #4b6480;
-    font-size: 13px;
+.add-line-icon-btn,
+.delete-line-icon-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+}
+.add-line-icon-btn svg,
+.delete-line-icon-btn svg {
+    width: 18px;
+    height: 18px;
+}
+.delete-line-icon-btn {
+    color: #b42318;
+    border-color: #f3c0ba;
+    background: #fff5f4;
+}
+.delete-line-icon-btn:hover {
+    background: #ffe9e6;
 }
 #serviceLinesTable th,
 #serviceLinesTable td {
@@ -224,7 +240,7 @@ html, body { overflow-x: hidden; }
 #serviceLinesTable .service-remove-btn {
     height: 40px;
     margin: 0;
-    width: 100%;
+    width: 40px;
 }
 .invoice-services-total {
     margin-top: 10px;
