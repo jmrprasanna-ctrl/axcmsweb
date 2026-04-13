@@ -33,7 +33,7 @@ function buildFileRow(file, caseNo, moduleName, index){
             <div>${status}</div>
             <div class="drawyer-actions-row">
                 ${openLink}
-                <button type="button" class="download-btn" data-case="${escapeHtml(caseNo)}" data-module="${escapeHtml(moduleName)}" data-index="${index}">Download</button>
+                <button type="button" class="download-btn" data-case="${escapeHtml(caseNo)}" data-module="${escapeHtml(moduleName)}" data-source_table="${escapeHtml(file.source_table || "")}" data-source_id="${escapeHtml(file.source_id || "")}" data-file_index="${escapeHtml(file.file_index || "")}" data-file_name="${escapeHtml(file.file_name || "")}">Download</button>
                 <button type="button" class="delete-btn" data-case="${escapeHtml(caseNo)}" data-module="${escapeHtml(moduleName)}" data-source_table="${escapeHtml(file.source_table || "")}" data-source_id="${escapeHtml(file.source_id || "")}" data-file_index="${escapeHtml(file.file_index || "")}">Delete</button>
             </div>
         </div>
@@ -111,11 +111,16 @@ function renderCases(cases){
     host.innerHTML = rows.map(buildCaseHtml).join("");
 }
 
-async function downloadFile(caseNo, moduleName, index){
-    const url = `/api/drawyer/download?case_no=${encodeURIComponent(caseNo)}&module=${encodeURIComponent(moduleName)}&index=${encodeURIComponent(index)}`;
+async function downloadFile(caseNo, moduleName, sourceTable, sourceId, fileIndex, fileName){
+    let url;
+    if (sourceTable && sourceId && fileIndex !== "") {
+        url = `/api/drawyer/download?source_table=${encodeURIComponent(sourceTable)}&source_id=${encodeURIComponent(sourceId)}&file_index=${encodeURIComponent(fileIndex)}`;
+    } else {
+        url = `/api/drawyer/download?case_no=${encodeURIComponent(caseNo)}&module=${encodeURIComponent(moduleName)}&index=${encodeURIComponent(fileIndex)}`;
+    }
     const downloadLink = document.createElement("a");
     downloadLink.href = url;
-    downloadLink.download = "";
+    downloadLink.download = String(fileName || "");
     document.body.appendChild(downloadLink);
     downloadLink.click();
     document.body.removeChild(downloadLink);
@@ -171,8 +176,11 @@ function handleDrawyerClick(event){
     if(downloadBtn){
         const caseNo = downloadBtn.dataset.case || "";
         const moduleName = downloadBtn.dataset.module || "";
-        const index = downloadBtn.dataset.index || "0";
-        downloadFile(caseNo, moduleName, index);
+        const sourceTable = downloadBtn.dataset.source_table || "";
+        const sourceId = downloadBtn.dataset.source_id || "";
+        const fileIndex = downloadBtn.dataset.file_index || "";
+        const fileName = downloadBtn.dataset.file_name || "";
+        downloadFile(caseNo, moduleName, sourceTable, sourceId, fileIndex, fileName);
         return;
     }
 

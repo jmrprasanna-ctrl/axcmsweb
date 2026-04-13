@@ -119,6 +119,43 @@ async function getDrawyerFileEntry(caseNo, moduleName, fileIndex) {
   return null;
 }
 
+async function getDrawyerFileEntryBySource(sourceTable, sourceId, fileIndex) {
+  const def = findSourceDefByKey(sourceTable || "");
+  if (!def) return null;
+
+  const id = Number(sourceId || 0);
+  if (!Number.isFinite(id) || id <= 0) return null;
+  const index = Number(fileIndex || 0);
+  if (!Number.isFinite(index) || index < 0) return null;
+
+  const row = await def.model.findByPk(id, {
+    attributes: ["id", "case_no", "uploads_json", "upload_method", "updatedAt", "createdAt"],
+  });
+  if (!row) return null;
+
+  const plain = row.toJSON ? row.toJSON() : row;
+  const uploads = Array.isArray(plain.uploads_json) ? plain.uploads_json : [];
+  if (index >= uploads.length) return null;
+
+  const parsed = parseDataUrl(uploads[index]);
+  if (!parsed || !parsed.buffer?.length) return null;
+
+  const ext = String(parsed.mime || "").toLowerCase().includes("pdf") ? "pdf" : (String(parsed.mime || "").split("/")[1] || "bin");
+  const fileName = `${def.module}_${String(plain.case_no || "case").replace(/\s+/g, "_")}_${Number(plain.id || 0)}_${index + 1}.${ext}`;
+  return {
+    source_table: def.source,
+    source_id: Number(plain.id || 0),
+    case_no: String(plain.case_no || "").trim(),
+    module_name: def.module,
+    file_index: index,
+    file_name: fileName,
+    mime: parsed.mime,
+    buffer: parsed.buffer,
+    upload_method: String(plain.upload_method || "").trim() || "local",
+    updated_at: plain.updatedAt || plain.updated_at || null,
+  };
+}
+
 function groupEntries(entries, syncedHashSet, syncMetaByHash) {
   const byCase = new Map();
   (Array.isArray(entries) ? entries : []).forEach((entry) => {
