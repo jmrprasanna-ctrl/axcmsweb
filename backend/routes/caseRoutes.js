@@ -6,6 +6,8 @@ const roleMiddleware = require("../middleware/roleMiddleware");
 const manageOrDemoUserMiddleware = require("../middleware/manageOrDemoUserMiddleware");
 
 router.get("/", authMiddleware, roleMiddleware(["admin", "manager", "user"]), caseController.getCases);
+router.get("/folders", authMiddleware, roleMiddleware(["admin", "manager", "user"]), caseController.getCaseFolders);
+router.get("/folder-documents", authMiddleware, roleMiddleware(["admin", "manager", "user"]), caseController.getFolderDocuments);
 router.get("/calendar-feed", authMiddleware, roleMiddleware(["admin", "manager", "user"]), caseController.getCalendarCases);
 router.get("/:id", authMiddleware, roleMiddleware(["admin", "manager", "user"]), caseController.getCaseById);
 router.post("/", authMiddleware, roleMiddleware(["admin", "manager", "user"]), caseController.createCase);

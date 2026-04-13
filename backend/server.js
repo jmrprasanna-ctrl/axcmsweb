@@ -1021,6 +1021,7 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({extended:true}));
 app.use("/storage", express.static(path.resolve(__dirname, "storage")));
+app.use("/uploads", express.static(path.resolve(__dirname, "uploads")));
 
          
 app.use("/api/auth", authRoutes);

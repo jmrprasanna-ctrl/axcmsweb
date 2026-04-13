@@ -37,6 +37,126 @@
     -webkit-overflow-scrolling: touch;
 }
 
+.folders-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    padding: 20px;
+}
+
+.case-folder {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.case-folder:hover {
+    background: #e9ecef;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.folder-icon {
+    font-size: 48px;
+    color: #ffc107;
+    margin-bottom: 10px;
+}
+
+.case-folder h3 {
+    margin: 0 0 5px 0;
+    font-size: 16px;
+    color: #495057;
+}
+
+.case-folder p {
+    margin: 0;
+    font-size: 14px;
+    color: #6c757d;
+}
+
+.subfolders {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+    width: 100%;
+}
+
+.subfolder {
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.subfolder:hover {
+    background: #f8f9fa;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+.subfolder-icon {
+    font-size: 32px;
+    color: #28a745;
+    margin-bottom: 5px;
+}
+
+.subfolder span {
+    font-size: 14px;
+    color: #495057;
+    font-weight: 500;
+}
+
+.documents-list {
+    margin-top: 15px;
+}
+
+.document-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+.document-item a {
+    color: #007bff;
+    text-decoration: none;
+    flex-grow: 1;
+}
+
+.document-item a:hover {
+    text-decoration: underline;
+}
+
+.download-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.download-btn:hover {
+    background: #218838;
+}
+
 .history-panel .customer-table-wrap table {
     min-width: 560px;
 }

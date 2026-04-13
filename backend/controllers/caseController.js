@@ -829,3 +829,139 @@ exports.deleteCase = async (req, res) => {
         res.status(500).json({ message: err.message || "Failed to delete case." });
     }
 };
+
+exports.getCaseFolders = async (req, res) => {
+    try {
+        const q = String(req.query.q || "").trim();
+        const where = {};
+        if (q) {
+            where[Op.or] = [
+                { case_no: { [Op.iLike]: `%${q}%` } },
+                { customer_name: { [Op.iLike]: `%${q}%` } },
+                { court: { [Op.iLike]: `%${q}%` } },
+                { attend_lawyer: { [Op.iLike]: `%${q}%` } },
+            ];
+        }
+        const caseRows = await LegalCase.findAll({
+            where,
+            attributes: ["id", "case_no", "case_step", "customer_name", "court", "attend_lawyer", "uploads_json"],
+            order: [["case_no", "ASC"], ["case_date", "DESC"], ["id", "DESC"]],
+            raw: true,
+        });
+        const caseNos = [...new Set(caseRows.map(row => String(row.case_no || "").trim()).filter(Boolean))];
+        const plaintRows = caseNos.length ? await Plaint.findAll({
+            where: { case_no: caseNos },
+            attributes: ["id", "case_no", "uploads_json"],
+            order: [["case_no", "ASC"], ["plaint_date", "DESC"], ["id", "DESC"]],
+            raw: true,
+        }) : [];
+        const answerRows = caseNos.length ? await Answer.findAll({
+            where: { case_no: caseNos },
+            attributes: ["id", "case_no", "uploads_json"],
+            order: [["case_no", "ASC"], ["answer_date", "DESC"], ["id", "DESC"]],
+            raw: true,
+        }) : [];
+        const witnessRows = caseNos.length ? await Witness.findAll({
+            where: { case_no: caseNos },
+            attributes: ["id", "case_no", "uploads_json"],
+            order: [["case_no", "ASC"], ["witness_date", "DESC"], ["id", "DESC"]],
+            raw: true,
+        }) : [];
+        const judgmentRows = caseNos.length ? await Judgment.findAll({
+            where: { case_no: caseNos },
+            attributes: ["id", "case_no", "uploads_json"],
+            order: [["case_no", "ASC"], ["judgment_date", "DESC"], ["id", "DESC"]],
+            raw: true,
+        }) : [];
+
+        const caseMap = new Map();
+        caseRows.forEach(row => {
+            const caseNo = String(row.case_no || "").trim();
+            if (!caseNo) return;
+            if (!caseMap.has(caseNo)) {
+                caseMap.set(caseNo, {
+                    case_no: caseNo,
+                    customer_name: row.customer_name,
+                    court: row.court,
+                    attend_lawyer: row.attend_lawyer,
+                    subfolders: []
+                });
+            }
+            const caseData = caseMap.get(caseNo);
+            if (normalizeCaseStep(row.case_step) === "STEP" && Array.isArray(row.uploads_json) && row.uploads_json.length > 0) {
+                if (!caseData.subfolders.some(f => f.type === "step")) {
+                    caseData.subfolders.push({ type: "step", has_uploads: true });
+                }
+            }
+        });
+
+        const addSubfolder = (rows, type) => {
+            rows.forEach(row => {
+                const caseNo = String(row.case_no || "").trim();
+                if (!caseNo || !caseMap.has(caseNo)) return;
+                const caseData = caseMap.get(caseNo);
+                if (Array.isArray(row.uploads_json) && row.uploads_json.length > 0) {
+                    if (!caseData.subfolders.some(f => f.type === type)) {
+                        caseData.subfolders.push({ type, has_uploads: true });
+                    }
+                }
+            });
+        };
+
+        addSubfolder(plaintRows, "plaint");
+        addSubfolder(answerRows, "answer");
+        addSubfolder(witnessRows, "witness");
+        addSubfolder(judgmentRows, "judgment");
+
+        const payload = Array.from(caseMap.values());
+        res.json(payload);
+    } catch (err) {
+        res.status(500).json({ message: err.message || "Failed to load case folders." });
+    }
+};
+
+exports.getFolderDocuments = async (req, res) => {
+    try {
+        const caseNo = String(req.query.case_no || "").trim();
+        const type = String(req.query.type || "").trim().toLowerCase();
+        if (!caseNo) {
+            return res.status(400).json({ message: "Case no is required." });
+        }
+        if (!["step", "plaint", "answer", "witness", "judgment"].includes(type)) {
+            return res.status(400).json({ message: "Invalid type." });
+        }
+        let uploads = [];
+        if (type === "step") {
+            const rows = await LegalCase.findAll({
+                where: { case_no: caseNo, case_step: "STEP" },
+                attributes: ["uploads_json"],
+                order: [["case_date", "DESC"], ["id", "DESC"]],
+                raw: true,
+            });
+            rows.forEach(row => {
+                if (Array.isArray(row.uploads_json)) {
+                    uploads = uploads.concat(row.uploads_json);
+                }
+            });
+        } else {
+            const Model = type === "plaint" ? Plaint : type === "answer" ? Answer : type === "witness" ? Witness : Judgment;
+            const dateField = type === "plaint" ? "plaint_date" : type === "answer" ? "answer_date" : type === "witness" ? "witness_date" : "judgment_date";
+            const rows = await Model.findAll({
+                where: { case_no: caseNo },
+                attributes: ["uploads_json"],
+                order: [[dateField, "DESC"], ["id", "DESC"]],
+                raw: true,
+            });
+            rows.forEach(row => {
+                if (Array.isArray(row.uploads_json)) {
+                    uploads = uploads.concat(row.uploads_json);
+                }
+            });
+        }
+        // Remove duplicates if any
+        const uniqueUploads = [...new Set(uploads)];
+        res.json(uniqueUploads);
+    } catch (err) {
+        res.status(500).json({ message: err.message || "Failed to load documents." });
+    }
+};
