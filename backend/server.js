@@ -15,6 +15,7 @@ const Vendor = require("./models/Vendor");
 const Invoice = require("./models/Invoice");
 const InvoiceItem = require("./models/InvoiceItem");
 const InvoiceImportant = require("./models/InvoiceImportant");
+const InvoiceServiceItem = require("./models/InvoiceServiceItem");
 const Expense = require("./models/Expense");
 const Stock = require("./models/Stock");
 const Condition = require("./models/Condition");
@@ -625,6 +626,30 @@ async function ensureInvoiceAmountSchema() {
   });
 }
 
+async function ensureInvoiceServiceItemSchema() {
+  await runOnBusinessDatabases(async () => {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS invoice_service_items (
+        id SERIAL PRIMARY KEY,
+        invoice_id INTEGER NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+        description VARCHAR(120) NOT NULL,
+        amount DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "createdAt" TIMESTAMP DEFAULT NOW(),
+        "updatedAt" TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS invoice_service_items_invoice_id_idx
+      ON invoice_service_items(invoice_id);
+    `);
+    await db.query(`
+      UPDATE invoice_service_items
+      SET amount = 0
+      WHERE amount IS NULL OR amount < 0;
+    `);
+  });
+}
+
 async function ensureSupportImportantSchema() {
   await runOnBusinessDatabases(async () => {
     await db.query(`
@@ -1089,6 +1114,7 @@ async function startServer() {
     await ensureInvoiceNumberingSchema();
     await ensureInvoicePaymentSchema();
     await ensureInvoiceAmountSchema();
+    await ensureInvoiceServiceItemSchema();
     await ensureLawyerEmailSchema();
     await ensureGoogleDriveSchema();
     await ensureSupportImportantSchema();

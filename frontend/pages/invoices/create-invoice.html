@@ -73,19 +73,29 @@
                     <input type="date" id="invoiceDate" required>
                 </div>
 
-                <div class="field">
-                    <label for="amount">Amount</label>
-                    <input type="number" id="amount" min="0" step="0.01" value="0" placeholder="Enter invoice amount">
+            </div>
+            <div class="invoice-services-card">
+                <div class="invoice-services-header">
+                    <h3>Invoice Description & Amount</h3>
+                    <button class="btn btn-secondary" id="addServiceRowBtn" type="button">Add Line</button>
                 </div>
-
-                <div class="field">
-                    <label for="amountDescription">Description</label>
-                    <select id="amountDescription" required>
-                        <option value="">Select Description</option>
-                        <option value="Profesionl Fee">Profesionl Fee</option>
-                        <option value="Attend Fee">Attend Fee</option>
-                        <option value="Collect Proceding">Collect Proceding</option>
-                    </select>
+                <p class="invoice-services-hint">Add multiple selections to one invoice. Example: Plaint Documet + Plaint Filing.</p>
+                <div class="table-scroll">
+                    <table class="table product-table" id="serviceLinesTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 70px;">No</th>
+                                <th>Description</th>
+                                <th style="width: 200px;">Amount</th>
+                                <th style="width: 110px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="invoice-services-total">
+                    <span>Total</span>
+                    <strong id="invoiceServicesTotal">0.00</strong>
                 </div>
             </div>
             <div class="add-product-actions">

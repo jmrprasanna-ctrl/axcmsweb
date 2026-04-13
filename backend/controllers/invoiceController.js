@@ -1,5 +1,6 @@
 const Invoice = require("../models/Invoice");
 const InvoiceItem = require("../models/InvoiceItem");
+const InvoiceServiceItem = require("../models/InvoiceServiceItem");
 const InvoiceImportant = require("../models/InvoiceImportant");
 const Product = require("../models/Product");
 const Customer = require("../models/Customer");
@@ -15,6 +16,21 @@ const ALLOWED_WARRANTY_PERIODS = new Set(["3 month", "6 month", "1 year", "2 yea
 const USER_PREF_TABLE = "user_preference_settings";
 const ensuredUserPrefTableByDb = new Set();
 const INVENTORY_DB_NAME = "inventory";
+const SERVICE_DESCRIPTION_ALIASES = new Map([
+    ["profesionl fee", "Profesionl Fee"],
+    ["professional fee", "Profesionl Fee"],
+    ["document filling", "Document Filling"],
+    ["plaint filing", "Plaint Filing"],
+    ["plaint documet", "Plaint Documet"],
+    ["plaint document", "Plaint Documet"],
+    ["anwer filing", "Anwer Filing"],
+    ["answer filing", "Anwer Filing"],
+    ["answer document", "Answer Document"],
+    ["l/w filing", "L/W Filing"],
+    ["lw filing", "L/W Filing"],
+    ["l/w document", "L/W Document"],
+    ["lw document", "L/W Document"]
+]);
 
 function normalizeWarrantyPeriod(value){
     const raw = String(value || "").trim().toLowerCase();
@@ -185,12 +201,38 @@ function normalizeAmount(value){
     return Number(parsed.toFixed(2));
 }
 
-function normalizeAmountDescription(value){
+function normalizeServiceDescription(value){
     const raw = String(value || "").trim().toLowerCase();
-    if(raw === "profesionl fee" || raw === "professional fee") return "Profesionl Fee";
-    if(raw === "attend fee") return "Attend Fee";
-    if(raw === "collect proceding" || raw === "collect proceeding") return "Collect Proceding";
+    if(SERVICE_DESCRIPTION_ALIASES.has(raw)){
+        return SERVICE_DESCRIPTION_ALIASES.get(raw);
+    }
     return "";
+}
+
+function normalizeServiceItems(rawItems){
+    const source = Array.isArray(rawItems) ? rawItems : [];
+    const normalized = [];
+
+    for(const row of source){
+        if(!row || typeof row !== "object") continue;
+        const description = normalizeServiceDescription(row.description);
+        const amount = normalizeAmount(row.amount);
+        if(!description || amount === null || Number.isNaN(amount)){
+            continue;
+        }
+        normalized.push({ description, amount });
+    }
+    return normalized;
+}
+
+function buildAmountDescriptionSummary(serviceItems, fallback){
+    const labels = (Array.isArray(serviceItems) ? serviceItems : [])
+        .map((item) => String(item?.description || "").trim())
+        .filter(Boolean);
+    if(labels.length){
+        return labels.join(", ");
+    }
+    return String(fallback || "").trim();
 }
 
 function parseBase64Payload(rawValue){
@@ -410,10 +452,18 @@ async function generateNextInvoiceNoByYear(yearToken) {
 exports.listInvoices = async (req,res)=>{
     try{
         const invoices = await Invoice.findAll({
-            include:[{ model: Customer, attributes:["id","name","customer_mode"] }],
+            include:[
+                { model: Customer, attributes:["id","name","customer_mode"] },
+                { model: InvoiceServiceItem, attributes:["id","description","amount"] }
+            ],
             order:[["invoice_date","DESC"],["createdAt","DESC"]]
         });
         const rows = invoices.map(inv=>({
+            service_items: (inv.InvoiceServiceItems || []).map((row) => ({
+                id: row.id,
+                description: String(row.description || "").trim(),
+                amount: Number(row.amount || 0)
+            })),
             id: inv.id,
             invoice_no: inv.invoice_no,
             customer_id: inv.customer_id,
@@ -422,7 +472,7 @@ exports.listInvoices = async (req,res)=>{
             count: Number(inv.machine_count || 0),
             machine_count: Number(inv.machine_count || 0),
             amount: Number(inv.amount ?? inv.total_amount ?? 0),
-            amount_description: String(inv.amount_description || "").trim(),
+            amount_description: buildAmountDescriptionSummary(inv.InvoiceServiceItems, inv.amount_description),
             total: inv.total_amount,
             invoice_date: inv.invoice_date || inv.createdAt,
             payment_date: inv.payment_date || null,
@@ -449,6 +499,7 @@ exports.getInvoice = async (req,res)=>{
             include:[
                 { model: Customer, attributes:["id","name","address","tel","email"] },
                 { model: InvoiceItem, include:[{ model: Product, attributes:["id","product_id","description","model"] }] },
+                { model: InvoiceServiceItem, attributes:["id","description","amount"] },
                 { model: InvoiceImportant, attributes:["id","line_no","note","warranty_period","warranty_expiry_date"] }
             ]
         });
@@ -469,11 +520,30 @@ exports.getInvoice = async (req,res)=>{
                 line_total: Number(lineTotal.toFixed(2))
             };
         });
-        const grossTotal = normalizedItems.reduce((sum, item) => sum + (Number(item.gross) || 0), 0);
+        const normalizedServiceItems = (raw.InvoiceServiceItems || []).map((item) => ({
+            id: item.id,
+            description: String(item.description || "").trim(),
+            amount: Number(item.amount || 0)
+        }));
+        const serviceItemsAsInvoiceItems = normalizedServiceItems.map((item, idx) => ({
+            id: `service-${item.id || idx + 1}`,
+            qty: 1,
+            rate: Number(item.amount || 0),
+            vat: 0,
+            gross: Number(item.amount || 0),
+            line_total: Number(Number(item.amount || 0).toFixed(2)),
+            Product: {
+                product_id: "",
+                description: item.description,
+                model: ""
+            }
+        }));
+        const renderedItems = normalizedItems.length ? normalizedItems : serviceItemsAsInvoiceItems;
+        const grossTotal = renderedItems.reduce((sum, item) => sum + (Number(item.gross) || 0), 0);
         const totalAmount = Number(raw.total_amount) || grossTotal;
         const amount = Number(raw.amount ?? totalAmount) || 0;
-        const amountDescription = String(raw.amount_description || "").trim();
-        const quotation2Items = buildQuotation2AdjustedItems(normalizedItems);
+        const amountDescription = buildAmountDescriptionSummary(normalizedServiceItems, raw.amount_description);
+        const quotation2Items = buildQuotation2AdjustedItems(renderedItems);
         const quotation2GrossTotal = quotation2Items.reduce(
             (sum, item) => sum + (Number(item.quotation2_gross) || 0),
             0
@@ -481,7 +551,8 @@ exports.getInvoice = async (req,res)=>{
 
         res.json({
             ...raw,
-            InvoiceItems: normalizedItems,
+            InvoiceItems: renderedItems,
+            InvoiceServiceItems: normalizedServiceItems,
             quotation2_items: quotation2Items,
             InvoiceImportants: (raw.InvoiceImportants || []).sort((a, b) => (a.line_no || 0) - (b.line_no || 0)),
             print_meta: {
@@ -512,7 +583,9 @@ exports.getInvoice = async (req,res)=>{
 exports.deleteInvoice = async (req,res)=>{
     const { id } = req.params;
     try{
-        const invoice = await Invoice.findByPk(id, { include:[{ model: InvoiceItem }, { model: InvoiceImportant }] });
+        const invoice = await Invoice.findByPk(id, {
+            include:[{ model: InvoiceItem }, { model: InvoiceServiceItem }, { model: InvoiceImportant }]
+        });
         if(!invoice) return res.status(404).json({ message: "Invoice not found" });
 
         for(const item of invoice.InvoiceItems || []){
@@ -525,6 +598,9 @@ exports.deleteInvoice = async (req,res)=>{
         }
         for(const important of invoice.InvoiceImportants || []){
             await InvoiceImportant.destroy({ where: { id: important.id } });
+        }
+        for(const serviceItem of invoice.InvoiceServiceItems || []){
+            await InvoiceServiceItem.destroy({ where: { id: serviceItem.id } });
         }
         await Invoice.destroy({ where: { id: invoice.id } });
         res.json({ message: "Invoice deleted" });
@@ -778,6 +854,7 @@ exports.createInvoice = async (req,res)=>{
         quotation3_customer_name,
         customer_id,
         items,
+        service_items,
         importants,
         payment_method,
         amount_description
@@ -792,17 +869,24 @@ exports.createInvoice = async (req,res)=>{
             const gross = Number(item.gross) || 0;
             computedTotalAmount += gross;
         }
+        const normalizedServiceItems = normalizeServiceItems(service_items);
+        if(service_items !== undefined && !normalizedServiceItems.length){
+            return res.status(400).json({
+                message: "Add at least one valid service line with description and amount."
+            });
+        }
+
         const requestedAmount = normalizeAmount(req.body.amount);
         if(Number.isNaN(requestedAmount)){
             return res.status(400).json({ message: "Invalid amount. Must be a non-negative number." });
         }
-        const normalizedAmountDescription = normalizeAmountDescription(amount_description);
-        if(!normalizedAmountDescription){
-            return res.status(400).json({
-                message: "Invalid description. Use Profesionl Fee, Attend Fee, or Collect Proceding."
-            });
-        }
-        const finalAmount = requestedAmount === null ? Number(computedTotalAmount.toFixed(2)) : requestedAmount;
+        const fallbackAmountDescription = normalizeServiceDescription(amount_description) || String(amount_description || "").trim();
+        const serviceTotal = normalizedServiceItems.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+        const computedAmount = normalizedItems.length
+            ? computedTotalAmount
+            : serviceTotal;
+        const finalAmount = requestedAmount === null ? Number(computedAmount.toFixed(2)) : requestedAmount;
+        const normalizedAmountDescription = buildAmountDescriptionSummary(normalizedServiceItems, fallbackAmountDescription);
         const total_amount = finalAmount;
         const parsedInvoiceDate = String(invoice_date || "").trim();
         const invoiceDateValue = parsedInvoiceDate || new Date().toISOString().slice(0, 10);
@@ -855,9 +939,16 @@ exports.createInvoice = async (req,res)=>{
             payment_status: "Pending",
             cheque_no: null,
             amount: finalAmount,
-            amount_description: normalizedAmountDescription,
+            amount_description: normalizedAmountDescription || null,
             total_amount
         });
+        for(const serviceItem of normalizedServiceItems){
+            await InvoiceServiceItem.create({
+                invoice_id: invoice.id,
+                description: serviceItem.description,
+                amount: Number(serviceItem.amount || 0)
+            });
+        }
         for(const item of normalizedItems){
             const productId = Number(item.productId);
             if(!productId){
@@ -917,6 +1008,7 @@ exports.listWarrantyInvoices = async (_req, res) => {
         const invoices = await Invoice.findAll({
             include: [
                 { model: Customer, attributes: ["id","name"] },
+                { model: InvoiceServiceItem, attributes: ["id","description","amount"] },
                 { model: InvoiceImportant, attributes: ["id","note","warranty_period","warranty_expiry_date"] }
             ],
             order:[["invoice_date","DESC"],["createdAt","DESC"]]
@@ -953,7 +1045,7 @@ exports.listWarrantyInvoices = async (_req, res) => {
                     invoice_date: inv.invoice_date || inv.createdAt,
                     customer_name: inv.Customer ? inv.Customer.name : "",
                     amount: Number(inv.amount ?? inv.total_amount ?? 0),
-                    amount_description: String(inv.amount_description || "").trim(),
+                    amount_description: buildAmountDescriptionSummary(inv.InvoiceServiceItems, inv.amount_description),
                     total: Number(inv.total_amount || 0),
                     payment_status: inv.payment_status || "Pending",
                     warranty_period: period,
