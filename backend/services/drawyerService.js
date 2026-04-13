@@ -48,6 +48,37 @@ function parseDataUrl(raw) {
   return { mime, buffer };
 }
 
+function findSourceDefByKey(key) {
+  const normalized = String(key || "").trim().toLowerCase();
+  return SOURCE_DEFS.find((item) => {
+    return String(item.module || "").trim().toLowerCase() === normalized
+      || String(item.source || "").trim().toLowerCase() === normalized;
+  }) || null;
+}
+
+async function deleteDrawyerFile(moduleName, sourceTable, sourceId, fileIndex) {
+  const def = findSourceDefByKey(sourceTable || moduleName);
+  if (!def) {
+    throw new Error("Invalid source.");
+  }
+  const id = Number(sourceId || 0);
+  if (!Number.isFinite(id) || id <= 0) {
+    throw new Error("Invalid source id.");
+  }
+  const row = await def.model.findByPk(id);
+  if (!row) {
+    throw new Error("Source record not found.");
+  }
+  const plain = row.toJSON ? row.toJSON() : row;
+  const uploads = Array.isArray(plain.uploads_json) ? [...plain.uploads_json] : [];
+  const index = Number(fileIndex || 0);
+  if (!Number.isFinite(index) || index < 0 || index >= uploads.length) {
+    throw new Error("Invalid file index.");
+  }
+  uploads.splice(index, 1);
+  await def.model.update({ uploads_json: uploads }, { where: { id } });
+}
+
 async function getDrawyerFileEntry(caseNo, moduleName, fileIndex) {
   const candidate = String(moduleName || "").trim().toLowerCase();
   const def = SOURCE_DEFS.find((item) => String(item.module || "").trim().toLowerCase() === candidate);
@@ -170,4 +201,5 @@ async function listDrawyer(req, options = {}) {
 module.exports = {
   listDrawyer,
   getDrawyerFileEntry,
+  deleteDrawyerFile,
 };

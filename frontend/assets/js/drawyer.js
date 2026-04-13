@@ -34,6 +34,7 @@ function buildFileRow(file, caseNo, moduleName, index){
             <div class="drawyer-actions-row">
                 ${openLink}
                 <button type="button" class="download-btn" data-case="${escapeHtml(caseNo)}" data-module="${escapeHtml(moduleName)}" data-index="${index}">Download</button>
+                <button type="button" class="delete-btn" data-case="${escapeHtml(caseNo)}" data-module="${escapeHtml(moduleName)}" data-source_table="${escapeHtml(file.source_table || "")}" data-source_id="${escapeHtml(file.source_id || "")}" data-file_index="${escapeHtml(file.file_index || "")}">Delete</button>
             </div>
         </div>
         <div class="drawyer-file-meta">${escapeHtml(fmtDate(file.updated_at) || "")}</div>
@@ -49,13 +50,24 @@ function getFolderIcon(moduleName){
     return "📁";
 }
 
+function getFolderLabel(moduleName){
+    const key = String(moduleName || "").trim().toLowerCase();
+    if(key === "case") return "Step";
+    if(key === "plaint") return "Plaint";
+    if(key === "answer") return "Answer";
+    if(key === "witness") return "L/Witnesses";
+    if(key === "judgment" || key === "dudgment") return "Dudgement";
+    return String(moduleName || "Folder");
+}
+
 function buildFolderHtml(folderName, files, caseNo){
+    const label = getFolderLabel(folderName);
     const rows = (Array.isArray(files) ? files : []).map((file, index) => buildFileRow(file, caseNo, folderName, index)).join("");
     return `
         <section class="drawyer-folder-card">
             <button type="button" class="folder-card-toggle" aria-expanded="false" data-case="${escapeHtml(caseNo)}" data-module="${escapeHtml(folderName)}">
                 <span class="folder-card-icon">${getFolderIcon(folderName)}</span>
-                <span class="folder-card-title">${escapeHtml(folderName)}</span>
+                <span class="folder-card-title">${escapeHtml(label)}</span>
                 <span class="folder-card-meta">${(Array.isArray(files) ? files.length : 0)} files</span>
             </button>
             <div class="drawyer-folder-files" data-case="${escapeHtml(caseNo)}" data-module="${escapeHtml(folderName)}" hidden>
@@ -71,15 +83,18 @@ function buildCaseHtml(item){
     const body = folderNames.map((name) => buildFolderHtml(name, folders[name], item.case_no)).join("");
     return `
         <article class="drawyer-case">
-            <div class="drawyer-case-header">
+            <button type="button" class="case-root-toggle" aria-expanded="false" data-case="${escapeHtml(item.case_no || "UNKNOWN_CASE")}">
                 <span class="drawyer-folder-icon">📁</span>
                 <div>
                     <div class="drawyer-case-label">Case</div>
                     <div class="drawyer-case-title">${escapeHtml(item.case_no || "UNKNOWN_CASE")}</div>
                 </div>
-            </div>
-            <div class="drawyer-subfolder-grid">
-                ${body || `<p class="drawyer-empty">No uploaded files.</p>`}
+                <span class="drawer-file-count">${body ? folderNames.length + " folders" : "No folders"}</span>
+            </button>
+            <div class="drawyer-subfolder-container" data-case="${escapeHtml(item.case_no || "UNKNOWN_CASE")}" hidden>
+                <div class="drawyer-subfolder-grid">
+                    ${body || `<p class="drawyer-empty">No uploaded files.</p>`}
+                </div>
             </div>
         </article>
     `;
@@ -96,7 +111,7 @@ function renderCases(cases){
     host.innerHTML = rows.map(buildCaseHtml).join("");
 }
 
-function downloadFile(caseNo, moduleName, index){
+async function downloadFile(caseNo, moduleName, index){
     const url = `/api/drawyer/download?case_no=${encodeURIComponent(caseNo)}&module=${encodeURIComponent(moduleName)}&index=${encodeURIComponent(index)}`;
     const downloadLink = document.createElement("a");
     downloadLink.href = url;
@@ -106,16 +121,48 @@ function downloadFile(caseNo, moduleName, index){
     document.body.removeChild(downloadLink);
 }
 
+async function deleteFile(caseNo, moduleName, sourceTable, sourceId, fileIndex){
+    if(!confirm("Delete this file permanently?")) return;
+    const endpoint = `/drawyer/delete-file?case_no=${encodeURIComponent(caseNo)}&module=${encodeURIComponent(moduleName)}&source_table=${encodeURIComponent(sourceTable)}&source_id=${encodeURIComponent(sourceId)}&file_index=${encodeURIComponent(fileIndex)}`;
+    try {
+        await request(endpoint, "DELETE", null);
+        await loadDrawyer(false);
+        if (typeof showMessageBox === "function") {
+            showMessageBox("File deleted successfully.");
+        } else {
+            alert("File deleted successfully.");
+        }
+    } catch (err) {
+        if (typeof showMessageBox === "function") {
+            showMessageBox(err.message || "Failed to delete file.", "error");
+        } else {
+            alert(err.message || "Failed to delete file.");
+        }
+    }
+}
+
 function handleDrawyerClick(event){
-    const toggle = event.target.closest(".folder-toggle");
-    if(toggle){
-        const caseNo = toggle.dataset.case || "";
-        const moduleName = toggle.dataset.module || "";
+    const caseToggle = event.target.closest(".case-root-toggle");
+    if(caseToggle){
+        const caseNo = caseToggle.dataset.case || "";
+        const folderContainer = document.querySelector(`.drawyer-subfolder-container[data-case='${CSS.escape(caseNo)}']`);
+        if(folderContainer){
+            const expanded = folderContainer.hidden;
+            folderContainer.hidden = !folderContainer.hidden;
+            caseToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+        }
+        return;
+    }
+
+    const folderToggle = event.target.closest(".folder-card-toggle");
+    if(folderToggle){
+        const caseNo = folderToggle.dataset.case || "";
+        const moduleName = folderToggle.dataset.module || "";
         const fileList = document.querySelector(`.drawyer-folder-files[data-case='${CSS.escape(caseNo)}'][data-module='${CSS.escape(moduleName)}']`);
         if(fileList){
             const expanded = fileList.hidden;
             fileList.hidden = !fileList.hidden;
-            toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+            folderToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
         }
         return;
     }
@@ -126,6 +173,17 @@ function handleDrawyerClick(event){
         const moduleName = downloadBtn.dataset.module || "";
         const index = downloadBtn.dataset.index || "0";
         downloadFile(caseNo, moduleName, index);
+        return;
+    }
+
+    const deleteBtn = event.target.closest(".delete-btn");
+    if(deleteBtn){
+        const caseNo = deleteBtn.dataset.case || "";
+        const moduleName = deleteBtn.dataset.module || "";
+        const sourceTable = deleteBtn.dataset.source_table || "";
+        const sourceId = deleteBtn.dataset.source_id || "";
+        const fileIndex = deleteBtn.dataset.file_index || "";
+        deleteFile(caseNo, moduleName, sourceTable, sourceId, fileIndex);
     }
 }
 
