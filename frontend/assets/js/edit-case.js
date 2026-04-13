@@ -13,14 +13,19 @@ const caseStepEl = document.getElementById("case_step");
 const nextDateEl = document.getElementById("next_date");
 const commentEl = document.getElementById("comment");
 const commentWordEl = document.getElementById("commentWords");
-const uploadMethodEl = document.getElementById("upload_method");
-const uploadInputEl = document.getElementById("uploads");
+const cameraUploadBtnEl = document.getElementById("cameraUploadBtn");
+const folderUploadBtnEl = document.getElementById("folderUploadBtn");
+const cameraUploadInputEl = document.getElementById("camera_uploads");
+const folderUploadInputEl = document.getElementById("folder_uploads");
 const uploadPreviewEl = document.getElementById("uploadPreview");
 const deleteCaseBtnEl = document.getElementById("deleteCaseBtn");
 const editEnabledEl = document.getElementById("edit_enabled");
 let allCustomers = [];
+let allCourts = [];
+let allLawyers = [];
 let cachedUploads = [];
 let isEditEnabled = false;
+let selectedUploadMethod = "folder";
 
 const COURT_CATEGORY_MAP = {
     "DC Court": [
@@ -84,52 +89,23 @@ function refreshCommentWordHint() {
     }
 }
 
-function updateUploadInputMode() {
-    if (!uploadInputEl || !uploadMethodEl) return;
-    if (uploadMethodEl.value === "take-photo") {
-        uploadInputEl.setAttribute("capture", "environment");
-    } else {
-        uploadInputEl.removeAttribute("capture");
-    }
-}
-
 function normalizeCaseStepUi(value) {
     const raw = String(value || "").trim().toUpperCase();
-    if (raw === "FINISHED" || raw === "FINISHED_STEP" || raw === "FINISHED STEP") {
-        return "FINISHED";
-    }
-    if (raw === "NEXT STEP" || raw === "NEXT_STEP" || raw === "NEXTSTEP" || raw === "PLAINT STEP" || raw === "PLAINT_STEP") {
-        return "PLAINT_STEP";
-    }
-    if (raw === "ANSWER STEP" || raw === "ANSWER_STEP") {
-        return "ANSWER_STEP";
-    }
-    if (raw === "L/W STEP" || raw === "L_W_STEP" || raw === "LW STEP" || raw === "LW_STEP") {
-        return "LW_STEP";
-    }
-    if (raw === "DUDGMENT STEP" || raw === "DUDGMENT_STEP" || raw === "JUDGMENT STEP" || raw === "JUDGMENT_STEP") {
-        return "DUDGMENT_STEP";
-    }
+    if (raw === "FINISHED" || raw === "FINISHED_STEP" || raw === "FINISHED STEP") return "FINISHED";
+    if (raw === "NEXT STEP" || raw === "NEXT_STEP" || raw === "NEXTSTEP" || raw === "PLAINT STEP" || raw === "PLAINT_STEP") return "PLAINT_STEP";
+    if (raw === "ANSWER STEP" || raw === "ANSWER_STEP") return "ANSWER_STEP";
+    if (raw === "L/W STEP" || raw === "L_W_STEP" || raw === "LW STEP" || raw === "LW_STEP") return "LW_STEP";
+    if (raw === "DUDGMENT STEP" || raw === "DUDGMENT_STEP" || raw === "JUDGMENT STEP" || raw === "JUDGMENT_STEP") return "DUDGMENT_STEP";
     return "STEP";
 }
 
 function resolveCaseStepTarget(stepValue) {
     const step = normalizeCaseStepUi(stepValue);
-    if (step === "FINISHED") {
-        return { path: "finished.html", message: "Case moved to Finished." };
-    }
-    if (step === "PLAINT_STEP") {
-        return { path: "plaint.html", message: "Case moved to Plaint step." };
-    }
-    if (step === "ANSWER_STEP") {
-        return { path: "answer.html", message: "Case moved to Answer step." };
-    }
-    if (step === "LW_STEP") {
-        return { path: "witness-list.html", message: "Case moved to L/W step." };
-    }
-    if (step === "DUDGMENT_STEP") {
-        return { path: "judgment-list.html", message: "Case moved to Dudgment step." };
-    }
+    if (step === "FINISHED") return { path: "finished.html", message: "Case moved to Finished." };
+    if (step === "PLAINT_STEP") return { path: "plaint.html", message: "Case moved to Plaint step." };
+    if (step === "ANSWER_STEP") return { path: "answer.html", message: "Case moved to Answer step." };
+    if (step === "LW_STEP") return { path: "witness-list.html", message: "Case moved to L/W step." };
+    if (step === "DUDGMENT_STEP") return { path: "judgment-list.html", message: "Case moved to Dudgment step." };
     return { path: "case-list.html", message: "Case updated." };
 }
 
@@ -173,18 +149,55 @@ async function filesToBase64(files) {
     return outputs;
 }
 
+function getDataUrlMime(value) {
+    const match = String(value || "").match(/^data:([^;]+);base64,/i);
+    return match ? String(match[1] || "").toLowerCase() : "";
+}
+
+function isImageDataUrl(value) {
+    return getDataUrlMime(value).startsWith("image/");
+}
+
+function shortMimeLabel(value) {
+    const mime = getDataUrlMime(value);
+    if (!mime) return "FILE";
+    if (mime === "application/pdf") return "PDF";
+    if (mime.includes("word")) return "DOC";
+    if (mime.includes("sheet") || mime.includes("excel")) return "XLS";
+    if (mime.startsWith("image/")) return "IMAGE";
+    if (mime.startsWith("text/")) return "TEXT";
+    return "FILE";
+}
+
 function renderUploadPreview(values) {
     if (!uploadPreviewEl) return;
     uploadPreviewEl.innerHTML = "";
     (Array.isArray(values) ? values : []).forEach((src) => {
-        const img = document.createElement("img");
-        img.src = src;
-        img.alt = "case upload";
-        uploadPreviewEl.appendChild(img);
+        if (isImageDataUrl(src)) {
+            const img = document.createElement("img");
+            img.src = src;
+            img.alt = "case upload";
+            uploadPreviewEl.appendChild(img);
+            return;
+        }
+        const fileCard = document.createElement("div");
+        fileCard.className = "upload-file-card";
+        fileCard.innerHTML = `
+            <div class="upload-file-icon">${shortMimeLabel(src)}</div>
+            <div class="upload-file-text">Attached file</div>
+        `;
+        uploadPreviewEl.appendChild(fileCard);
     });
 }
 
+function mergeUploads(nextUploads) {
+    const list = Array.isArray(nextUploads) ? nextUploads : [];
+    cachedUploads = [...cachedUploads, ...list].slice(0, 20);
+    renderUploadPreview(cachedUploads);
+}
+
 function renderCustomerOptions(rows) {
+    if (!customerListEl) return;
     customerListEl.innerHTML = "";
     (Array.isArray(rows) ? rows : []).forEach((row) => {
         const option = document.createElement("option");
@@ -192,6 +205,35 @@ function renderCustomerOptions(rows) {
         option.dataset.id = row.id;
         customerListEl.appendChild(option);
     });
+}
+
+function renderNameOptions(selectEl, rows, firstLabel) {
+    if (!selectEl) return;
+    selectEl.innerHTML = "";
+    const first = document.createElement("option");
+    first.value = "";
+    first.textContent = firstLabel;
+    selectEl.appendChild(first);
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+        const name = String(row?.name || "").trim();
+        if (!name) return;
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        selectEl.appendChild(option);
+    });
+}
+
+function ensureOptionExists(selectEl, value) {
+    if (!selectEl) return;
+    const clean = String(value || "").trim();
+    if (!clean) return;
+    const has = Array.from(selectEl.options || []).some((opt) => String(opt.value || "").trim() === clean);
+    if (has) return;
+    const option = document.createElement("option");
+    option.value = clean;
+    option.textContent = clean;
+    selectEl.appendChild(option);
 }
 
 function syncCustomerIdFromSearch() {
@@ -203,6 +245,17 @@ function syncCustomerIdFromSearch() {
 async function loadCustomers() {
     allCustomers = await request("/clients", "GET");
     renderCustomerOptions(allCustomers);
+}
+
+async function loadCourtLawyerOptions() {
+    const [courts, lawyers] = await Promise.all([
+        request("/support/courts", "GET"),
+        request("/support/lawyers", "GET"),
+    ]);
+    allCourts = Array.isArray(courts) ? courts : [];
+    allLawyers = Array.isArray(lawyers) ? lawyers : [];
+    renderNameOptions(courtEl, allCourts, "Select Court");
+    renderNameOptions(lawyerEl, allLawyers, "Select Lawyer");
 }
 
 async function loadCaseForEdit() {
@@ -221,6 +274,8 @@ async function loadCaseForEdit() {
         courtTypeEl.value = row.court_type || "";
     }
     syncCategoryOptions(courtTypeEl?.value || "", row.category || "");
+    ensureOptionExists(courtEl, row.court || "");
+    ensureOptionExists(lawyerEl, row.attend_lawyer || "");
     courtEl.value = row.court || "";
     lawyerEl.value = row.attend_lawyer || "";
     if (caseStepEl) {
@@ -230,7 +285,7 @@ async function loadCaseForEdit() {
         nextDateEl.value = row.next_date || "";
     }
     commentEl.value = row.comment || "";
-    uploadMethodEl.value = row.upload_method || "local";
+    selectedUploadMethod = String(row.upload_method || "folder").toLowerCase().includes("camera") ? "camera" : "folder";
     cachedUploads = Array.isArray(row.uploads_json) ? row.uploads_json : [];
     isEditEnabled = false;
     if (editEnabledEl) {
@@ -238,7 +293,6 @@ async function loadCaseForEdit() {
     }
     renderUploadPreview(cachedUploads);
     refreshCommentWordHint();
-    updateUploadInputMode();
     setFormLockState();
     if (typeof renderCaseHistory === "function") {
         renderCaseHistory(row.case_no, "caseHistoryBody", row.id);
@@ -249,15 +303,39 @@ if (caseDateEl && !caseDateEl.value) {
     caseDateEl.value = new Date().toISOString().slice(0, 10);
 }
 refreshCommentWordHint();
-updateUploadInputMode();
 setFormLockState();
 
 if (commentEl) commentEl.addEventListener("input", refreshCommentWordHint);
-if (uploadMethodEl) uploadMethodEl.addEventListener("change", updateUploadInputMode);
 if (customerSearchEl) customerSearchEl.addEventListener("input", syncCustomerIdFromSearch);
 if (courtTypeEl) {
     courtTypeEl.addEventListener("change", () => {
         syncCategoryOptions(courtTypeEl.value || "", "");
+    });
+}
+if (cameraUploadBtnEl && cameraUploadInputEl) {
+    cameraUploadBtnEl.addEventListener("click", () => {
+        cameraUploadInputEl.click();
+    });
+}
+if (folderUploadBtnEl && folderUploadInputEl) {
+    folderUploadBtnEl.addEventListener("click", () => {
+        folderUploadInputEl.click();
+    });
+}
+if (cameraUploadInputEl) {
+    cameraUploadInputEl.addEventListener("change", async () => {
+        const rows = await filesToBase64(cameraUploadInputEl.files);
+        selectedUploadMethod = "camera";
+        mergeUploads(rows);
+        cameraUploadInputEl.value = "";
+    });
+}
+if (folderUploadInputEl) {
+    folderUploadInputEl.addEventListener("change", async () => {
+        const rows = await filesToBase64(folderUploadInputEl.files);
+        selectedUploadMethod = "folder";
+        mergeUploads(rows);
+        folderUploadInputEl.value = "";
     });
 }
 if (editEnabledEl) {
@@ -276,12 +354,6 @@ if (editEnabledEl) {
             editEnabledEl.checked = isEditEnabled;
             alert(err.message || "Failed to change edit status.");
         }
-    });
-}
-if (uploadInputEl) {
-    uploadInputEl.addEventListener("change", async () => {
-        cachedUploads = await filesToBase64(uploadInputEl.files);
-        renderUploadPreview(cachedUploads);
     });
 }
 
@@ -306,12 +378,12 @@ if (caseFormEl) {
                 case_step: caseStepEl?.value || "STEP",
                 next_date: nextDateEl?.value || null,
                 comment: commentEl.value.trim(),
-                upload_method: uploadMethodEl.value,
+                upload_method: selectedUploadMethod,
                 uploads_json: cachedUploads,
                 edit_enabled: true,
             }
             : {
-                upload_method: uploadMethodEl.value,
+                upload_method: selectedUploadMethod,
                 uploads_json: cachedUploads,
                 edit_enabled: false,
             };
@@ -383,7 +455,7 @@ if (deleteCaseBtnEl) {
 (async function init() {
     try {
         syncCategoryOptions(courtTypeEl?.value || "", "");
-        await loadCustomers();
+        await Promise.all([loadCustomers(), loadCourtLawyerOptions()]);
         await loadCaseForEdit();
     } catch (err) {
         alert(err.message || "Failed to initialize case edit page.");
