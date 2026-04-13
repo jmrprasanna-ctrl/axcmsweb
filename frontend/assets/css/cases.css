@@ -30,6 +30,17 @@
     flex-wrap: wrap;
 }
 
+.customer-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.history-panel .customer-table-wrap table {
+    min-width: 560px;
+}
+
 .form-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(220px, 1fr));
@@ -221,9 +232,26 @@
         gap: 10px;
     }
 
+    .main-content .form-container {
+        overflow-x: hidden;
+    }
+
     .form-grid {
         grid-template-columns: 1fr;
     }
+
+    .upload-picker {
+        width: 100%;
+    }
+
+    .cases-actions {
+        justify-content: flex-start;
+    }
+
+    .history-panel .customer-table-wrap table {
+        min-width: 620px;
+    }
+
     .cases-toolbar .search-inline {
         min-width: 220px;
         width: 100%;

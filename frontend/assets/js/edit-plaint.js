@@ -311,6 +311,8 @@ if (deletePlaintBtnEl) {
 
 (async function init() {
     try {
+        const container = document.querySelector(".main-content .form-container");
+        if (container) container.scrollLeft = 0;
         await loadPlaintForEdit();
         loadCases().then(() => {
             const caseId = Number(caseIdEl?.value || 0);
