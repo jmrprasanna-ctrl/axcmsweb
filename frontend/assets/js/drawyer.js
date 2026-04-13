@@ -18,38 +18,46 @@ function fmtDate(value){
     return dt.toLocaleString();
 }
 
-function fileRowHtml(file){
+function buildFileRow(file, caseNo, moduleName, index){
     const status = String(file.sync_status || "").toLowerCase() === "synced"
         ? `<span class="drawyer-status-ok">Synced</span>`
         : `<span class="drawyer-status-pending">Pending</span>`;
-    const driveLink = String(file.drive_web_view_link || "").trim()
-        ? `<a href="${escapeHtml(file.drive_web_view_link)}" target="_blank" rel="noopener">Open</a>`
+    const viewLink = String(file.drive_web_view_link || "").trim();
+    const openLink = viewLink
+        ? `<a href="${escapeHtml(viewLink)}" target="_blank" rel="noopener">Open</a>`
         : "-";
     return `
-        <div class="drawyer-file-row">
-            <div>${escapeHtml(file.file_name || "-")}</div>
+        <div class="drawyer-file-row" data-case="${escapeHtml(caseNo)}" data-module="${escapeHtml(moduleName)}" data-index="${index}">
+            <div class="drawyer-file-name">${escapeHtml(file.file_name || "-")}</div>
             <div>${escapeHtml(file.upload_method || "-")}</div>
             <div>${status}</div>
-            <div>${driveLink}</div>
+            <div class="drawyer-actions-row">
+                ${openLink}
+                <button type="button" class="download-btn" data-case="${escapeHtml(caseNo)}" data-module="${escapeHtml(moduleName)}" data-index="${index}">Download</button>
+            </div>
         </div>
         <div class="drawyer-file-meta">${escapeHtml(fmtDate(file.updated_at) || "")}</div>
     `;
 }
 
-function folderHtml(folderName, files){
-    const rows = (Array.isArray(files) ? files : []).map(fileRowHtml).join("");
+function buildFolderHtml(folderName, files, caseNo){
+    const rows = (Array.isArray(files) ? files : []).map((file, index) => buildFileRow(file, caseNo, folderName, index)).join("");
     return `
         <section class="drawyer-folder">
-            <h4>${escapeHtml(folderName)}</h4>
-            ${rows || `<p class="drawyer-empty">No files.</p>`}
+            <button type="button" class="folder-toggle" data-case="${escapeHtml(caseNo)}" data-module="${escapeHtml(folderName)}">
+                ${escapeHtml(folderName)} (${(Array.isArray(files) ? files.length : 0)})
+            </button>
+            <div class="drawyer-folder-files" data-case="${escapeHtml(caseNo)}" data-module="${escapeHtml(folderName)}" hidden>
+                ${rows || `<p class="drawyer-empty">No files.</p>`}
+            </div>
         </section>
     `;
 }
 
-function caseHtml(item){
+function buildCaseHtml(item){
     const folders = item && item.folders ? item.folders : {};
     const folderNames = Object.keys(folders);
-    const body = folderNames.map((name) => folderHtml(name, folders[name])).join("");
+    const body = folderNames.map((name) => buildFolderHtml(name, folders[name], item.case_no)).join("");
     return `
         <article class="drawyer-case">
             <h3>Case: ${escapeHtml(item.case_no || "UNKNOWN_CASE")}</h3>
@@ -66,7 +74,40 @@ function renderCases(cases){
         host.innerHTML = `<p class="drawyer-empty">No uploaded or captured files found.</p>`;
         return;
     }
-    host.innerHTML = rows.map(caseHtml).join("");
+    host.innerHTML = rows.map(buildCaseHtml).join("");
+}
+
+function downloadFile(caseNo, moduleName, index){
+    const url = `/api/drawyer/download?case_no=${encodeURIComponent(caseNo)}&module=${encodeURIComponent(moduleName)}&index=${encodeURIComponent(index)}`;
+    const downloadLink = document.createElement("a");
+    downloadLink.href = url;
+    downloadLink.download = "";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+}
+
+function handleDrawyerClick(event){
+    const toggle = event.target.closest(".folder-toggle");
+    if(toggle){
+        const caseNo = toggle.dataset.case || "";
+        const moduleName = toggle.dataset.module || "";
+        const fileList = document.querySelector(`.drawyer-folder-files[data-case='${CSS.escape(caseNo)}'][data-module='${CSS.escape(moduleName)}']`);
+        if(fileList){
+            const expanded = fileList.hidden;
+            fileList.hidden = !fileList.hidden;
+            toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+        }
+        return;
+    }
+
+    const downloadBtn = event.target.closest(".download-btn");
+    if(downloadBtn){
+        const caseNo = downloadBtn.dataset.case || "";
+        const moduleName = downloadBtn.dataset.module || "";
+        const index = downloadBtn.dataset.index || "0";
+        downloadFile(caseNo, moduleName, index);
+    }
 }
 
 async function loadDrawyer(forceSync){
@@ -90,6 +131,11 @@ window.addEventListener("DOMContentLoaded", async () => {
                 alert(err.message || "Failed to sync Drawyer files.");
             }
         });
+    }
+
+    const host = byId("drawyerCases");
+    if(host){
+        host.addEventListener("click", handleDrawyerClick);
     }
 
     try{

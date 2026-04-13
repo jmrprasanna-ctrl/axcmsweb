@@ -8,5 +8,6 @@ router.use(authMiddleware);
 router.use(roleMiddleware(["admin", "manager", "user"]));
 
 router.get("/files", controller.getDrawyerFiles);
+router.get("/download", controller.downloadDrawyerFile);
 
 module.exports = router;

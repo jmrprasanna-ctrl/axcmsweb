@@ -35,6 +35,59 @@ async function readAllUploadEntries() {
   return entries;
 }
 
+function parseDataUrl(raw) {
+  const value = String(raw || "").trim();
+  if (!value.startsWith("data:")) return null;
+  const commaIndex = value.indexOf(",");
+  if (commaIndex === -1) return null;
+  const header = value.slice(5, commaIndex);
+  const payload = value.slice(commaIndex + 1);
+  const isBase64 = /;base64/i.test(header);
+  const buffer = isBase64 ? Buffer.from(payload, "base64") : Buffer.from(decodeURIComponent(payload), "utf8");
+  const mime = header.split(";")[0] || "application/octet-stream";
+  return { mime, buffer };
+}
+
+async function getDrawyerFileEntry(caseNo, moduleName, fileIndex) {
+  const candidate = String(moduleName || "").trim().toLowerCase();
+  const def = SOURCE_DEFS.find((item) => String(item.module || "").trim().toLowerCase() === candidate);
+  if (!def) return null;
+
+  const rows = await def.model.findAll({
+    where: { case_no: caseNo },
+    attributes: ["id", "case_no", "uploads_json", "upload_method", "updatedAt", "createdAt"],
+    order: [["updatedAt", "DESC"], ["id", "DESC"]],
+  });
+
+  let currentIndex = 0;
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const plain = row.toJSON ? row.toJSON() : row;
+    const uploads = Array.isArray(plain.uploads_json) ? plain.uploads_json : [];
+    for (let idx = 0; idx < uploads.length; idx += 1) {
+      const parsed = parseDataUrl(uploads[idx]);
+      if (!parsed || !parsed.buffer?.length) continue;
+      if (currentIndex === fileIndex) {
+        const ext = String(parsed.mime || "").toLowerCase().includes("pdf") ? "pdf" : (String(parsed.mime || "").split("/")[1] || "bin");
+        const fileName = `${def.module}_${String(plain.case_no || "case").replace(/\s+/g, "_")}_${Number(plain.id || 0)}_${idx + 1}.${ext}`;
+        return {
+          source_table: def.source,
+          source_id: Number(plain.id || 0),
+          case_no: String(plain.case_no || "").trim(),
+          module_name: def.module,
+          file_index: idx,
+          file_name: fileName,
+          mime: parsed.mime,
+          buffer: parsed.buffer,
+          upload_method: String(plain.upload_method || "").trim() || "local",
+          updated_at: plain.updatedAt || plain.updated_at || null,
+        };
+      }
+      currentIndex += 1;
+    }
+  }
+  return null;
+}
+
 function groupEntries(entries, syncedHashSet, syncMetaByHash) {
   const byCase = new Map();
   (Array.isArray(entries) ? entries : []).forEach((entry) => {
@@ -116,4 +169,5 @@ async function listDrawyer(req, options = {}) {
 
 module.exports = {
   listDrawyer,
+  getDrawyerFileEntry,
 };
