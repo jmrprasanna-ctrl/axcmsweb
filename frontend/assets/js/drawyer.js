@@ -40,12 +40,23 @@ function buildFileRow(file, caseNo, moduleName, index){
     `;
 }
 
+function getFolderIcon(moduleName){
+    const key = String(moduleName || "").trim().toLowerCase();
+    if(key.includes("plaint")) return "📄";
+    if(key.includes("answer")) return "📝";
+    if(key.includes("witness")) return "👤";
+    if(key.includes("judgment") || key.includes("dudgment")) return "⚖️";
+    return "📁";
+}
+
 function buildFolderHtml(folderName, files, caseNo){
     const rows = (Array.isArray(files) ? files : []).map((file, index) => buildFileRow(file, caseNo, folderName, index)).join("");
     return `
-        <section class="drawyer-folder">
-            <button type="button" class="folder-toggle" data-case="${escapeHtml(caseNo)}" data-module="${escapeHtml(folderName)}">
-                ${escapeHtml(folderName)} (${(Array.isArray(files) ? files.length : 0)})
+        <section class="drawyer-folder-card">
+            <button type="button" class="folder-card-toggle" aria-expanded="false" data-case="${escapeHtml(caseNo)}" data-module="${escapeHtml(folderName)}">
+                <span class="folder-card-icon">${getFolderIcon(folderName)}</span>
+                <span class="folder-card-title">${escapeHtml(folderName)}</span>
+                <span class="folder-card-meta">${(Array.isArray(files) ? files.length : 0)} files</span>
             </button>
             <div class="drawyer-folder-files" data-case="${escapeHtml(caseNo)}" data-module="${escapeHtml(folderName)}" hidden>
                 ${rows || `<p class="drawyer-empty">No files.</p>`}
@@ -60,8 +71,16 @@ function buildCaseHtml(item){
     const body = folderNames.map((name) => buildFolderHtml(name, folders[name], item.case_no)).join("");
     return `
         <article class="drawyer-case">
-            <h3>Case: ${escapeHtml(item.case_no || "UNKNOWN_CASE")}</h3>
-            ${body || `<p class="drawyer-empty">No uploaded files.</p>`}
+            <div class="drawyer-case-header">
+                <span class="drawyer-folder-icon">📁</span>
+                <div>
+                    <div class="drawyer-case-label">Case</div>
+                    <div class="drawyer-case-title">${escapeHtml(item.case_no || "UNKNOWN_CASE")}</div>
+                </div>
+            </div>
+            <div class="drawyer-subfolder-grid">
+                ${body || `<p class="drawyer-empty">No uploaded files.</p>`}
+            </div>
         </article>
     `;
 }

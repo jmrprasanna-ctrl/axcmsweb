@@ -17,55 +17,93 @@
 }
 
 .drawyer-case {
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 14px;
-  margin-bottom: 14px;
-  background: #fff;
+  border: 1px solid #dde7f0;
+  border-radius: 20px;
+  padding: 18px;
+  margin-bottom: 18px;
+  background: #ffffff;
+  box-shadow: 0 2px 15px rgba(16, 63, 110, 0.05);
 }
 
-.drawyer-case h3 {
-  margin-bottom: 12px;
+.drawyer-case-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
 }
 
-.drawyer-folder {
-  border: 1px solid #dee2e6;
-  border-radius: 10px;
-  background: #f7fbff;
-  margin-bottom: 12px;
+.drawyer-folder-icon {
+  font-size: 42px;
 }
 
-.folder-toggle {
+.drawyer-case-label {
+  font-size: 0.85rem;
+  color: #5b708a;
+}
+
+.drawyer-case-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #112d4e;
+}
+
+.drawyer-subfolder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.drawyer-folder-card {
+  background: #f4f7ff;
+  border: 1px solid #d8e4fb;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.folder-card-toggle {
   width: 100%;
   text-align: left;
-  padding: 12px 14px;
-  background: #ffffff;
+  padding: 16px;
+  background: transparent;
   border: 0;
-  border-bottom: 1px solid #dee2e6;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.folder-card-toggle:hover {
+  background: #e9f0ff;
+}
+
+.folder-card-icon {
+  font-size: 28px;
+}
+
+.folder-card-title {
   font-size: 1rem;
   font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  color: #162d4f;
 }
 
-.folder-toggle:hover {
-  background: #eef5fb;
+.folder-card-meta {
+  color: #5f738f;
+  font-size: 0.93rem;
 }
 
-.folder-toggle::after {
+.folder-card-toggle::after {
   content: "+";
-  font-size: 18px;
+  font-size: 20px;
   color: #1f497d;
 }
 
-.folder-toggle[aria-expanded="true"]::after {
+.folder-card-toggle[aria-expanded="true"]::after {
   content: "–";
 }
 
 .drawyer-folder-files {
-  padding: 12px 14px 16px;
+  padding: 0 16px 16px;
 }
 
 .drawyer-file-row {
