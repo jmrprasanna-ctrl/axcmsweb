@@ -138,6 +138,11 @@ async function loadPlaintForEdit() {
     refreshCommentWordHint();
     updateUploadInputMode();
     setFormLockState();
+    if (caseSearchEl) {
+        const caseNo = String(row.case_no || "").trim();
+        const customerName = String(row.customer_name || "").trim();
+        caseSearchEl.value = caseNo && customerName ? `${caseNo} - ${customerName}` : (caseNo || customerName);
+    }
     const found = allCases.find((c) => Number(c.id) === Number(row.case_id));
     if (found) {
         caseSearchEl.value = `${found.case_no} - ${found.customer_name}`;
@@ -271,8 +276,15 @@ if (deletePlaintBtnEl) {
 
 (async function init() {
     try {
-        await loadCases();
         await loadPlaintForEdit();
+        loadCases().then(() => {
+            const caseId = Number(caseIdEl?.value || 0);
+            if (!Number.isFinite(caseId) || caseId <= 0) return;
+            const found = allCases.find((c) => Number(c.id) === caseId);
+            if (found && caseSearchEl) {
+                caseSearchEl.value = `${found.case_no} - ${found.customer_name}`;
+            }
+        }).catch(() => {});
     } catch (err) {
         alert(err.message || "Failed to initialize plaint edit page.");
     }
