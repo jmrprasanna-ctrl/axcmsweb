@@ -47,6 +47,14 @@ function toggleSubfolders(caseDiv, caseData) {
     }
 }
 
+function formatDocumentLabel(doc, index) {
+    const raw = String(doc || "").trim();
+    if (/^data:/i.test(raw)) {
+        return `Attachment ${index + 1}`;
+    }
+    return raw || `Attachment ${index + 1}`;
+}
+
 async function toggleDocuments(subDiv, caseNo, type) {
     const docsEl = subDiv.querySelector(".documents-list");
     if (docsEl.style.display === "block") {
@@ -56,13 +64,24 @@ async function toggleDocuments(subDiv, caseNo, type) {
         try {
             const documents = await request(`/cases/folder-documents?case_no=${encodeURIComponent(caseNo)}&type=${type}`, "GET");
             docsEl.innerHTML = "";
-            (Array.isArray(documents) ? documents : []).forEach((doc) => {
+            (Array.isArray(documents) ? documents : []).forEach((doc, index) => {
                 const docDiv = document.createElement("div");
                 docDiv.classList.add("document-item");
-                docDiv.innerHTML = `
-                    <a href="/uploads/${doc}" target="_blank">${doc}</a>
-                    <button class="download-btn" onclick="downloadFile('${doc}')">Download</button>
-                `;
+
+                const label = document.createElement("span");
+                label.textContent = formatDocumentLabel(doc, index);
+                label.className = "document-name";
+
+                const downloadBtn = document.createElement("button");
+                downloadBtn.className = "download-btn";
+                downloadBtn.type = "button";
+                downloadBtn.textContent = "Download";
+                downloadBtn.addEventListener("click", () => {
+                    downloadFile(caseNo, type, index, formatDocumentLabel(doc, index));
+                });
+
+                docDiv.appendChild(label);
+                docDiv.appendChild(downloadBtn);
                 docsEl.appendChild(docDiv);
             });
         } catch (err) {
@@ -72,11 +91,13 @@ async function toggleDocuments(subDiv, caseNo, type) {
     }
 }
 
-function downloadFile(filename) {
+function downloadFile(caseNo, type, index, fileName) {
     const link = document.createElement("a");
-    link.href = `/uploads/${filename}`;
-    link.download = filename;
+    link.href = `/api/cases/download-document?case_no=${encodeURIComponent(caseNo)}&type=${encodeURIComponent(type)}&index=${encodeURIComponent(index)}`;
+    link.download = String(fileName || "");
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
 }
 
 function applyFilter() {

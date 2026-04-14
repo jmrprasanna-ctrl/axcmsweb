@@ -1,3 +1,5 @@
+const fs = require("fs");
+const path = require("path");
 const { Op, fn, col, where } = require("sequelize");
 const LegalCase = require("../models/Case");
 const Customer = require("../models/Customer");
@@ -7,6 +9,139 @@ const Plaint = require("../models/Plaint");
 const Answer = require("../models/Answer");
 const Witness = require("../models/Witness");
 const Judgment = require("../models/Judgment");
+
+const UPLOADS_DIR = path.resolve(__dirname, "..", "uploads");
+
+function parseDataUrl(raw) {
+    const value = String(raw || "").trim();
+    if (!value.startsWith("data:")) return null;
+    const commaIndex = value.indexOf(",");
+    if (commaIndex === -1) return null;
+    const header = value.slice(5, commaIndex);
+    const payload = value.slice(commaIndex + 1);
+    const isBase64 = /;base64/i.test(header);
+    const buffer = isBase64 ? Buffer.from(payload, "base64") : Buffer.from(decodeURIComponent(payload), "utf8");
+    const mime = header.split(";")[0] || "application/octet-stream";
+    return { mime, buffer };
+}
+
+function safeFileName(name, fallback = "file") {
+    const base = String(name || "").trim();
+    const safe = path.basename(base).replace(/[\\/:*?"<>|#%{}~]+/g, "_");
+    return safe || fallback;
+}
+
+function extFromMime(mime) {
+    const lower = String(mime || "").toLowerCase();
+    if (lower.includes("jpeg")) return "jpg";
+    if (lower.includes("png")) return "png";
+    if (lower.includes("gif")) return "gif";
+    if (lower.includes("bmp")) return "bmp";
+    if (lower.includes("webp")) return "webp";
+    if (lower.includes("pdf")) return "pdf";
+    if (lower.includes("msword") || lower.includes("word")) return "doc";
+    if (lower.includes("officedocument.wordprocessingml.document")) return "docx";
+    if (lower.includes("spreadsheet") || lower.includes("excel")) return "xls";
+    return "bin";
+}
+
+function buildDocumentFileName(caseNo, type, index, raw) {
+    const safeCase = safeFileName(caseNo || "case");
+    const baseIndex = Number(index || 0) + 1;
+    const parsed = parseDataUrl(raw);
+    if (parsed && parsed.mime) {
+        const ext = extFromMime(parsed.mime);
+        return `${safeFileName(type || "document")}_${safeCase}_${baseIndex}.${ext}`;
+    }
+    const rawName = safeFileName(raw || "document");
+    if (rawName) return rawName;
+    return `${safeFileName(type || "document")}_${safeCase}_${baseIndex}.bin`;
+}
+
+async function getFolderUploads(caseNo, type) {
+    const normalizedCase = String(caseNo || "").trim();
+    const normalizedType = String(type || "").trim().toLowerCase();
+    if (!normalizedCase || !["step", "plaint", "answer", "witness", "judgment"].includes(normalizedType)) {
+        return [];
+    }
+
+    const uploads = [];
+    if (normalizedType === "step") {
+        const rows = await LegalCase.findAll({
+            where: { case_no: normalizedCase, case_step: "STEP" },
+            attributes: ["uploads_json"],
+            order: [["case_date", "DESC"], ["id", "DESC"]],
+            raw: true,
+        });
+        rows.forEach((row) => {
+            if (Array.isArray(row.uploads_json)) {
+                uploads.push(...row.uploads_json);
+            }
+        });
+    } else {
+        const Model = normalizedType === "plaint" ? Plaint : normalizedType === "answer" ? Answer : normalizedType === "witness" ? Witness : Judgment;
+        const dateField = normalizedType === "plaint" ? "plaint_date" : normalizedType === "answer" ? "answer_date" : normalizedType === "witness" ? "witness_date" : "judgment_date";
+        const rows = await Model.findAll({
+            where: { case_no: normalizedCase },
+            attributes: ["uploads_json"],
+            order: [[dateField, "DESC"], ["id", "DESC"]],
+            raw: true,
+        });
+        rows.forEach((row) => {
+            if (Array.isArray(row.uploads_json)) {
+                uploads.push(...row.uploads_json);
+            }
+        });
+    }
+    return uploads;
+}
+
+exports.downloadFolderDocument = async (req, res) => {
+    try {
+        const caseNo = String(req.query.case_no || "").trim();
+        const type = String(req.query.type || "").trim().toLowerCase();
+        const index = Number(req.query.index || 0);
+
+        if (!caseNo) {
+            return res.status(400).json({ message: "Case no is required." });
+        }
+        if (!["step", "plaint", "answer", "witness", "judgment"].includes(type)) {
+            return res.status(400).json({ message: "Invalid type." });
+        }
+        if (!Number.isFinite(index) || index < 0) {
+            return res.status(400).json({ message: "Invalid document index." });
+        }
+
+        const uploads = await getFolderUploads(caseNo, type);
+        if (!Array.isArray(uploads) || index >= uploads.length) {
+            return res.status(404).json({ message: "Document not found." });
+        }
+
+        const raw = String(uploads[index] || "").trim();
+        if (!raw) {
+            return res.status(404).json({ message: "Document is empty." });
+        }
+
+        const parsed = parseDataUrl(raw);
+        const fileName = buildDocumentFileName(caseNo, type, index, raw);
+
+        if (parsed && parsed.buffer?.length) {
+            res.setHeader("Content-Type", parsed.mime || "application/octet-stream");
+            res.setHeader("Content-Disposition", `attachment; filename="${safeFileName(fileName)}"`);
+            return res.send(parsed.buffer);
+        }
+
+        const candidate = raw.replace(/^\/+|^uploads\//i, "");
+        const filePath = path.resolve(UPLOADS_DIR, candidate);
+        if (!filePath.startsWith(UPLOADS_DIR) || !fs.existsSync(filePath)) {
+            return res.status(404).json({ message: "File not found on server." });
+        }
+
+        return res.download(filePath, safeFileName(fileName));
+    } catch (err) {
+        res.status(500).json({ message: err.message || "Failed to download document." });
+    }
+};
 
 function toUpper(value) {
     return String(value || "").trim().toUpperCase();
