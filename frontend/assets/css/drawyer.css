@@ -214,10 +214,113 @@
   font-weight: 700;
 }
 
+.drawyer-view-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.drawyer-view-header h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  color: #112d4e;
+}
+
+.drawyer-view-subtitle {
+  margin: 6px 0 0;
+  color: #5b708a;
+  font-size: 0.95rem;
+}
+
+.drawyer-back-btn {
+  border: 1px solid #c7d4ea;
+  background: #ffffff;
+  color: #1f497d;
+  padding: 10px 16px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.drawyer-case-grid,
+.drawyer-folder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.drawyer-case-card,
+.drawyer-folder-card-button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 18px;
+  border: 1px solid #d8e4fb;
+  border-radius: 18px;
+  background: #f8fbff;
+  cursor: pointer;
+  text-align: left;
+  min-height: 160px;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.drawyer-case-card:hover,
+.drawyer-folder-card-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 25px rgba(16, 63, 110, 0.12);
+}
+
+.drawyer-case-card-icon,
+.drawyer-folder-card-icon {
+  font-size: 32px;
+}
+
+.drawyer-case-card-title,
+.drawyer-folder-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #112d4e;
+}
+
+.drawyer-case-card-meta,
+.drawyer-folder-card-meta {
+  color: #5b708a;
+  font-size: 0.95rem;
+}
+
+.drawyer-file-list {
+  display: grid;
+  gap: 12px;
+}
+
+.drawyer-file-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #d8e4fb;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.drawyer-file-list-item > div {
+  min-width: 0;
+}
+
 @media (max-width: 900px) {
   .drawyer-file-row {
     grid-template-columns: 1fr;
   }
+
+  .drawyer-actions-row {
+    width: 100%;
+  }
+}
 
   .drawyer-actions-row {
     width: 100%;

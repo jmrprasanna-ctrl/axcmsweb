@@ -18,6 +18,10 @@ function fmtDate(value){
     return dt.toLocaleString();
 }
 
+let drawyerCasesData = [];
+let currentCaseNo = "";
+let currentModuleName = "";
+
 function buildFileRow(file, caseNo, moduleName, index){
     const status = String(file.sync_status || "").toLowerCase() === "synced"
         ? `<span class="drawyer-status-ok">Synced</span>`
@@ -103,12 +107,114 @@ function buildCaseHtml(item){
 function renderCases(cases){
     const host = byId("drawyerCases");
     if(!host) return;
-    const rows = Array.isArray(cases) ? cases : [];
-    if(!rows.length){
-        host.innerHTML = `<p class="drawyer-empty">No uploaded or captured files found.</p>`;
+    drawyerCasesData = Array.isArray(cases) ? cases : [];
+    currentCaseNo = "";
+    currentModuleName = "";
+    if(!drawyerCasesData.length){
+        host.innerHTML = `<p class="drawyer-empty">No uploaded or captured cases found.</p>`;
         return;
     }
-    host.innerHTML = rows.map(buildCaseHtml).join("");
+    renderCasesView();
+}
+
+function renderCasesView(){
+    const host = byId("drawyerCases");
+    if(!host) return;
+    const rows = drawyerCasesData;
+    host.innerHTML = `
+        <div class="drawyer-view-header">
+            <div>
+                <h3>Cases</h3>
+                <p class="drawyer-view-subtitle">${rows.length} case${rows.length === 1 ? "" : "s"}</p>
+            </div>
+        </div>
+        <div class="drawyer-case-grid">
+            ${rows.map(buildCaseCard).join("")}
+        </div>
+    `;
+}
+
+function buildCaseCard(item){
+    const caseNo = String(item.case_no || "UNKNOWN_CASE");
+    const folders = item.folders || {};
+    const folderCount = Object.keys(folders).length;
+    const fileCount = Object.values(folders).reduce((sum, files) => sum + (Array.isArray(files) ? files.length : 0), 0);
+    return `
+        <button type="button" class="drawyer-case-card" data-case="${escapeHtml(caseNo)}">
+            <div class="drawyer-case-card-icon">📁</div>
+            <div class="drawyer-case-card-title">${escapeHtml(caseNo)}</div>
+            <div class="drawyer-case-card-meta">${folderCount} folder${folderCount === 1 ? "" : "s"} · ${fileCount} file${fileCount === 1 ? "" : "s"}</div>
+        </button>
+    `;
+}
+
+function renderFoldersView(caseNo){
+    const host = byId("drawyerCases");
+    if(!host) return;
+    currentCaseNo = caseNo;
+    currentModuleName = "";
+    const item = drawyerCasesData.find((row) => String(row.case_no || "") === caseNo) || { folders: {} };
+    const folders = item.folders || {};
+    const folderNames = Object.keys(folders);
+    host.innerHTML = `
+        <div class="drawyer-view-header">
+            <button type="button" class="drawyer-back-btn">← Cases</button>
+            <div>
+                <h3>${escapeHtml(caseNo)}</h3>
+                <p class="drawyer-view-subtitle">${folderNames.length} folder${folderNames.length === 1 ? "" : "s"}</p>
+            </div>
+        </div>
+        <div class="drawyer-folder-grid">
+            ${folderNames.map((name) => buildFolderCard(name, folders[name] || [], caseNo)).join("")}
+        </div>
+    `;
+}
+
+function buildFolderCard(moduleName, files, caseNo){
+    const label = getFolderLabel(moduleName);
+    return `
+        <button type="button" class="drawyer-folder-card-button" data-case="${escapeHtml(caseNo)}" data-module="${escapeHtml(moduleName)}">
+            <div class="drawyer-folder-card-icon">📁</div>
+            <div class="drawyer-folder-card-title">${escapeHtml(label)}</div>
+            <div class="drawyer-folder-card-meta">${files.length} file${files.length === 1 ? "" : "s"}</div>
+        </button>
+    `;
+}
+
+function renderFilesView(caseNo, moduleName){
+    const host = byId("drawyerCases");
+    if(!host) return;
+    currentCaseNo = caseNo;
+    currentModuleName = moduleName;
+    const item = drawyerCasesData.find((row) => String(row.case_no || "") === caseNo) || { folders: {} };
+    const files = Array.isArray(item.folders?.[moduleName]) ? item.folders[moduleName] : [];
+    host.innerHTML = `
+        <div class="drawyer-view-header">
+            <button type="button" class="drawyer-back-btn">← Folders</button>
+            <div>
+                <h3>${escapeHtml(getFolderLabel(moduleName))}</h3>
+                <p class="drawyer-view-subtitle">${files.length} file${files.length === 1 ? "" : "s"} in ${escapeHtml(caseNo)}</p>
+            </div>
+        </div>
+        <div class="drawyer-file-list">
+            ${files.length ? files.map((file, index) => buildFileListItem(file, caseNo, moduleName, index)).join("") : `<p class="drawyer-empty">No files found in this folder.</p>`}
+        </div>
+    `;
+}
+
+function buildFileListItem(file, caseNo, moduleName, index){
+    return `
+        <div class="drawyer-file-list-item">
+            <div>
+                <div class="drawyer-file-name">${escapeHtml(file.file_name || `File ${index + 1}`)}</div>
+                <div class="drawyer-file-meta">${escapeHtml(getFolderLabel(moduleName))} · ${escapeHtml(fmtDate(file.updated_at) || "")}</div>
+            </div>
+            <div class="drawyer-actions-row">
+                <button type="button" class="download-btn" data-case="${escapeHtml(caseNo)}" data-module="${escapeHtml(moduleName)}" data-source_table="${escapeHtml(file.source_table || "")}" data-source_id="${escapeHtml(file.source_id || "")}" data-file_index="${escapeHtml(file.file_index || "")}" data-file_name="${escapeHtml(file.file_name || "")}">Download</button>
+                <button type="button" class="delete-btn" data-case="${escapeHtml(caseNo)}" data-module="${escapeHtml(moduleName)}" data-source_table="${escapeHtml(file.source_table || "")}" data-source_id="${escapeHtml(file.source_id || "")}" data-file_index="${escapeHtml(file.file_index || "")}">Delete</button>
+            </div>
+        </div>
+    `;
 }
 
 async function downloadFile(caseNo, moduleName, sourceTable, sourceId, fileIndex, fileName){
@@ -147,27 +253,27 @@ async function deleteFile(caseNo, moduleName, sourceTable, sourceId, fileIndex){
 }
 
 function handleDrawyerClick(event){
-    const caseToggle = event.target.closest(".case-root-toggle");
-    if(caseToggle){
-        const caseNo = caseToggle.dataset.case || "";
-        const folderContainer = document.querySelector(`.drawyer-subfolder-container[data-case='${CSS.escape(caseNo)}']`);
-        if(folderContainer){
-            const expanded = folderContainer.hidden;
-            folderContainer.hidden = !folderContainer.hidden;
-            caseToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
-        }
+    const caseCard = event.target.closest(".drawyer-case-card");
+    if(caseCard){
+        const caseNo = caseCard.dataset.case || "";
+        if(caseNo) showFoldersView(caseNo);
         return;
     }
 
-    const folderToggle = event.target.closest(".folder-card-toggle");
-    if(folderToggle){
-        const caseNo = folderToggle.dataset.case || "";
-        const moduleName = folderToggle.dataset.module || "";
-        const fileList = document.querySelector(`.drawyer-folder-files[data-case='${CSS.escape(caseNo)}'][data-module='${CSS.escape(moduleName)}']`);
-        if(fileList){
-            const expanded = fileList.hidden;
-            fileList.hidden = !fileList.hidden;
-            folderToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+    const folderCard = event.target.closest(".drawyer-folder-card-button");
+    if(folderCard){
+        const caseNo = folderCard.dataset.case || "";
+        const moduleName = folderCard.dataset.module || "";
+        if(caseNo && moduleName) showFilesView(caseNo, moduleName);
+        return;
+    }
+
+    const backBtn = event.target.closest(".drawyer-back-btn");
+    if(backBtn){
+        if(currentModuleName){
+            showFoldersView(currentCaseNo);
+        } else if(currentCaseNo){
+            renderCasesView();
         }
         return;
     }
