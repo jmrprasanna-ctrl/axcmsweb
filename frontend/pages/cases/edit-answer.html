@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -26,7 +26,14 @@
 </div>
 
 <div class="main-content">
-    <header><h2>Edit Answer</h2></header>
+    <header class="cases-page-header">
+        <h2>Edit Answer</h2>
+        <a class="icon-btn back-icon-btn" href="answer.html" title="Back" aria-label="Back">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+        </a>
+    </header>
     <div class="form-container">
         <form id="answerForm" class="form-grid">
             <input type="hidden" id="answerId">
@@ -74,22 +81,39 @@
                 <textarea id="comment" rows="6" placeholder="Answer comment (up to 1000 words)"></textarea>
                 <div class="word-hint" id="commentWords">0/1000 words</div>
             </div>
-            <div>
-                <label for="upload_method">Upload Option</label>
-                <select id="upload_method">
-                    <option value="local">Upload photos on local machine</option>
-                    <option value="take-photo">Take a photo</option>
-                </select>
-            </div>
-            <div>
-                <label for="uploads">Upload Photos</label>
-                <input type="file" id="uploads" accept="image/*" multiple>
+            <div class="full">
+                <label>Upload Option</label>
+                <div class="upload-picker">
+                    <button type="button" class="upload-trigger upload-trigger-icon" id="cameraUploadBtn" title="Camera" aria-label="Camera">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M4.5 8.2h3l1.2-2h6.6l1.2 2h3A1.8 1.8 0 0 1 21.3 10v8.3a1.8 1.8 0 0 1-1.8 1.8H4.5a1.8 1.8 0 0 1-1.8-1.8V10a1.8 1.8 0 0 1 1.8-1.8Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"></path>
+                            <circle cx="12" cy="14.2" r="3.3" stroke="currentColor" stroke-width="1.7"></circle>
+                        </svg>
+                    </button>
+                    <button type="button" class="upload-trigger upload-trigger-icon" id="folderUploadBtn" title="Folder Upload" aria-label="Folder Upload">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M3.5 7.2a1.7 1.7 0 0 1 1.7-1.7h4l1.7 2h7.6a1.7 1.7 0 0 1 1.7 1.7v8.6a1.7 1.7 0 0 1-1.7 1.7H5.2a1.7 1.7 0 0 1-1.7-1.7V7.2Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"></path>
+                            <path d="M12 10.3v5.8M9.4 13h5.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path>
+                        </svg>
+                    </button>
+                </div>
+                <input type="file" id="camera_uploads" accept="image/*" capture="environment" multiple hidden>
+                <input type="file" id="folder_uploads" accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx" multiple hidden>
             </div>
             <div class="full upload-preview" id="uploadPreview"></div>
             <div class="full cases-actions">
-                <button type="submit" class="btn btn-primary">Update Answer</button>
-                <button type="button" class="btn btn-danger" id="deleteAnswerBtn">Delete</button>
-                <a class="icon-btn back-icon-btn" href="answer.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+                <button type="submit" class="icon-btn save-icon-btn" title="Update Answer" aria-label="Update Answer">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M6.8 3.5h8.9l2.8 2.8v13a1.7 1.7 0 0 1-1.7 1.7H7.2a1.7 1.7 0 0 1-1.7-1.7V5.2a1.7 1.7 0 0 1 1.3-1.7Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"></path>
+                        <path d="M8.7 3.5v5.2h6.1V3.5" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"></path>
+                        <path d="M8.7 16h6.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path>
+                    </svg>
+                </button>
+                <button type="button" class="icon-btn delete-icon-btn" id="deleteAnswerBtn" title="Delete" aria-label="Delete">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M6 7h12M9.5 7V5.5h5V7M10 10.5v6M14 10.5v6M7.5 7l.7 10.2a1.5 1.5 0 0 0 1.5 1.4h4.6a1.5 1.5 0 0 0 1.5-1.4L16.5 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                </button>
             </div>
         </form>
         <div class="history-panel">
@@ -108,12 +132,6 @@
 
 <script src="../../assets/js/api.js?v=20260402p03"></script>
 <script src="../../assets/js/case-history.js?v=20260403p01"></script>
-<script src="../../assets/js/edit-answer.js?v=20260403p04"></script>
+<script src="../../assets/js/edit-answer.js?v=20260420p01"></script>
 </body>
 </html>
-
-
-
-
-
-

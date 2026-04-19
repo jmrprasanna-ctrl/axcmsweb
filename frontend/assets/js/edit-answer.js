@@ -1,4 +1,4 @@
-const answerFormEl = document.getElementById("answerForm");
+﻿const answerFormEl = document.getElementById("answerForm");
 const answerIdEl = document.getElementById("answerId");
 const answerDateEl = document.getElementById("answer_date");
 const caseSearchEl = document.getElementById("case_search");
@@ -11,14 +11,17 @@ const lawyerEl = document.getElementById("attend_lawyer");
 const answerStepEl = document.getElementById("answer_step");
 const commentEl = document.getElementById("comment");
 const commentWordEl = document.getElementById("commentWords");
-const uploadMethodEl = document.getElementById("upload_method");
-const uploadInputEl = document.getElementById("uploads");
+const cameraUploadBtnEl = document.getElementById("cameraUploadBtn");
+const folderUploadBtnEl = document.getElementById("folderUploadBtn");
+const cameraUploadInputEl = document.getElementById("camera_uploads");
+const folderUploadInputEl = document.getElementById("folder_uploads");
 const uploadPreviewEl = document.getElementById("uploadPreview");
 const deleteAnswerBtnEl = document.getElementById("deleteAnswerBtn");
 const editEnabledEl = document.getElementById("edit_enabled");
 let allCases = [];
 let cachedUploads = [];
 let isEditEnabled = false;
+let selectedUploadMethod = "folder";
 
 function countWords(value) {
     const text = String(value || "").trim();
@@ -29,15 +32,6 @@ function countWords(value) {
 function refreshCommentWordHint() {
     const n = countWords(commentEl?.value || "");
     if (commentWordEl) commentWordEl.innerText = `${n}/1000 words`;
-}
-
-function updateUploadInputMode() {
-    if (!uploadInputEl || !uploadMethodEl) return;
-    if (uploadMethodEl.value === "take-photo") {
-        uploadInputEl.setAttribute("capture", "environment");
-    } else {
-        uploadInputEl.removeAttribute("capture");
-    }
 }
 
 function setFormLockState() {
@@ -78,11 +72,35 @@ function renderUploadPreview(values) {
     if (!uploadPreviewEl) return;
     uploadPreviewEl.innerHTML = "";
     (Array.isArray(values) ? values : []).forEach((src) => {
-        const img = document.createElement("img");
-        img.src = src;
-        img.alt = "answer upload";
-        uploadPreviewEl.appendChild(img);
+        const mime = String(src || "").match(/^data:([^;]+);base64,/i)?.[1]?.toLowerCase() || "";
+        if (mime.startsWith("image/")) {
+            const img = document.createElement("img");
+            img.src = src;
+            img.alt = "answer upload";
+            uploadPreviewEl.appendChild(img);
+            return;
+        }
+        const shortLabel = mime === "application/pdf"
+            ? "PDF"
+            : (mime.includes("word")
+                ? "DOC"
+                : (mime.includes("sheet") || mime.includes("excel")
+                    ? "XLS"
+                    : (mime.startsWith("text/") ? "TEXT" : "FILE")));
+        const fileCard = document.createElement("div");
+        fileCard.className = "upload-file-card";
+        fileCard.innerHTML = `
+            <div class="upload-file-icon">${shortLabel}</div>
+            <div class="upload-file-text">Attached file</div>
+        `;
+        uploadPreviewEl.appendChild(fileCard);
     });
+}
+
+function mergeUploads(nextUploads) {
+    const list = Array.isArray(nextUploads) ? nextUploads : [];
+    cachedUploads = [...cachedUploads, ...list].slice(0, 20);
+    renderUploadPreview(cachedUploads);
 }
 
 function renderCaseOptions(rows) {
@@ -127,18 +145,22 @@ async function loadAnswerForEdit() {
     courtEl.value = row.court || "";
     lawyerEl.value = row.attend_lawyer || "";
     if (answerStepEl) {
-        answerStepEl.value = String(row.answer_step || "STEP").toUpperCase() === "NEXT_STEP" ? "NEXT_STEP" : "STEP";
+        const normalizedStep = String(row.answer_step || "STEP").trim().toUpperCase();
+        answerStepEl.value = normalizedStep === "NEXT_STEP" ? "NEXT_STEP" : "STEP";
     }
     commentEl.value = row.comment || "";
-    uploadMethodEl.value = row.upload_method || "local";
+    selectedUploadMethod = String(row.upload_method || "folder").toLowerCase().includes("camera") ? "camera" : "folder";
     cachedUploads = Array.isArray(row.uploads_json) ? row.uploads_json : [];
     isEditEnabled = false;
     if (editEnabledEl) editEnabledEl.checked = isEditEnabled;
     renderUploadPreview(cachedUploads);
     refreshCommentWordHint();
-    updateUploadInputMode();
     setFormLockState();
-
+    if (caseSearchEl) {
+        const caseNo = String(row.case_no || "").trim();
+        const customerName = String(row.customer_name || "").trim();
+        caseSearchEl.value = caseNo && customerName ? `${caseNo} - ${customerName}` : (caseNo || customerName);
+    }
     const found = allCases.find((c) => Number(c.id) === Number(row.case_id));
     if (found) {
         caseSearchEl.value = `${found.case_no} - ${found.customer_name}`;
@@ -152,12 +174,36 @@ if (answerDateEl && !answerDateEl.value) {
     answerDateEl.value = new Date().toISOString().slice(0, 10);
 }
 refreshCommentWordHint();
-updateUploadInputMode();
 setFormLockState();
 
 if (commentEl) commentEl.addEventListener("input", refreshCommentWordHint);
 if (caseSearchEl) caseSearchEl.addEventListener("input", applyCaseSelectionFromSearch);
-if (uploadMethodEl) uploadMethodEl.addEventListener("change", updateUploadInputMode);
+if (cameraUploadBtnEl && cameraUploadInputEl) {
+    cameraUploadBtnEl.addEventListener("click", () => {
+        cameraUploadInputEl.click();
+    });
+}
+if (folderUploadBtnEl && folderUploadInputEl) {
+    folderUploadBtnEl.addEventListener("click", () => {
+        folderUploadInputEl.click();
+    });
+}
+if (cameraUploadInputEl) {
+    cameraUploadInputEl.addEventListener("change", async () => {
+        const rows = await filesToBase64(cameraUploadInputEl.files);
+        selectedUploadMethod = "camera";
+        mergeUploads(rows);
+        cameraUploadInputEl.value = "";
+    });
+}
+if (folderUploadInputEl) {
+    folderUploadInputEl.addEventListener("change", async () => {
+        const rows = await filesToBase64(folderUploadInputEl.files);
+        selectedUploadMethod = "folder";
+        mergeUploads(rows);
+        folderUploadInputEl.value = "";
+    });
+}
 if (editEnabledEl) {
     editEnabledEl.addEventListener("change", async () => {
         const id = Number(answerIdEl.value || 0);
@@ -174,12 +220,6 @@ if (editEnabledEl) {
             editEnabledEl.checked = isEditEnabled;
             alert(err.message || "Failed to change edit status.");
         }
-    });
-}
-if (uploadInputEl) {
-    uploadInputEl.addEventListener("change", async () => {
-        cachedUploads = await filesToBase64(uploadInputEl.files);
-        renderUploadPreview(cachedUploads);
     });
 }
 
@@ -201,12 +241,12 @@ if (answerFormEl) {
                 case_id: Number(caseIdEl.value),
                 answer_step: answerStepEl?.value || "STEP",
                 comment: commentEl.value.trim(),
-                upload_method: uploadMethodEl.value,
+                upload_method: selectedUploadMethod,
                 uploads_json: cachedUploads,
                 edit_enabled: true,
             }
             : {
-                upload_method: uploadMethodEl.value,
+                upload_method: selectedUploadMethod,
                 uploads_json: cachedUploads,
                 edit_enabled: false,
             };
@@ -274,8 +314,17 @@ if (deleteAnswerBtnEl) {
 
 (async function init() {
     try {
-        await loadCases();
+        const container = document.querySelector(".main-content .form-container");
+        if (container) container.scrollLeft = 0;
         await loadAnswerForEdit();
+        loadCases().then(() => {
+            const caseId = Number(caseIdEl?.value || 0);
+            if (!Number.isFinite(caseId) || caseId <= 0) return;
+            const found = allCases.find((c) => Number(c.id) === caseId);
+            if (found && caseSearchEl) {
+                caseSearchEl.value = `${found.case_no} - ${found.customer_name}`;
+            }
+        }).catch(() => {});
     } catch (err) {
         alert(err.message || "Failed to initialize answer edit page.");
     }
