@@ -1,4 +1,4 @@
-.drawyer-page-header {
+﻿.drawyer-page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -29,300 +29,238 @@
   height: 20px;
 }
 
-.drawyer-hint {
-  margin-bottom: 10px;
+.drawyer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 16px;
 }
 
-.drawyer-case {
-  border: 1px solid #dde7f0;
-  border-radius: 20px;
-  padding: 18px;
-  margin-bottom: 18px;
+.drawyer-toolbar .search-inline {
+  min-width: 320px;
+  max-width: 460px;
+}
+
+.drawyer-folders-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.drawyer-case-folder {
+  border: 1px solid #dbe5f2;
+  border-radius: 14px;
   background: #ffffff;
-  box-shadow: 0 2px 15px rgba(16, 63, 110, 0.05);
+  padding: 12px;
 }
 
 .drawyer-case-header {
-  display: flex;
+  width: 100%;
+  border: 1px solid #d7e4f8;
+  border-radius: 12px;
+  background: #f8fbff;
+  padding: 12px;
+  text-align: left;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 18px;
+  cursor: pointer;
+}
+
+.drawyer-case-header:hover {
+  background: #edf5ff;
+}
+
+.drawyer-case-header.expanded {
+  border-color: #8fb1db;
 }
 
 .drawyer-folder-icon {
-  font-size: 42px;
+  font-size: 30px;
 }
 
-.drawyer-case-label {
-  font-size: 0.85rem;
-  color: #5b708a;
+.drawyer-case-title-wrap h3 {
+  margin: 0;
+  font-size: 1.02rem;
+  color: #0f2f54;
 }
 
-.drawyer-case-title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #112d4e;
+.drawyer-case-title-wrap p {
+  margin: 5px 0 0;
+  font-size: 0.86rem;
+  color: #60748a;
 }
 
-.case-root-toggle {
+.drawyer-subfolders {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.drawyer-subfolder {
+  border: 1px solid #e2eaf6;
+  border-radius: 10px;
+  background: #fbfdff;
+}
+
+.drawyer-subfolder-header {
   width: 100%;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  padding: 10px 12px;
+  text-align: left;
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 14px;
-  align-items: center;
-  padding: 14px 18px;
-  border: 1px solid #c7d4ea;
-  border-radius: 20px;
-  background: #f8fbff;
-  cursor: pointer;
-  margin-bottom: 14px;
-}
-
-.case-root-toggle:hover {
-  background: #eef5ff;
-}
-
-.drawer-file-count {
-  color: #5f738f;
-  font-size: 0.9rem;
-}
-
-.drawyer-subfolder-container {
-  padding: 10px 0 0;
-}
-
-.drawyer-subfolder-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, max-content));
-  justify-content: start;
-  gap: 12px;
-}
-
-.drawyer-folder-card {
-  background: #f4f7ff;
-  border: 1px solid #d8e4fb;
-  border-radius: 16px;
-  overflow: hidden;
-  width: auto;
-  min-width: 220px;
-}
-
-.folder-card-toggle {
-  width: 100%;
-  text-align: left;
-  padding: 14px;
-  background: transparent;
-  border: 0;
-  display: grid;
-  grid-template-columns: 1fr;
   gap: 10px;
-  align-items: start;
+  align-items: center;
   cursor: pointer;
 }
 
-.folder-card-toggle:hover {
-  background: #e9f0ff;
+.drawyer-subfolder-header:hover {
+  background: #f1f7ff;
 }
 
-.folder-card-icon {
-  font-size: 28px;
+.drawyer-subfolder-header.expanded {
+  border-bottom: 1px solid #e1e9f5;
 }
 
-.folder-card-title {
-  font-size: 1rem;
+.drawyer-subfolder-icon {
+  font-size: 22px;
+}
+
+.drawyer-subfolder-title {
   font-weight: 700;
-  color: #162d4f;
+  color: #123a63;
 }
 
-.folder-card-meta {
-  color: #5f738f;
-  font-size: 0.93rem;
+.drawyer-subfolder-count {
+  font-size: 12px;
+  color: #5c7288;
 }
 
-.folder-card-toggle::after {
-  content: "+";
-  font-size: 20px;
-  color: #1f497d;
-}
-
-.folder-card-toggle[aria-expanded="true"]::after {
-  content: "–";
-}
-
-.drawyer-folder-files {
-  padding: 0 16px 16px;
-}
-
-.drawyer-file-row {
+.drawyer-documents-list {
   display: grid;
-  grid-template-columns: 1.5fr 0.9fr 0.8fr 1fr;
-  gap: 12px;
-  font-size: 0.95rem;
-  padding: 8px 0;
-  border-bottom: 1px solid #e4edf8;
+  gap: 8px;
+  padding: 10px;
+}
+
+.drawyer-document-item {
+  border: 1px solid #dbe6f3;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
+  gap: 10px;
 }
 
-.drawyer-file-row:last-child {
-  border-bottom: 0;
+.drawyer-document-left {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
 }
 
-.drawyer-file-name {
-  font-weight: 600;
+.drawyer-document-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #143962;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.drawyer-actions-row {
+.drawyer-document-meta {
+  font-size: 11px;
+  color: #6f8296;
+}
+
+.drawyer-document-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: flex-end;
   flex-wrap: wrap;
+  gap: 6px;
 }
 
-.download-btn, .delete-btn {
+.drawyer-file-status {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.drawyer-file-status.ok {
+  color: #0e7a42;
+  background: #e9f9ef;
+  border-color: #bce9cd;
+}
+
+.drawyer-file-status.pending {
+  color: #8a5a13;
+  background: #fff6e8;
+  border-color: #f1d6a6;
+}
+
+.table-mini-btn {
   border: 1px solid #1f497d;
-  background: transparent;
+  background: #ffffff;
   color: #1f497d;
-  padding: 6px 10px;
   border-radius: 6px;
+  font-size: 12px;
+  padding: 4px 8px;
   cursor: pointer;
-  font-size: 0.9rem;
+  text-decoration: none;
 }
 
-.download-btn:hover,
-.delete-btn:hover {
+.table-mini-btn:hover {
   background: #1f497d;
-  color: #fff;
+  color: #ffffff;
 }
 
-.drawyer-file-meta {
-  font-size: 0.82rem;
-  color: #6c7d90;
-  margin-top: 4px;
+.table-mini-btn.link {
+  display: inline-block;
+}
+
+.table-mini-btn.danger {
+  color: #b42318;
+  border-color: #efc2be;
+  background: #fff6f5;
+}
+
+.table-mini-btn.danger:hover {
+  background: #b42318;
+  border-color: #b42318;
+  color: #ffffff;
 }
 
 .drawyer-empty {
-  color: #6c7d90;
-}
-
-.drawyer-status-ok {
-  color: #137c44;
-  font-weight: 700;
-}
-
-.drawyer-status-pending {
-  color: #8a5a13;
-  font-weight: 700;
-}
-
-.drawyer-view-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 22px;
-}
-
-.drawyer-view-header h3 {
   margin: 0;
-  font-size: 1.4rem;
-  color: #112d4e;
-}
-
-.drawyer-view-subtitle {
-  margin: 6px 0 0;
-  color: #5b708a;
-  font-size: 0.95rem;
-}
-
-.drawyer-back-btn {
-  border: 1px solid #c7d4ea;
-  background: #ffffff;
-  color: #1f497d;
-  padding: 10px 16px;
-  border-radius: 14px;
-  cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: 600;
-}
-
-.drawyer-case-grid,
-.drawyer-folder-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-}
-
-.drawyer-case-card,
-.drawyer-folder-card-button {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 18px;
-  border: 1px solid #d8e4fb;
-  border-radius: 18px;
-  background: #f8fbff;
-  cursor: pointer;
-  text-align: left;
-  min-height: 160px;
-  transition: transform 0.16s ease, box-shadow 0.16s ease;
-}
-
-.drawyer-case-card:hover,
-.drawyer-folder-card-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 25px rgba(16, 63, 110, 0.12);
-}
-
-.drawyer-case-card-icon,
-.drawyer-folder-card-icon {
-  font-size: 32px;
-}
-
-.drawyer-case-card-title,
-.drawyer-folder-card-title {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #112d4e;
-}
-
-.drawyer-case-card-meta,
-.drawyer-folder-card-meta {
-  color: #5b708a;
-  font-size: 0.95rem;
-}
-
-.drawyer-file-list {
-  display: grid;
-  gap: 12px;
-}
-
-.drawyer-file-list-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid #d8e4fb;
-  border-radius: 16px;
-  background: #ffffff;
-}
-
-.drawyer-file-list-item > div {
-  min-width: 0;
+  color: #6a7f95;
 }
 
 @media (max-width: 900px) {
-  .drawyer-file-row {
+  .drawyer-toolbar .search-inline {
+    min-width: 220px;
+    width: 100%;
+    max-width: none;
+  }
+
+  .drawyer-folders-container {
     grid-template-columns: 1fr;
   }
 
-  .drawyer-actions-row {
+  .drawyer-document-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .drawyer-document-actions {
     width: 100%;
+    justify-content: flex-start;
   }
 }
 
-  .drawyer-actions-row {
-    width: 100%;
-  }
-}

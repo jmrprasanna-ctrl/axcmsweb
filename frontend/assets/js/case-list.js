@@ -1,121 +1,141 @@
-const caseSearchEl = document.getElementById("caseSearch");
-const foldersContainerEl = document.getElementById("foldersContainer");
-const newCaseBtnEl = document.getElementById("newCaseBtn");
+﻿const caseSearchEl = document.getElementById("caseSearch");
+const casesTableBodyEl = document.querySelector("#casesTable tbody");
+
 let allCases = [];
 
-function normalizeStep(value) {
-    return String(value || "").trim().toUpperCase();
+function normalizeUploadsCount(row) {
+    if (Number.isFinite(Number(row?.uploads_count))) {
+        return Number(row.uploads_count);
+    }
+    if (Array.isArray(row?.uploads_json)) {
+        return row.uploads_json.length;
+    }
+    return 0;
 }
 
-function renderFolders(cases) {
-    foldersContainerEl.innerHTML = "";
-    (Array.isArray(cases) ? cases : []).forEach((caseData) => {
-        const caseDiv = document.createElement("div");
-        caseDiv.classList.add("case-folder");
-        caseDiv.innerHTML = `
-            <div class="folder-icon">📁</div>
-            <h3>${caseData.case_no || ""}</h3>
-            <p>${caseData.customer_name || ""}</p>
-            <div class="subfolders" style="display: none;"></div>
-        `;
-        caseDiv.addEventListener("click", () => toggleSubfolders(caseDiv, caseData));
-        foldersContainerEl.appendChild(caseDiv);
+function statusClass(label) {
+    const key = String(label || "").trim().toLowerCase();
+    if (key === "plaint") return "status-plaint";
+    if (key === "answer") return "status-answer";
+    if (key === "l/witnesses") return "status-witness";
+    if (key === "dudgment") return "status-judgment";
+    if (key === "finished") return "status-finished";
+    return "status-step";
+}
+
+function createActionButton(row) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "table-mini-btn";
+    button.textContent = "Open";
+    button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const caseNo = String(row?.case_no || "").trim();
+        if (!caseNo) return;
+        window.location.href = `../drawyer/drawyer.html?case_no=${encodeURIComponent(caseNo)}`;
     });
+    return button;
 }
 
-function toggleSubfolders(caseDiv, caseData) {
-    const subfoldersEl = caseDiv.querySelector(".subfolders");
-    if (subfoldersEl.style.display === "grid") {
-        subfoldersEl.style.display = "none";
-    } else {
-        subfoldersEl.innerHTML = "";
-        (Array.isArray(caseData.subfolders) ? caseData.subfolders : []).forEach((sub) => {
-            const subDiv = document.createElement("div");
-            subDiv.classList.add("subfolder");
-            subDiv.innerHTML = `
-                <div class="subfolder-icon">📂</div>
-                <span>${sub.type.charAt(0).toUpperCase() + sub.type.slice(1)}</span>
-                <div class="documents-list" style="display: none;"></div>
-            `;
-            subDiv.addEventListener("click", (e) => {
-                e.stopPropagation();
-                toggleDocuments(subDiv, caseData.case_no, sub.type);
-            });
-            subfoldersEl.appendChild(subDiv);
-        });
-        subfoldersEl.style.display = "grid";
+function buildDisplayRows(rows) {
+    const withOverallFlag = (Array.isArray(rows) ? rows : []).filter((row) => {
+        if (row?.latest_case_no_overall_entry === true) return true;
+        if (row?.latest_case_no_overall_entry === false) return false;
+        return true;
+    });
+    if (withOverallFlag.length && withOverallFlag.length !== (Array.isArray(rows) ? rows : []).length) {
+        return withOverallFlag.filter((row) => String(row?.case_step || "").trim().toUpperCase() !== "FINISHED");
     }
-}
 
-function formatDocumentLabel(doc, index) {
-    const raw = String(doc || "").trim();
-    if (/^data:/i.test(raw)) {
-        return `Attachment ${index + 1}`;
-    }
-    return raw || `Attachment ${index + 1}`;
-}
-
-async function toggleDocuments(subDiv, caseNo, type) {
-    const docsEl = subDiv.querySelector(".documents-list");
-    if (docsEl.style.display === "block") {
-        docsEl.style.display = "none";
-    } else {
-        docsEl.innerHTML = "<p>Loading...</p>";
-        try {
-            const documents = await request(`/cases/folder-documents?case_no=${encodeURIComponent(caseNo)}&type=${type}`, "GET");
-            docsEl.innerHTML = "";
-            (Array.isArray(documents) ? documents : []).forEach((doc, index) => {
-                const docDiv = document.createElement("div");
-                docDiv.classList.add("document-item");
-
-                const label = document.createElement("span");
-                label.textContent = formatDocumentLabel(doc, index);
-                label.className = "document-name";
-
-                const downloadBtn = document.createElement("button");
-                downloadBtn.className = "download-btn";
-                downloadBtn.type = "button";
-                downloadBtn.textContent = "Download";
-                downloadBtn.addEventListener("click", () => {
-                    downloadFile(caseNo, type, index, formatDocumentLabel(doc, index));
-                });
-
-                docDiv.appendChild(label);
-                docDiv.appendChild(downloadBtn);
-                docsEl.appendChild(docDiv);
-            });
-        } catch (err) {
-            docsEl.innerHTML = "<p>Error loading documents.</p>";
+    const pickedByCaseNo = new Map();
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+        const caseNo = String(row?.case_no || "").trim();
+        if (!caseNo) return;
+        if (String(row?.case_step || "").trim().toUpperCase() === "FINISHED") {
+            return;
         }
-        docsEl.style.display = "block";
-    }
+        if (!pickedByCaseNo.has(caseNo)) {
+            pickedByCaseNo.set(caseNo, row);
+        }
+    });
+    return Array.from(pickedByCaseNo.values());
 }
 
-function downloadFile(caseNo, type, index, fileName) {
-    const link = document.createElement("a");
-    link.href = `/api/cases/download-document?case_no=${encodeURIComponent(caseNo)}&type=${encodeURIComponent(type)}&index=${encodeURIComponent(index)}`;
-    link.download = String(fileName || "");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+function renderCases(rows) {
+    if (!casesTableBodyEl) return;
+    casesTableBodyEl.innerHTML = "";
+
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+        const tr = document.createElement("tr");
+        tr.classList.add("customer-row-clickable");
+        tr.addEventListener("click", () => {
+            const id = Number(row?.id || 0);
+            if (id > 0) {
+                window.location.href = `edit-case.html?id=${id}`;
+            }
+        });
+
+        const statusLabel = String(row?.case_status_label || "Step").trim() || "Step";
+        const uploads = normalizeUploadsCount(row);
+
+        const dateTd = document.createElement("td");
+        dateTd.textContent = String(row?.case_date || "");
+        tr.appendChild(dateTd);
+
+        const caseNoTd = document.createElement("td");
+        caseNoTd.textContent = String(row?.case_no || "");
+        tr.appendChild(caseNoTd);
+
+        const customerTd = document.createElement("td");
+        customerTd.textContent = String(row?.customer_name || "");
+        tr.appendChild(customerTd);
+
+        const courtTd = document.createElement("td");
+        courtTd.textContent = String(row?.court || "");
+        tr.appendChild(courtTd);
+
+        const lawyerTd = document.createElement("td");
+        lawyerTd.textContent = String(row?.attend_lawyer || "");
+        tr.appendChild(lawyerTd);
+
+        const statusTd = document.createElement("td");
+        const badge = document.createElement("span");
+        badge.className = `case-status-badge ${statusClass(statusLabel)}`;
+        badge.textContent = statusLabel;
+        statusTd.appendChild(badge);
+        tr.appendChild(statusTd);
+
+        const uploadsTd = document.createElement("td");
+        uploadsTd.textContent = String(uploads);
+        tr.appendChild(uploadsTd);
+
+        const filesTd = document.createElement("td");
+        filesTd.appendChild(createActionButton(row));
+        tr.appendChild(filesTd);
+
+        casesTableBodyEl.appendChild(tr);
+    });
 }
 
 function applyFilter() {
     const q = String(caseSearchEl?.value || "").trim().toLowerCase();
     if (!q) {
-        renderFolders(allCases);
+        renderCases(allCases);
         return;
     }
-    const filtered = allCases.filter((caseData) => {
-        return [caseData.case_no, caseData.customer_name, caseData.court, caseData.attend_lawyer]
+
+    const filtered = allCases.filter((row) => {
+        return [row.case_no, row.customer_name, row.court, row.attend_lawyer, row.case_status_label]
             .some((x) => String(x || "").toLowerCase().includes(q));
     });
-    renderFolders(filtered);
+
+    renderCases(filtered);
 }
 
 async function loadCases() {
     try {
-        allCases = await request("/cases/folders", "GET");
+        const rows = await request("/cases", "GET");
+        allCases = buildDisplayRows(rows);
         applyFilter();
     } catch (err) {
         alert(err.message || "Failed to load cases.");
@@ -125,12 +145,6 @@ async function loadCases() {
 if (caseSearchEl) {
     caseSearchEl.addEventListener("input", applyFilter);
 }
-if (newCaseBtnEl) {
-    newCaseBtnEl.addEventListener("click", () => {
-        window.location.href = "new-case.html";
-    });
-}
 
 loadCases();
-
 

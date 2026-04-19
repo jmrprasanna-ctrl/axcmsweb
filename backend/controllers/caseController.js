@@ -617,6 +617,7 @@ exports.getCases = async (req, res) => {
             }
         });
         const seenCaseNos = new Set();
+        const seenCaseNoOverall = new Set();
         const payload = rows.map((row) => {
             const plain = row.toJSON ? row.toJSON() : row;
             const caseNoKey = String(plain.case_no || "").trim().toUpperCase();
@@ -627,6 +628,12 @@ exports.getCases = async (req, res) => {
                 : true;
             if (caseNoKey) {
                 seenCaseNos.add(latestKey);
+            }
+            const latest_case_no_overall_entry = caseNoKey
+                ? !seenCaseNoOverall.has(caseNoKey)
+                : true;
+            if (caseNoKey) {
+                seenCaseNoOverall.add(caseNoKey);
             }
             return {
                 ...plain,
@@ -640,6 +647,8 @@ exports.getCases = async (req, res) => {
                 latest_witness_id: latestWitnessByCaseNo.get(caseNoKey) || null,
                 latest_judgment_id: latestJudgmentByCaseNo.get(caseNoKey) || null,
                 latest_case_no_entry,
+                latest_case_no_overall_entry,
+                uploads_count: Array.isArray(plain.uploads_json) ? plain.uploads_json.length : 0,
             };
         });
         res.json(payload);
