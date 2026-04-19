@@ -107,6 +107,20 @@
     color: #ffffff;
 }
 
+.table-mini-btn.table-icon-btn {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    padding: 0;
+    display: inline-grid;
+    place-items: center;
+}
+
+.table-mini-btn.table-icon-btn svg {
+    width: 15px;
+    height: 15px;
+}
+
 .folders-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));

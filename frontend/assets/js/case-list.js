@@ -26,8 +26,15 @@ function statusClass(label) {
 function createActionButton(row) {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "table-mini-btn";
-    button.textContent = "Open";
+    button.className = "table-mini-btn table-icon-btn";
+    button.title = "Open";
+    button.setAttribute("aria-label", "Open");
+    button.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M14 4h6v6M20 4l-9 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path d="M10 6H7a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+    `;
     button.addEventListener("click", (event) => {
         event.stopPropagation();
         const caseNo = String(row?.case_no || "").trim();
