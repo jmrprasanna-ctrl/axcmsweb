@@ -19,6 +19,7 @@ const Witness = db.define("Witness", {
     comment: { type: DataTypes.TEXT, allowNull: true },
     upload_method: { type: DataTypes.STRING, allowNull: true },
     uploads_json: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
+    client_request_id: { type: DataTypes.STRING(80), allowNull: true, unique: true },
     edit_enabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     createdAt: { type: DataTypes.DATE, allowNull: true, defaultValue: DataTypes.NOW },
     updatedAt: { type: DataTypes.DATE, allowNull: true, defaultValue: DataTypes.NOW }

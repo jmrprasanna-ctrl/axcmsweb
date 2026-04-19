@@ -89,6 +89,24 @@ async function isLatestAnswerEntry(row) {
     return Number(latest?.id || 0) === Number(row?.id || 0);
 }
 
+function normalizeClientRequestId(value) {
+    const text = String(value || "").trim();
+    if (!text) return null;
+    return text.slice(0, 80);
+}
+
+async function findAnswerByClientRequestId(clientRequestId) {
+    const token = normalizeClientRequestId(clientRequestId);
+    if (!token) return null;
+    return Answer.findOne({ where: { client_request_id: token } });
+}
+
+function isClientRequestUniqueError(err) {
+    const name = String(err?.name || "").toLowerCase();
+    const msg = String(err?.message || "").toLowerCase();
+    return name.includes("unique") && msg.includes("client_request_id");
+}
+
 async function ensureWitnessEntryForAnswer(answerLike) {
     const answerId = Number(answerLike?.id || 0);
     if (!Number.isFinite(answerId) || answerId <= 0) return null;
@@ -290,12 +308,16 @@ exports.updateAnswer = async (req, res) => {
         const hasDataFieldInput = dataFieldKeys.some((key) => Object.prototype.hasOwnProperty.call(req.body, key));
         const hasUploadFieldInput = uploadFieldKeys.some((key) => Object.prototype.hasOwnProperty.call(req.body, key));
         const hasAnyFieldInput = hasDataFieldInput || hasUploadFieldInput;
+        const clientRequestId = normalizeClientRequestId(req.body.client_request_id);
         const nextEditEnabled = parseBooleanInput(req.body.edit_enabled, Boolean(current.edit_enabled));
         if (!current.edit_enabled && hasDataFieldInput) {
             return res.status(403).json({ message: "Edit is locked. Only uploads can be changed." });
         }
 
         const updatePayload = { edit_enabled: nextEditEnabled };
+        if (clientRequestId) {
+            updatePayload.client_request_id = clientRequestId;
+        }
         if (hasAnyFieldInput) {
             const answer_date = String(req.body.answer_date || "").trim() || current.answer_date;
             const comment = Object.prototype.hasOwnProperty.call(req.body, "comment")
@@ -343,6 +365,18 @@ exports.updateAnswer = async (req, res) => {
             && currentDate
             && requestedDate !== currentDate;
         if (shouldCreateNewEntry) {
+            if (clientRequestId) {
+                const alreadyCreated = await findAnswerByClientRequestId(clientRequestId);
+                if (alreadyCreated) {
+                    const plain = alreadyCreated.toJSON ? alreadyCreated.toJSON() : alreadyCreated;
+                    return res.json({
+                        ...plain,
+                        created_as_new: true,
+                        deduplicated: true,
+                        cloned_from_id: current.id,
+                    });
+                }
+            }
             const created = await Answer.create({
                 answer_date: updatePayload.answer_date || current.answer_date,
                 plaint_id: Object.prototype.hasOwnProperty.call(updatePayload, "plaint_id")
@@ -368,6 +402,7 @@ exports.updateAnswer = async (req, res) => {
                 uploads_json: Object.prototype.hasOwnProperty.call(updatePayload, "uploads_json")
                     ? updatePayload.uploads_json
                     : normalizeUploads(current.uploads_json),
+                client_request_id: clientRequestId,
                 edit_enabled: false,
             });
             let payload = created.toJSON ? created.toJSON() : created;
@@ -399,6 +434,18 @@ exports.updateAnswer = async (req, res) => {
         }
         res.json(updated);
     } catch (err) {
+        const clientRequestId = normalizeClientRequestId(req.body?.client_request_id);
+        if (clientRequestId && isClientRequestUniqueError(err)) {
+            const existing = await findAnswerByClientRequestId(clientRequestId);
+            if (existing) {
+                const plain = existing.toJSON ? existing.toJSON() : existing;
+                return res.json({
+                    ...plain,
+                    created_as_new: true,
+                    deduplicated: true,
+                });
+            }
+        }
         res.status(500).json({ message: err.message || "Failed to update answer." });
     }
 };

@@ -18,10 +18,12 @@ const folderUploadInputEl = document.getElementById("folder_uploads");
 const uploadPreviewEl = document.getElementById("uploadPreview");
 const deletePlaintBtnEl = document.getElementById("deletePlaintBtn");
 const editEnabledEl = document.getElementById("edit_enabled");
+const savePlaintBtnEl = plaintFormEl ? plaintFormEl.querySelector("button[type='submit']") : null;
 let allCases = [];
 let cachedUploads = [];
 let isEditEnabled = false;
 let selectedUploadMethod = "folder";
+let isSubmitting = false;
 
 function countWords(value) {
     const text = String(value || "").trim();
@@ -95,6 +97,20 @@ function renderUploadPreview(values) {
         `;
         uploadPreviewEl.appendChild(fileCard);
     });
+}
+
+function createClientRequestId() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return window.crypto.randomUUID();
+    }
+    return `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function setSavePendingState(pending) {
+    if (!savePlaintBtnEl) return;
+    savePlaintBtnEl.disabled = Boolean(pending);
+    savePlaintBtnEl.setAttribute("aria-disabled", pending ? "true" : "false");
+    savePlaintBtnEl.classList.toggle("is-disabled", Boolean(pending));
 }
 
 function mergeUploads(nextUploads) {
@@ -225,6 +241,7 @@ if (editEnabledEl) {
 if (plaintFormEl) {
     plaintFormEl.addEventListener("submit", async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
         const id = Number(plaintIdEl.value || 0);
         if (!Number.isFinite(id) || id <= 0) {
             alert("Invalid plaint entry.");
@@ -243,16 +260,20 @@ if (plaintFormEl) {
                 upload_method: selectedUploadMethod,
                 uploads_json: cachedUploads,
                 edit_enabled: true,
+                client_request_id: createClientRequestId(),
             }
             : {
                 upload_method: selectedUploadMethod,
                 uploads_json: cachedUploads,
                 edit_enabled: false,
+                client_request_id: createClientRequestId(),
             };
         if (isEditEnabled && countWords(payload.comment) > 1000) {
             alert("Comment supports up to 1000 words.");
             return;
         }
+        isSubmitting = true;
+        setSavePendingState(true);
         try {
             const result = await request(`/plaints/${id}`, "PUT", payload);
             const movedToAnswerStep = isEditEnabled && ["ANSWER_STEP", "NEXT_STEP"].includes(String(payload.plaint_step || "STEP").toUpperCase());
@@ -279,6 +300,9 @@ if (plaintFormEl) {
             showMessageBox(isEditEnabled ? "Plaint updated." : "Uploads updated.");
         } catch (err) {
             alert(err.message || "Failed to update plaint.");
+        } finally {
+            isSubmitting = false;
+            setSavePendingState(false);
         }
     });
 }

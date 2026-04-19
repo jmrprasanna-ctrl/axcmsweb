@@ -37,6 +37,24 @@ function parseBooleanInput(value, fallback) {
     return fallback;
 }
 
+function normalizeClientRequestId(value) {
+    const text = String(value || "").trim();
+    if (!text) return null;
+    return text.slice(0, 80);
+}
+
+async function findJudgmentByClientRequestId(clientRequestId) {
+    const token = normalizeClientRequestId(clientRequestId);
+    if (!token) return null;
+    return Judgment.findOne({ where: { client_request_id: token } });
+}
+
+function isClientRequestUniqueError(err) {
+    const name = String(err?.name || "").toLowerCase();
+    const msg = String(err?.message || "").toLowerCase();
+    return name.includes("unique") && msg.includes("client_request_id");
+}
+
 function normalizeCaseProgressStep(value, fallback = "STEP") {
     const raw = String(value || "").trim().toUpperCase();
     if (raw === "STEP") return "STEP";
@@ -255,6 +273,7 @@ exports.updateJudgment = async (req, res) => {
         const hasDataFieldInput = dataFieldKeys.some((key) => Object.prototype.hasOwnProperty.call(req.body, key));
         const hasUploadFieldInput = uploadFieldKeys.some((key) => Object.prototype.hasOwnProperty.call(req.body, key));
         const hasAnyFieldInput = hasDataFieldInput || hasUploadFieldInput;
+        const clientRequestId = normalizeClientRequestId(req.body.client_request_id);
         const nextEditEnabled = parseBooleanInput(req.body.edit_enabled, Boolean(current.edit_enabled));
 
         if (!current.edit_enabled && hasDataFieldInput) {
@@ -262,6 +281,9 @@ exports.updateJudgment = async (req, res) => {
         }
 
         const updatePayload = { edit_enabled: nextEditEnabled };
+        if (clientRequestId) {
+            updatePayload.client_request_id = clientRequestId;
+        }
         if (hasAnyFieldInput) {
             const judgment_date = String(req.body.judgment_date || "").trim() || current.judgment_date;
             const judgment_text = Object.prototype.hasOwnProperty.call(req.body, "judgment_text")
@@ -299,6 +321,18 @@ exports.updateJudgment = async (req, res) => {
             && currentDate
             && requestedDate !== currentDate;
         if (shouldCreateNewEntry) {
+            if (clientRequestId) {
+                const alreadyCreated = await findJudgmentByClientRequestId(clientRequestId);
+                if (alreadyCreated) {
+                    const plain = alreadyCreated.toJSON ? alreadyCreated.toJSON() : alreadyCreated;
+                    return res.json({
+                        ...plain,
+                        created_as_new: true,
+                        deduplicated: true,
+                        cloned_from_id: current.id,
+                    });
+                }
+            }
             const created = await Judgment.create({
                 judgment_date: updatePayload.judgment_date || current.judgment_date,
                 case_id: current.case_id,
@@ -322,6 +356,7 @@ exports.updateJudgment = async (req, res) => {
                 finished: Object.prototype.hasOwnProperty.call(updatePayload, "finished")
                     ? updatePayload.finished
                     : Boolean(current.finished),
+                client_request_id: clientRequestId,
                 edit_enabled: false,
             });
             const payload = created.toJSON ? created.toJSON() : created;
@@ -343,6 +378,18 @@ exports.updateJudgment = async (req, res) => {
         }
         res.json(row);
     } catch (err) {
+        const clientRequestId = normalizeClientRequestId(req.body?.client_request_id);
+        if (clientRequestId && isClientRequestUniqueError(err)) {
+            const existing = await findJudgmentByClientRequestId(clientRequestId);
+            if (existing) {
+                const plain = existing.toJSON ? existing.toJSON() : existing;
+                return res.json({
+                    ...plain,
+                    created_as_new: true,
+                    deduplicated: true,
+                });
+            }
+        }
         res.status(500).json({ message: err.message || "Failed to update judgment record." });
     }
 };

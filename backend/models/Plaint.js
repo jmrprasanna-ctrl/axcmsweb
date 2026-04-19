@@ -16,6 +16,7 @@ const Plaint = db.define("Plaint", {
     comment: { type: DataTypes.TEXT, allowNull: true },
     upload_method: { type: DataTypes.STRING, allowNull: true },
     uploads_json: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
+    client_request_id: { type: DataTypes.STRING(80), allowNull: true, unique: true },
     edit_enabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     answer: { type: DataTypes.TEXT, allowNull: true },
     witness_list: { type: DataTypes.TEXT, allowNull: true },

@@ -18,10 +18,12 @@ const folderUploadInputEl = document.getElementById("folder_uploads");
 const uploadPreviewEl = document.getElementById("uploadPreview");
 const deleteAnswerBtnEl = document.getElementById("deleteAnswerBtn");
 const editEnabledEl = document.getElementById("edit_enabled");
+const saveAnswerBtnEl = answerFormEl ? answerFormEl.querySelector("button[type='submit']") : null;
 let allCases = [];
 let cachedUploads = [];
 let isEditEnabled = false;
 let selectedUploadMethod = "folder";
+let isSubmitting = false;
 
 function countWords(value) {
     const text = String(value || "").trim();
@@ -32,6 +34,20 @@ function countWords(value) {
 function refreshCommentWordHint() {
     const n = countWords(commentEl?.value || "");
     if (commentWordEl) commentWordEl.innerText = `${n}/1000 words`;
+}
+
+function createClientRequestId() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return window.crypto.randomUUID();
+    }
+    return `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function setSavePendingState(pending) {
+    if (!saveAnswerBtnEl) return;
+    saveAnswerBtnEl.disabled = Boolean(pending);
+    saveAnswerBtnEl.setAttribute("aria-disabled", pending ? "true" : "false");
+    saveAnswerBtnEl.classList.toggle("is-disabled", Boolean(pending));
 }
 
 function setFormLockState() {
@@ -226,6 +242,7 @@ if (editEnabledEl) {
 if (answerFormEl) {
     answerFormEl.addEventListener("submit", async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
         const id = Number(answerIdEl.value || 0);
         if (!Number.isFinite(id) || id <= 0) {
             alert("Invalid answer entry.");
@@ -244,16 +261,20 @@ if (answerFormEl) {
                 upload_method: selectedUploadMethod,
                 uploads_json: cachedUploads,
                 edit_enabled: true,
+                client_request_id: createClientRequestId(),
             }
             : {
                 upload_method: selectedUploadMethod,
                 uploads_json: cachedUploads,
                 edit_enabled: false,
+                client_request_id: createClientRequestId(),
             };
         if (isEditEnabled && countWords(payload.comment) > 1000) {
             alert("Comment supports up to 1000 words.");
             return;
         }
+        isSubmitting = true;
+        setSavePendingState(true);
         try {
             const result = await request(`/answers/${id}`, "PUT", payload);
             const movedToNextStep = isEditEnabled && String(payload.answer_step || "STEP").toUpperCase() === "NEXT_STEP";
@@ -280,6 +301,9 @@ if (answerFormEl) {
             showMessageBox(isEditEnabled ? "Answer updated." : "Uploads updated.");
         } catch (err) {
             alert(err.message || "Failed to update answer.");
+        } finally {
+            isSubmitting = false;
+            setSavePendingState(false);
         }
     });
 }

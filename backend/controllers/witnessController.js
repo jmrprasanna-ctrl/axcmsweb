@@ -67,6 +67,24 @@ function parseBooleanInput(value, fallback) {
     return fallback;
 }
 
+function normalizeClientRequestId(value) {
+    const text = String(value || "").trim();
+    if (!text) return null;
+    return text.slice(0, 80);
+}
+
+async function findWitnessByClientRequestId(clientRequestId) {
+    const token = normalizeClientRequestId(clientRequestId);
+    if (!token) return null;
+    return Witness.findOne({ where: { client_request_id: token } });
+}
+
+function isClientRequestUniqueError(err) {
+    const name = String(err?.name || "").toLowerCase();
+    const msg = String(err?.message || "").toLowerCase();
+    return name.includes("unique") && msg.includes("client_request_id");
+}
+
 async function resolveCase(caseIdRaw) {
     const caseId = Number(caseIdRaw || 0);
     if (!Number.isFinite(caseId) || caseId <= 0) {
@@ -278,6 +296,7 @@ exports.updateWitness = async (req, res) => {
         const hasDataFieldInput = dataFieldKeys.some((key) => Object.prototype.hasOwnProperty.call(req.body, key));
         const hasUploadFieldInput = uploadFieldKeys.some((key) => Object.prototype.hasOwnProperty.call(req.body, key));
         const hasAnyFieldInput = hasDataFieldInput || hasUploadFieldInput;
+        const clientRequestId = normalizeClientRequestId(req.body.client_request_id);
         const nextEditEnabled = parseBooleanInput(req.body.edit_enabled, Boolean(current.edit_enabled));
 
         if (!current.edit_enabled && hasDataFieldInput) {
@@ -285,6 +304,9 @@ exports.updateWitness = async (req, res) => {
         }
 
         const updatePayload = { edit_enabled: nextEditEnabled };
+        if (clientRequestId) {
+            updatePayload.client_request_id = clientRequestId;
+        }
         if (hasAnyFieldInput) {
             const witness_date = String(req.body.witness_date || "").trim() || current.witness_date;
             const witness_list = Object.prototype.hasOwnProperty.call(req.body, "witness_list")
@@ -326,6 +348,18 @@ exports.updateWitness = async (req, res) => {
             && currentDate
             && requestedDate !== currentDate;
         if (shouldCreateNewEntry) {
+            if (clientRequestId) {
+                const alreadyCreated = await findWitnessByClientRequestId(clientRequestId);
+                if (alreadyCreated) {
+                    const plain = alreadyCreated.toJSON ? alreadyCreated.toJSON() : alreadyCreated;
+                    return res.json({
+                        ...plain,
+                        created_as_new: true,
+                        deduplicated: true,
+                        cloned_from_id: current.id,
+                    });
+                }
+            }
             const created = await Witness.create({
                 witness_date: updatePayload.witness_date || current.witness_date,
                 answer_id: Object.prototype.hasOwnProperty.call(current, "answer_id") ? current.answer_id : null,
@@ -350,6 +384,7 @@ exports.updateWitness = async (req, res) => {
                 uploads_json: Object.prototype.hasOwnProperty.call(updatePayload, "uploads_json")
                     ? updatePayload.uploads_json
                     : normalizeUploads(current.uploads_json),
+                client_request_id: clientRequestId,
                 edit_enabled: false,
             });
             const payload = created.toJSON ? created.toJSON() : created;
@@ -364,6 +399,18 @@ exports.updateWitness = async (req, res) => {
         await row.update(updatePayload);
         res.json(row);
     } catch (err) {
+        const clientRequestId = normalizeClientRequestId(req.body?.client_request_id);
+        if (clientRequestId && isClientRequestUniqueError(err)) {
+            const existing = await findWitnessByClientRequestId(clientRequestId);
+            if (existing) {
+                const plain = existing.toJSON ? existing.toJSON() : existing;
+                return res.json({
+                    ...plain,
+                    created_as_new: true,
+                    deduplicated: true,
+                });
+            }
+        }
         res.status(500).json({ message: err.message || "Failed to update witness record." });
     }
 };
