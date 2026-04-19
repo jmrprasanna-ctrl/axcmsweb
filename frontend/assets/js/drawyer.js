@@ -128,7 +128,7 @@ function setSearchVisibility(show) {
     drawyerSearchEl.style.display = show ? "block" : "none";
 }
 
-function renderViewHeader(title, subtitle) {
+function renderViewHeader(title, subtitle, onBack) {
     const header = document.createElement("div");
     header.className = "drawyer-view-header";
 
@@ -143,6 +143,21 @@ function renderViewHeader(title, subtitle) {
         textWrap.appendChild(p);
     }
     header.appendChild(textWrap);
+
+    if (typeof onBack === "function") {
+        const backBtn = document.createElement("button");
+        backBtn.type = "button";
+        backBtn.className = "icon-btn drawyer-view-back-icon";
+        backBtn.title = "Back";
+        backBtn.setAttribute("aria-label", "Back");
+        backBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M15.5 5.5L9 12l6.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+        `;
+        backBtn.addEventListener("click", onBack);
+        header.appendChild(backBtn);
+    }
     return header;
 }
 
@@ -347,7 +362,8 @@ function showFoldersView(caseNo) {
     drawyerFoldersContainerEl.appendChild(
         renderViewHeader(
             caseNo,
-            `${folders.length} folder${folders.length === 1 ? "" : "s"}`
+            `${folders.length} folder${folders.length === 1 ? "" : "s"}`,
+            () => renderCasesView()
         )
     );
 
@@ -379,7 +395,8 @@ function showFilesView(caseNo, moduleName) {
     drawyerFoldersContainerEl.appendChild(
         renderViewHeader(
             `${caseNo} / ${folderLabel(moduleName)}`,
-            `${files.length} file${files.length === 1 ? "" : "s"}`
+            `${files.length} file${files.length === 1 ? "" : "s"}`,
+            () => showFoldersView(caseNo)
         )
     );
 
