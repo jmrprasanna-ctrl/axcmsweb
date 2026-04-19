@@ -128,18 +128,9 @@ function setSearchVisibility(show) {
     drawyerSearchEl.style.display = show ? "block" : "none";
 }
 
-function renderViewHeader(title, subtitle, backLabel, onBack) {
+function renderViewHeader(title, subtitle) {
     const header = document.createElement("div");
     header.className = "drawyer-view-header";
-
-    if (backLabel) {
-        const backBtn = document.createElement("button");
-        backBtn.type = "button";
-        backBtn.className = "drawyer-back-btn";
-        backBtn.textContent = backLabel;
-        backBtn.addEventListener("click", onBack);
-        header.appendChild(backBtn);
-    }
 
     const textWrap = document.createElement("div");
     textWrap.className = "drawyer-header-text";
@@ -236,10 +227,12 @@ function createFileRow(caseNo, moduleName, file) {
     const right = document.createElement("div");
     right.className = "drawyer-file-actions";
 
-    const status = document.createElement("span");
-    status.className = `drawyer-file-status ${fileStatusClass(file?.sync_status)}`;
-    status.textContent = fileStatusLabel(file?.sync_status);
-    right.appendChild(status);
+    if (fileStatusClass(file?.sync_status) === "ok") {
+        const status = document.createElement("span");
+        status.className = "drawyer-file-status ok";
+        status.textContent = "Synced";
+        right.appendChild(status);
+    }
 
     if (String(file?.drive_web_view_link || "").trim()) {
         const openLink = document.createElement("a");
@@ -253,8 +246,14 @@ function createFileRow(caseNo, moduleName, file) {
 
     const downloadBtn = document.createElement("button");
     downloadBtn.type = "button";
-    downloadBtn.className = "table-mini-btn";
-    downloadBtn.textContent = "Download";
+    downloadBtn.className = "icon-action-btn";
+    downloadBtn.title = "Download";
+    downloadBtn.setAttribute("aria-label", "Download");
+    downloadBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 4v10m0 0l-4-4m4 4l4-4M5 19h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+    `;
     downloadBtn.addEventListener("click", async () => {
         try {
             await downloadDrawyerFile(file);
@@ -266,8 +265,14 @@ function createFileRow(caseNo, moduleName, file) {
 
     const deleteBtn = document.createElement("button");
     deleteBtn.type = "button";
-    deleteBtn.className = "table-mini-btn danger";
-    deleteBtn.textContent = "Delete";
+    deleteBtn.className = "icon-action-btn danger";
+    deleteBtn.title = "Delete";
+    deleteBtn.setAttribute("aria-label", "Delete");
+    deleteBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 7h16M9 7V5.8c0-.7.6-1.3 1.3-1.3h3.4c.7 0 1.3.6 1.3 1.3V7m-8 0l.8 11c.1.8.7 1.5 1.6 1.5h5.2c.8 0 1.5-.7 1.6-1.5L17 7M10 11v5M14 11v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+    `;
     deleteBtn.addEventListener("click", async () => {
         if (!confirm("Delete this file permanently?")) return;
         try {
@@ -342,9 +347,7 @@ function showFoldersView(caseNo) {
     drawyerFoldersContainerEl.appendChild(
         renderViewHeader(
             caseNo,
-            `${folders.length} folder${folders.length === 1 ? "" : "s"}`,
-            "Back",
-            () => renderCasesView()
+            `${folders.length} folder${folders.length === 1 ? "" : "s"}`
         )
     );
 
@@ -376,9 +379,7 @@ function showFilesView(caseNo, moduleName) {
     drawyerFoldersContainerEl.appendChild(
         renderViewHeader(
             `${caseNo} / ${folderLabel(moduleName)}`,
-            `${files.length} file${files.length === 1 ? "" : "s"}`,
-            "Back",
-            () => showFoldersView(caseNo)
+            `${files.length} file${files.length === 1 ? "" : "s"}`
         )
     );
 

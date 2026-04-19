@@ -98,8 +98,7 @@
 
 .drawyer-view-header {
   display: flex;
-  align-items: center;
-  gap: 14px;
+  align-items: flex-start;
   margin-bottom: 16px;
 }
 
@@ -113,16 +112,6 @@
   margin: 4px 0 0;
   color: #667a90;
   font-size: 0.92rem;
-}
-
-.drawyer-back-btn {
-  border: 1px solid #ccd6e3;
-  background: #ffffff;
-  color: #244165;
-  border-radius: 10px;
-  padding: 8px 14px;
-  font-weight: 700;
-  cursor: pointer;
 }
 
 .drawyer-file-list {
@@ -214,6 +203,42 @@
 }
 
 .table-mini-btn.danger:hover {
+  background: #b42318;
+  border-color: #b42318;
+  color: #ffffff;
+}
+
+.icon-action-btn {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border: 1px solid #1f497d;
+  background: #ffffff;
+  color: #1f497d;
+  border-radius: 8px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+}
+
+.icon-action-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.icon-action-btn:hover {
+  background: #1f497d;
+  color: #ffffff;
+}
+
+.icon-action-btn.danger {
+  color: #b42318;
+  border-color: #efc2be;
+  background: #fff6f5;
+}
+
+.icon-action-btn.danger:hover {
   background: #b42318;
   border-color: #b42318;
   color: #ffffff;
