@@ -89,6 +89,36 @@ async function isLatestAnswerEntry(row) {
     return Number(latest?.id || 0) === Number(row?.id || 0);
 }
 
+async function ensureWitnessEntryForAnswer(answerLike) {
+    const answerId = Number(answerLike?.id || 0);
+    if (!Number.isFinite(answerId) || answerId <= 0) return null;
+
+    const existing = await Witness.findOne({
+        where: { answer_id: answerId },
+        order: [["witness_date", "DESC"], ["id", "DESC"]],
+    });
+    if (existing) return existing;
+
+    const witnessDate = String(answerLike?.answer_date || "").trim() || new Date().toISOString().slice(0, 10);
+    const created = await Witness.create({
+        witness_date: witnessDate,
+        answer_id: answerId,
+        case_id: Number(answerLike?.case_id || 0) > 0 ? Number(answerLike.case_id) : null,
+        customer_id: Number(answerLike?.customer_id || 0) > 0 ? Number(answerLike.customer_id) : null,
+        customer_name: String(answerLike?.customer_name || "").trim(),
+        case_no: String(answerLike?.case_no || "").trim(),
+        court: String(answerLike?.court || "").trim(),
+        attend_lawyer: String(answerLike?.attend_lawyer || "").trim(),
+        witness_step: "STEP",
+        witness_list: null,
+        comment: null,
+        upload_method: null,
+        uploads_json: [],
+        edit_enabled: false,
+    });
+    return created;
+}
+
 exports.getAnswers = async (req, res) => {
     try {
         const q = String(req.query.q || "").trim();
@@ -225,7 +255,16 @@ exports.createAnswer = async (req, res) => {
             uploads_json,
             edit_enabled,
         });
-        res.status(201).json(created);
+        let payload = created.toJSON ? created.toJSON() : created;
+        if (normalizeAnswerStep(answer_step, "STEP") === "NEXT_STEP") {
+            const witness = await ensureWitnessEntryForAnswer(payload);
+            payload = {
+                ...payload,
+                moved_to_witness: true,
+                witness_id: Number(witness?.id || 0) || null,
+            };
+        }
+        res.status(201).json(payload);
     } catch (err) {
         res.status(500).json({ message: err.message || "Failed to create answer." });
     }
@@ -331,7 +370,15 @@ exports.updateAnswer = async (req, res) => {
                     : normalizeUploads(current.uploads_json),
                 edit_enabled: false,
             });
-            const payload = created.toJSON ? created.toJSON() : created;
+            let payload = created.toJSON ? created.toJSON() : created;
+            if (normalizeAnswerStep(payload.answer_step, "STEP") === "NEXT_STEP") {
+                const witness = await ensureWitnessEntryForAnswer(payload);
+                payload = {
+                    ...payload,
+                    moved_to_witness: true,
+                    witness_id: Number(witness?.id || 0) || null,
+                };
+            }
             return res.status(201).json({
                 ...payload,
                 created_as_new: true,
@@ -341,7 +388,16 @@ exports.updateAnswer = async (req, res) => {
         }
 
         await row.update(updatePayload);
-        res.json(row);
+        let updated = row.toJSON ? row.toJSON() : row;
+        if (normalizeAnswerStep(updated.answer_step, "STEP") === "NEXT_STEP") {
+            const witness = await ensureWitnessEntryForAnswer(updated);
+            updated = {
+                ...updated,
+                moved_to_witness: true,
+                witness_id: Number(witness?.id || 0) || null,
+            };
+        }
+        res.json(updated);
     } catch (err) {
         res.status(500).json({ message: err.message || "Failed to update answer." });
     }

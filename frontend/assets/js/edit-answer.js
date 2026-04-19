@@ -256,14 +256,12 @@ if (answerFormEl) {
         }
         try {
             const result = await request(`/answers/${id}`, "PUT", payload);
-            const savedAnswerId = Number(result?.id || id);
-            const savedCaseId = Number(result?.case_id || caseIdEl.value || 0);
             const movedToNextStep = isEditEnabled && String(payload.answer_step || "STEP").toUpperCase() === "NEXT_STEP";
             if (result && result.created_as_new) {
                 showMessageBox("New answer entry created.");
                 if (movedToNextStep) {
                     setTimeout(() => {
-                        window.location.href = `witness-create.html?answer_id=${savedAnswerId}&case_id=${savedCaseId}`;
+                        window.location.href = "witness-list.html";
                     }, 300);
                     return;
                 }
@@ -275,7 +273,7 @@ if (answerFormEl) {
             if (movedToNextStep) {
                 showMessageBox("Answer moved to L/witnesses step.");
                 setTimeout(() => {
-                    window.location.href = `witness-create.html?answer_id=${savedAnswerId}&case_id=${savedCaseId}`;
+                    window.location.href = "witness-list.html";
                 }, 250);
                 return;
             }
