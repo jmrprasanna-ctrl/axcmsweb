@@ -4,7 +4,9 @@ const drawyerFoldersContainerEl = document.getElementById("drawyerFoldersContain
 
 let drawyerCases = [];
 let requestedCaseNo = "";
-let hasRequestedCaseMatch = false;
+let currentCaseNo = "";
+let currentModuleName = "";
+let caseMetaByNo = new Map();
 
 function normalizeModule(moduleName) {
     const key = String(moduleName || "").trim().toLowerCase();
@@ -50,30 +52,155 @@ function fileStatusLabel(syncStatus) {
     return String(syncStatus || "").trim().toLowerCase() === "synced" ? "Synced" : "Pending";
 }
 
+function getCaseByNo(caseNo) {
+    return drawyerCases.find((item) => String(item?.case_no || "").trim() === caseNo) || null;
+}
+
+function getCaseCustomerName(caseNo) {
+    const meta = caseMetaByNo.get(String(caseNo || "").trim().toUpperCase());
+    return String(meta?.customer_name || "").trim();
+}
+
+function getFoldersForCase(caseNo) {
+    const caseItem = getCaseByNo(caseNo);
+    const folders = caseItem?.folders && typeof caseItem.folders === "object" ? caseItem.folders : {};
+    return Object.entries(folders)
+        .filter((entry) => Array.isArray(entry[1]) && entry[1].length > 0)
+        .map(([moduleName, files]) => ({
+            moduleName,
+            label: folderLabel(moduleName),
+            files,
+        }));
+}
+
+function getFilesForFolder(caseNo, moduleName) {
+    const caseItem = getCaseByNo(caseNo);
+    const files = caseItem?.folders?.[moduleName];
+    return Array.isArray(files) ? files : [];
+}
+
 function buildFileDownloadUrl(file) {
     return `/api/drawyer/download?source_table=${encodeURIComponent(file.source_table || "")}&source_id=${encodeURIComponent(file.source_id || "")}&file_index=${encodeURIComponent(file.file_index || 0)}`;
 }
 
-function createDocumentItem(caseNo, moduleName, file) {
+function clearHost() {
+    if (drawyerFoldersContainerEl) {
+        drawyerFoldersContainerEl.innerHTML = "";
+    }
+}
+
+function setSearchVisibility(show) {
+    if (!drawyerSearchEl) return;
+    drawyerSearchEl.style.display = show ? "block" : "none";
+}
+
+function renderViewHeader(title, subtitle, backLabel, onBack) {
+    const header = document.createElement("div");
+    header.className = "drawyer-view-header";
+
+    if (backLabel) {
+        const backBtn = document.createElement("button");
+        backBtn.type = "button";
+        backBtn.className = "drawyer-back-btn";
+        backBtn.textContent = backLabel;
+        backBtn.addEventListener("click", onBack);
+        header.appendChild(backBtn);
+    }
+
+    const textWrap = document.createElement("div");
+    textWrap.className = "drawyer-header-text";
+    const h3 = document.createElement("h3");
+    h3.textContent = title;
+    textWrap.appendChild(h3);
+    if (subtitle) {
+        const p = document.createElement("p");
+        p.textContent = subtitle;
+        textWrap.appendChild(p);
+    }
+    header.appendChild(textWrap);
+    return header;
+}
+
+function createCaseTile(item) {
+    const caseNo = String(item?.case_no || "UNKNOWN_CASE").trim();
+    const folderCount = Object.keys(item?.folders || {}).length;
+    const customerName = getCaseCustomerName(caseNo);
+
+    const tile = document.createElement("button");
+    tile.type = "button";
+    tile.className = "drawyer-case-tile";
+
+    const icon = document.createElement("div");
+    icon.className = "drawyer-folder-emoji";
+    icon.textContent = "📁";
+    tile.appendChild(icon);
+
+    const title = document.createElement("div");
+    title.className = "drawyer-tile-title";
+    title.textContent = caseNo;
+    tile.appendChild(title);
+
+    const subtitle = document.createElement("div");
+    subtitle.className = "drawyer-tile-subtitle";
+    subtitle.textContent = customerName || `${folderCount} folder${folderCount === 1 ? "" : "s"}`;
+    tile.appendChild(subtitle);
+
+    tile.addEventListener("click", () => {
+        showFoldersView(caseNo);
+    });
+
+    return tile;
+}
+
+function createFolderTile(caseNo, folderInfo) {
+    const tile = document.createElement("button");
+    tile.type = "button";
+    tile.className = "drawyer-case-tile folder";
+
+    const icon = document.createElement("div");
+    icon.className = "drawyer-folder-emoji";
+    icon.textContent = "📂";
+    tile.appendChild(icon);
+
+    const title = document.createElement("div");
+    title.className = "drawyer-tile-title";
+    title.textContent = folderInfo.label;
+    tile.appendChild(title);
+
+    const subtitle = document.createElement("div");
+    subtitle.className = "drawyer-tile-subtitle";
+    subtitle.textContent = `${folderInfo.files.length} file${folderInfo.files.length === 1 ? "" : "s"}`;
+    tile.appendChild(subtitle);
+
+    tile.addEventListener("click", () => {
+        showFilesView(caseNo, folderInfo.moduleName);
+    });
+
+    return tile;
+}
+
+function createFileRow(caseNo, moduleName, file) {
     const row = document.createElement("div");
-    row.className = "drawyer-document-item";
+    row.className = "drawyer-file-row";
 
     const left = document.createElement("div");
-    left.className = "drawyer-document-left";
+    left.className = "drawyer-file-left";
 
-    const name = document.createElement("span");
-    name.className = "drawyer-document-name";
+    const name = document.createElement("div");
+    name.className = "drawyer-file-name";
     name.textContent = String(file?.file_name || "Attachment");
     left.appendChild(name);
 
-    const meta = document.createElement("span");
-    meta.className = "drawyer-document-meta";
+    const meta = document.createElement("div");
+    meta.className = "drawyer-file-meta";
     const dateText = formatDate(file?.updated_at);
     meta.textContent = dateText ? `${folderLabel(moduleName)} | ${dateText}` : folderLabel(moduleName);
     left.appendChild(meta);
 
+    row.appendChild(left);
+
     const right = document.createElement("div");
-    right.className = "drawyer-document-actions";
+    right.className = "drawyer-file-actions";
 
     const status = document.createElement("span");
     status.className = `drawyer-file-status ${fileStatusClass(file?.sync_status)}`;
@@ -94,8 +221,7 @@ function createDocumentItem(caseNo, moduleName, file) {
     downloadBtn.type = "button";
     downloadBtn.className = "table-mini-btn";
     downloadBtn.textContent = "Download";
-    downloadBtn.addEventListener("click", (event) => {
-        event.stopPropagation();
+    downloadBtn.addEventListener("click", () => {
         const link = document.createElement("a");
         link.href = buildFileDownloadUrl(file);
         link.download = String(file?.file_name || "");
@@ -109,8 +235,7 @@ function createDocumentItem(caseNo, moduleName, file) {
     deleteBtn.type = "button";
     deleteBtn.className = "table-mini-btn danger";
     deleteBtn.textContent = "Delete";
-    deleteBtn.addEventListener("click", async (event) => {
-        event.stopPropagation();
+    deleteBtn.addEventListener("click", async () => {
         if (!confirm("Delete this file permanently?")) return;
         try {
             await request(
@@ -119,6 +244,7 @@ function createDocumentItem(caseNo, moduleName, file) {
                 null
             );
             await loadDrawyer(false);
+            showFilesView(caseNo, moduleName);
             if (typeof showMessageBox === "function") {
                 showMessageBox("File deleted successfully.");
             } else {
@@ -134,161 +260,109 @@ function createDocumentItem(caseNo, moduleName, file) {
     });
     right.appendChild(deleteBtn);
 
-    row.appendChild(left);
     row.appendChild(right);
     return row;
 }
 
-function createSubfolder(caseNo, moduleName, files) {
-    const wrapper = document.createElement("div");
-    wrapper.className = "drawyer-subfolder";
+function renderCasesView() {
+    currentCaseNo = "";
+    currentModuleName = "";
+    setSearchVisibility(true);
+    clearHost();
+    if (!drawyerFoldersContainerEl) return;
 
-    const header = document.createElement("button");
-    header.type = "button";
-    header.className = "drawyer-subfolder-header";
-
-    const icon = document.createElement("div");
-    icon.className = "drawyer-subfolder-icon";
-    icon.textContent = folderIcon(moduleName);
-    header.appendChild(icon);
-
-    const title = document.createElement("span");
-    title.className = "drawyer-subfolder-title";
-    title.textContent = folderLabel(moduleName);
-    header.appendChild(title);
-
-    const count = document.createElement("span");
-    count.className = "drawyer-subfolder-count";
-    count.textContent = `${files.length} file${files.length === 1 ? "" : "s"}`;
-    header.appendChild(count);
-
-    const docs = document.createElement("div");
-    docs.className = "drawyer-documents-list";
-    docs.hidden = true;
-
-    if (!files.length) {
-        const empty = document.createElement("p");
-        empty.className = "drawyer-empty";
-        empty.textContent = "No files found.";
-        docs.appendChild(empty);
-    } else {
-        files.forEach((file) => {
-            docs.appendChild(createDocumentItem(caseNo, moduleName, file));
-        });
-    }
-
-    header.addEventListener("click", (event) => {
-        event.stopPropagation();
-        docs.hidden = !docs.hidden;
-        header.classList.toggle("expanded", !docs.hidden);
-    });
-
-    wrapper.appendChild(header);
-    wrapper.appendChild(docs);
-    return wrapper;
-}
-
-function createCaseFolder(caseData) {
-    const caseNo = String(caseData?.case_no || "").trim();
-    const folders = caseData?.folders && typeof caseData.folders === "object" ? caseData.folders : {};
-    const folderEntries = Object.entries(folders).filter((entry) => Array.isArray(entry[1]) && entry[1].length > 0);
-
-    const card = document.createElement("div");
-    card.className = "drawyer-case-folder";
-
-    const header = document.createElement("button");
-    header.type = "button";
-    header.className = "drawyer-case-header";
-
-    const folderIconEl = document.createElement("div");
-    folderIconEl.className = "drawyer-folder-icon";
-    folderIconEl.textContent = "FD";
-    header.appendChild(folderIconEl);
-
-    const labelWrap = document.createElement("div");
-    labelWrap.className = "drawyer-case-title-wrap";
-
-    const title = document.createElement("h3");
-    title.textContent = caseNo;
-    labelWrap.appendChild(title);
-
-    const meta = document.createElement("p");
-    const fileCount = folderEntries.reduce((count, entry) => count + entry[1].length, 0);
-    meta.textContent = `${folderEntries.length} folder${folderEntries.length === 1 ? "" : "s"} | ${fileCount} file${fileCount === 1 ? "" : "s"}`;
-    labelWrap.appendChild(meta);
-
-    header.appendChild(labelWrap);
-
-    const subfolders = document.createElement("div");
-    subfolders.className = "drawyer-subfolders";
-    subfolders.hidden = true;
-
-    folderEntries.forEach(([moduleName, files]) => {
-        subfolders.appendChild(createSubfolder(caseNo, moduleName, files));
-    });
-
-    header.addEventListener("click", () => {
-        subfolders.hidden = !subfolders.hidden;
-        header.classList.toggle("expanded", !subfolders.hidden);
-    });
-
-    card.appendChild(header);
-    card.appendChild(subfolders);
-    return card;
-}
-
-function filterCasesForQuery(rows, queryText) {
-    const query = String(queryText || "").trim().toLowerCase();
-    if (!query) return rows;
-
-    return rows.filter((item) => {
+    const query = String(drawyerSearchEl?.value || "").trim().toLowerCase();
+    const rows = (Array.isArray(drawyerCases) ? drawyerCases : []).filter((item) => {
+        if (!query) return true;
         const caseNo = String(item?.case_no || "").toLowerCase();
         if (caseNo.includes(query)) return true;
-
-        const folders = item?.folders && typeof item.folders === "object" ? item.folders : {};
-        return Object.entries(folders).some(([moduleName, files]) => {
-            if (folderLabel(moduleName).toLowerCase().includes(query)) return true;
-            return (Array.isArray(files) ? files : []).some((file) => {
-                return String(file?.file_name || "").toLowerCase().includes(query);
-            });
-        });
+        const customerName = getCaseCustomerName(item?.case_no).toLowerCase();
+        if (customerName.includes(query)) return true;
+        const folders = Object.keys(item?.folders || {}).map((name) => folderLabel(name).toLowerCase());
+        return folders.some((x) => x.includes(query));
     });
-}
-
-function applyRequestedCaseFilter(rows) {
-    hasRequestedCaseMatch = false;
-    if (!requestedCaseNo) return rows;
-    const match = rows.filter((row) => String(row?.case_no || "").trim().toLowerCase() === requestedCaseNo);
-    if (match.length) {
-        hasRequestedCaseMatch = true;
-        return match;
-    }
-    return rows;
-}
-
-function renderDrawyerCases(rows) {
-    if (!drawyerFoldersContainerEl) return;
-    drawyerFoldersContainerEl.innerHTML = "";
 
     if (!rows.length) {
         drawyerFoldersContainerEl.innerHTML = `<p class="drawyer-empty">No uploaded or captured cases found.</p>`;
         return;
     }
 
-    rows.forEach((caseData) => {
-        drawyerFoldersContainerEl.appendChild(createCaseFolder(caseData));
+    const grid = document.createElement("div");
+    grid.className = "drawyer-case-grid";
+
+    rows.forEach((item) => {
+        grid.appendChild(createCaseTile(item));
     });
 
-    if (requestedCaseNo && hasRequestedCaseMatch) {
-        const first = drawyerFoldersContainerEl.querySelector(".drawyer-case-header");
-        if (first) first.click();
-    }
+    drawyerFoldersContainerEl.appendChild(grid);
 }
 
-function applyFilter() {
-    const selected = applyRequestedCaseFilter(drawyerCases);
-    const filtered = filterCasesForQuery(selected, drawyerSearchEl?.value || "");
-    renderDrawyerCases(filtered);
+function showFoldersView(caseNo) {
+    currentCaseNo = caseNo;
+    currentModuleName = "";
+    setSearchVisibility(false);
+    clearHost();
+    if (!drawyerFoldersContainerEl) return;
+
+    const folders = getFoldersForCase(caseNo);
+
+    drawyerFoldersContainerEl.appendChild(
+        renderViewHeader(
+            caseNo,
+            `${folders.length} folder${folders.length === 1 ? "" : "s"}`,
+            "Back",
+            () => renderCasesView()
+        )
+    );
+
+    if (!folders.length) {
+        const empty = document.createElement("p");
+        empty.className = "drawyer-empty";
+        empty.textContent = "No folders with files.";
+        drawyerFoldersContainerEl.appendChild(empty);
+        return;
+    }
+
+    const grid = document.createElement("div");
+    grid.className = "drawyer-case-grid";
+    folders.forEach((folderInfo) => {
+        grid.appendChild(createFolderTile(caseNo, folderInfo));
+    });
+    drawyerFoldersContainerEl.appendChild(grid);
+}
+
+function showFilesView(caseNo, moduleName) {
+    currentCaseNo = caseNo;
+    currentModuleName = moduleName;
+    setSearchVisibility(false);
+    clearHost();
+    if (!drawyerFoldersContainerEl) return;
+
+    const files = getFilesForFolder(caseNo, moduleName);
+
+    drawyerFoldersContainerEl.appendChild(
+        renderViewHeader(
+            `${caseNo} / ${folderLabel(moduleName)}`,
+            `${files.length} file${files.length === 1 ? "" : "s"}`,
+            "Back",
+            () => showFoldersView(caseNo)
+        )
+    );
+
+    if (!files.length) {
+        const empty = document.createElement("p");
+        empty.className = "drawyer-empty";
+        empty.textContent = "No files found in this folder.";
+        drawyerFoldersContainerEl.appendChild(empty);
+        return;
+    }
+
+    const list = document.createElement("div");
+    list.className = "drawyer-file-list";
+    files.forEach((file) => {
+        list.appendChild(createFileRow(caseNo, moduleName, file));
+    });
+    drawyerFoldersContainerEl.appendChild(list);
 }
 
 async function loadDrawyer(forceSync) {
@@ -297,7 +371,6 @@ async function loadDrawyer(forceSync) {
 
     const res = await request(endpoint, method, forceSync ? {} : null);
     drawyerCases = Array.isArray(res?.cases) ? res.cases : [];
-    applyFilter();
 
     if (forceSync) {
         const synced = Number(res?.sync?.synced || 0);
@@ -310,18 +383,48 @@ async function loadDrawyer(forceSync) {
     }
 }
 
+async function loadCaseMeta() {
+    try {
+        const rows = await request("/cases", "GET");
+        const map = new Map();
+        (Array.isArray(rows) ? rows : []).forEach((row) => {
+            const caseNo = String(row?.case_no || "").trim().toUpperCase();
+            if (!caseNo) return;
+            if (!map.has(caseNo) || row?.latest_case_no_overall_entry === true) {
+                map.set(caseNo, {
+                    customer_name: String(row?.customer_name || "").trim(),
+                });
+            }
+        });
+        caseMetaByNo = map;
+    } catch (err) {
+        caseMetaByNo = new Map();
+    }
+}
+
 window.addEventListener("DOMContentLoaded", async () => {
     const params = new URLSearchParams(window.location.search || "");
-    requestedCaseNo = String(params.get("case_no") || "").trim().toLowerCase();
+    requestedCaseNo = String(params.get("case_no") || "").trim();
 
     if (drawyerSearchEl) {
-        drawyerSearchEl.addEventListener("input", applyFilter);
+        drawyerSearchEl.addEventListener("input", () => {
+            if (!currentCaseNo && !currentModuleName) {
+                renderCasesView();
+            }
+        });
     }
 
     if (drawyerSyncBtnEl) {
         drawyerSyncBtnEl.addEventListener("click", async () => {
             try {
                 await loadDrawyer(true);
+                if (currentModuleName && currentCaseNo) {
+                    showFilesView(currentCaseNo, currentModuleName);
+                } else if (currentCaseNo) {
+                    showFoldersView(currentCaseNo);
+                } else {
+                    renderCasesView();
+                }
             } catch (err) {
                 alert(err.message || "Failed to sync Drawyer files.");
             }
@@ -329,7 +432,15 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
 
     try {
-        await loadDrawyer(false);
+        await Promise.all([loadDrawyer(false), loadCaseMeta()]);
+        if (requestedCaseNo) {
+            const target = drawyerCases.find((item) => String(item?.case_no || "").trim().toLowerCase() === requestedCaseNo.toLowerCase());
+            if (target) {
+                showFoldersView(String(target.case_no || ""));
+                return;
+            }
+        }
+        renderCasesView();
     } catch (err) {
         alert(err.message || "Failed to load Drawyer files.");
     }
