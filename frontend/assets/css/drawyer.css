@@ -29,6 +29,23 @@
   height: 20px;
 }
 
+/* Keep refresh and back buttons in one line and aligned */
+.drawyer-page-header {
+  flex-wrap: nowrap;
+}
+
+.drawyer-actions {
+  display: inline-flex;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.drawyer-actions .icon-btn,
+.drawyer-actions .back-icon-btn {
+  margin-top: 0;
+  vertical-align: middle;
+}
+
 .drawyer-toolbar {
   display: flex;
   align-items: center;
@@ -292,3 +309,4 @@
     justify-content: flex-start;
   }
 }
+
