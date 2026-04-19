@@ -1,10 +1,13 @@
 const crypto = require("crypto");
 const zlib = require("zlib");
 const db = require("../config/database");
+const fs = require("fs");
+const path = require("path");
 
 const SETTINGS_TABLE = "google_drive_settings";
 const SYNC_TABLE = "google_drive_file_syncs";
 const DEFAULT_ROOT_FOLDER = "AXIS_CMS_DRAWYER";
+const UPLOADS_DIR = path.resolve(__dirname, "..", "uploads");
 
 function sanitizeFolderName(value, fallback = "Folder") {
   const normalized = String(value || "")
@@ -46,7 +49,60 @@ function extFromMime(mime) {
   if (m.includes("bmp")) return "bmp";
   if (m.includes("webp")) return "webp";
   if (m.includes("pdf")) return "pdf";
+  if (m.includes("msword") || m.includes("word")) return "doc";
+  if (m.includes("officedocument.wordprocessingml.document")) return "docx";
+  if (m.includes("spreadsheet") || m.includes("excel")) return "xls";
+  if (m.includes("csv")) return "csv";
+  if (m.includes("json")) return "json";
+  if (m.includes("plain")) return "txt";
   return "bin";
+}
+
+function mimeFromFileName(fileName) {
+  const ext = String(path.extname(String(fileName || "")).toLowerCase() || "").replace(".", "");
+  if (ext === "pdf") return "application/pdf";
+  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+  if (ext === "png") return "image/png";
+  if (ext === "gif") return "image/gif";
+  if (ext === "webp") return "image/webp";
+  if (ext === "bmp") return "image/bmp";
+  if (ext === "doc") return "application/msword";
+  if (ext === "docx") return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  if (ext === "xls") return "application/vnd.ms-excel";
+  if (ext === "xlsx") return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  if (ext === "txt") return "text/plain";
+  if (ext === "csv") return "text/csv";
+  if (ext === "json") return "application/json";
+  return "application/octet-stream";
+}
+
+function resolveUploadPath(raw) {
+  const cleaned = String(raw || "").trim().replace(/^\/+/, "").replace(/^uploads[\\/]+/i, "");
+  if (!cleaned) return null;
+  const absolute = path.resolve(UPLOADS_DIR, cleaned);
+  if (!absolute.startsWith(UPLOADS_DIR)) return null;
+  if (!fs.existsSync(absolute)) return null;
+  return absolute;
+}
+
+function parseUploadBinary(raw) {
+  const fromDataUrl = parseDataUrl(raw);
+  if (fromDataUrl && fromDataUrl.buffer?.length) {
+    return {
+      mime: fromDataUrl.mime || "application/octet-stream",
+      buffer: fromDataUrl.buffer,
+      file_name: "",
+    };
+  }
+  const absolute = resolveUploadPath(raw);
+  if (!absolute) return null;
+  const buffer = fs.readFileSync(absolute);
+  if (!buffer?.length) return null;
+  return {
+    mime: mimeFromFileName(absolute),
+    buffer,
+    file_name: path.basename(absolute),
+  };
 }
 
 function hashBuffer(buf) {
@@ -430,10 +486,11 @@ function buildUploadEntry(sourceTable, row, moduleName) {
   const uploads = Array.isArray(row?.uploads_json) ? row.uploads_json : [];
   const entries = [];
   uploads.forEach((rawFile, index) => {
-    const parsed = parseDataUrl(rawFile);
+    const parsed = parseUploadBinary(rawFile);
     if (!parsed || !parsed.buffer?.length) return;
     const ext = extFromMime(parsed.mime);
     const fileHash = hashBuffer(parsed.buffer);
+    const autoName = `${moduleName}_${String(row?.case_no || "case").replace(/\s+/g, "_")}_${Number(row?.id || 0)}_${index + 1}.${ext}`;
     entries.push({
       source_table: sourceTable,
       source_id: Number(row?.id || 0),
@@ -441,7 +498,7 @@ function buildUploadEntry(sourceTable, row, moduleName) {
       module_name: moduleName,
       file_index: index,
       file_hash: fileHash,
-      file_name: `${moduleName}_${String(row?.case_no || "case").replace(/\s+/g, "_")}_${Number(row?.id || 0)}_${index + 1}.${ext}`,
+      file_name: String(parsed.file_name || "").trim() || autoName,
       file_mime: parsed.mime,
       file_buffer: parsed.buffer,
       upload_method: String(row?.upload_method || "").trim() || "local",

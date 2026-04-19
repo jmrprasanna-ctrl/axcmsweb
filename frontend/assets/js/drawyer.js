@@ -83,6 +83,40 @@ function buildFileDownloadUrl(file) {
     return `/api/drawyer/download?source_table=${encodeURIComponent(file.source_table || "")}&source_id=${encodeURIComponent(file.source_id || "")}&file_index=${encodeURIComponent(file.file_index || 0)}`;
 }
 
+async function downloadDrawyerFile(file) {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        throw new Error("Please login first.");
+    }
+    const selectedDb = String(localStorage.getItem("selectedDatabaseName") || "").trim().toLowerCase();
+    const headers = {
+        Authorization: `Bearer ${token}`,
+    };
+    if (selectedDb) {
+        headers["X-Database-Name"] = selectedDb;
+    }
+
+    const res = await fetch(buildFileDownloadUrl(file), { method: "GET", headers });
+    if (!res.ok) {
+        let message = `Download failed (${res.status})`;
+        try {
+            const body = await res.json();
+            if (body?.message) message = String(body.message);
+        } catch (_err) {
+        }
+        throw new Error(message);
+    }
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = String(file?.file_name || "file");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
+}
+
 function clearHost() {
     if (drawyerFoldersContainerEl) {
         drawyerFoldersContainerEl.innerHTML = "";
@@ -221,13 +255,12 @@ function createFileRow(caseNo, moduleName, file) {
     downloadBtn.type = "button";
     downloadBtn.className = "table-mini-btn";
     downloadBtn.textContent = "Download";
-    downloadBtn.addEventListener("click", () => {
-        const link = document.createElement("a");
-        link.href = buildFileDownloadUrl(file);
-        link.download = String(file?.file_name || "");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    downloadBtn.addEventListener("click", async () => {
+        try {
+            await downloadDrawyerFile(file);
+        } catch (err) {
+            alert(err.message || "Failed to download file.");
+        }
     });
     right.appendChild(downloadBtn);
 

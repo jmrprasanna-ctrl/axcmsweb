@@ -4,6 +4,8 @@ const Answer = require("../models/Answer");
 const Witness = require("../models/Witness");
 const Judgment = require("../models/Judgment");
 const googleDriveService = require("./googleDriveService");
+const fs = require("fs");
+const path = require("path");
 
 const SOURCE_DEFS = [
   { model: CaseModel, source: "cases", module: "Case" },
@@ -12,6 +14,7 @@ const SOURCE_DEFS = [
   { model: Witness, source: "witnesses", module: "Witness" },
   { model: Judgment, source: "judgments", module: "Judgment" },
 ];
+const UPLOADS_DIR = path.resolve(__dirname, "..", "uploads");
 
 function toIsoDate(value) {
   const dt = value ? new Date(value) : null;
@@ -46,6 +49,70 @@ function parseDataUrl(raw) {
   const buffer = isBase64 ? Buffer.from(payload, "base64") : Buffer.from(decodeURIComponent(payload), "utf8");
   const mime = header.split(";")[0] || "application/octet-stream";
   return { mime, buffer };
+}
+
+function extFromMime(mime) {
+  const lower = String(mime || "").toLowerCase();
+  if (lower.includes("jpeg")) return "jpg";
+  if (lower.includes("png")) return "png";
+  if (lower.includes("gif")) return "gif";
+  if (lower.includes("bmp")) return "bmp";
+  if (lower.includes("webp")) return "webp";
+  if (lower.includes("pdf")) return "pdf";
+  if (lower.includes("msword") || lower.includes("word")) return "doc";
+  if (lower.includes("officedocument.wordprocessingml.document")) return "docx";
+  if (lower.includes("spreadsheet") || lower.includes("excel")) return "xls";
+  if (lower.includes("csv")) return "csv";
+  if (lower.includes("json")) return "json";
+  if (lower.includes("plain")) return "txt";
+  return "bin";
+}
+
+function mimeFromFileName(fileName) {
+  const ext = String(path.extname(String(fileName || "")).toLowerCase() || "").replace(".", "");
+  if (ext === "pdf") return "application/pdf";
+  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+  if (ext === "png") return "image/png";
+  if (ext === "gif") return "image/gif";
+  if (ext === "webp") return "image/webp";
+  if (ext === "bmp") return "image/bmp";
+  if (ext === "doc") return "application/msword";
+  if (ext === "docx") return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  if (ext === "xls") return "application/vnd.ms-excel";
+  if (ext === "xlsx") return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  if (ext === "txt") return "text/plain";
+  if (ext === "csv") return "text/csv";
+  if (ext === "json") return "application/json";
+  return "application/octet-stream";
+}
+
+function resolveUploadPath(raw) {
+  const cleaned = String(raw || "").trim().replace(/^\/+/, "").replace(/^uploads[\\/]+/i, "");
+  if (!cleaned) return null;
+  const absolute = path.resolve(UPLOADS_DIR, cleaned);
+  if (!absolute.startsWith(UPLOADS_DIR)) return null;
+  if (!fs.existsSync(absolute)) return null;
+  return absolute;
+}
+
+function readUploadBinary(raw) {
+  const parsed = parseDataUrl(raw);
+  if (parsed && parsed.buffer?.length) {
+    return {
+      mime: parsed.mime || "application/octet-stream",
+      buffer: parsed.buffer,
+      file_name: "",
+    };
+  }
+  const absolute = resolveUploadPath(raw);
+  if (!absolute) return null;
+  const buffer = fs.readFileSync(absolute);
+  if (!buffer?.length) return null;
+  return {
+    mime: mimeFromFileName(absolute),
+    buffer,
+    file_name: path.basename(absolute),
+  };
 }
 
 function findSourceDefByKey(key) {
@@ -95,11 +162,12 @@ async function getDrawyerFileEntry(caseNo, moduleName, fileIndex) {
     const plain = row.toJSON ? row.toJSON() : row;
     const uploads = Array.isArray(plain.uploads_json) ? plain.uploads_json : [];
     for (let idx = 0; idx < uploads.length; idx += 1) {
-      const parsed = parseDataUrl(uploads[idx]);
+      const parsed = readUploadBinary(uploads[idx]);
       if (!parsed || !parsed.buffer?.length) continue;
       if (currentIndex === fileIndex) {
-        const ext = String(parsed.mime || "").toLowerCase().includes("pdf") ? "pdf" : (String(parsed.mime || "").split("/")[1] || "bin");
-        const fileName = `${def.module}_${String(plain.case_no || "case").replace(/\s+/g, "_")}_${Number(plain.id || 0)}_${idx + 1}.${ext}`;
+        const ext = extFromMime(parsed.mime);
+        const autoName = `${def.module}_${String(plain.case_no || "case").replace(/\s+/g, "_")}_${Number(plain.id || 0)}_${idx + 1}.${ext}`;
+        const fileName = String(parsed.file_name || "").trim() || autoName;
         return {
           source_table: def.source,
           source_id: Number(plain.id || 0),
@@ -107,7 +175,7 @@ async function getDrawyerFileEntry(caseNo, moduleName, fileIndex) {
           module_name: def.module,
           file_index: idx,
           file_name: fileName,
-          mime: parsed.mime,
+          mime: parsed.mime || "application/octet-stream",
           buffer: parsed.buffer,
           upload_method: String(plain.upload_method || "").trim() || "local",
           updated_at: plain.updatedAt || plain.updated_at || null,
@@ -137,11 +205,12 @@ async function getDrawyerFileEntryBySource(sourceTable, sourceId, fileIndex) {
   const uploads = Array.isArray(plain.uploads_json) ? plain.uploads_json : [];
   if (index >= uploads.length) return null;
 
-  const parsed = parseDataUrl(uploads[index]);
+  const parsed = readUploadBinary(uploads[index]);
   if (!parsed || !parsed.buffer?.length) return null;
 
-  const ext = String(parsed.mime || "").toLowerCase().includes("pdf") ? "pdf" : (String(parsed.mime || "").split("/")[1] || "bin");
-  const fileName = `${def.module}_${String(plain.case_no || "case").replace(/\s+/g, "_")}_${Number(plain.id || 0)}_${index + 1}.${ext}`;
+  const ext = extFromMime(parsed.mime);
+  const autoName = `${def.module}_${String(plain.case_no || "case").replace(/\s+/g, "_")}_${Number(plain.id || 0)}_${index + 1}.${ext}`;
+  const fileName = String(parsed.file_name || "").trim() || autoName;
   return {
     source_table: def.source,
     source_id: Number(plain.id || 0),
@@ -149,7 +218,7 @@ async function getDrawyerFileEntryBySource(sourceTable, sourceId, fileIndex) {
     module_name: def.module,
     file_index: index,
     file_name: fileName,
-    mime: parsed.mime,
+    mime: parsed.mime || "application/octet-stream",
     buffer: parsed.buffer,
     upload_method: String(plain.upload_method || "").trim() || "local",
     updated_at: plain.updatedAt || plain.updated_at || null,
@@ -238,5 +307,6 @@ async function listDrawyer(req, options = {}) {
 module.exports = {
   listDrawyer,
   getDrawyerFileEntry,
+  getDrawyerFileEntryBySource,
   deleteDrawyerFile,
 };
