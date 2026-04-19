@@ -1,17 +1,10 @@
-const answerSearchEl = document.getElementById("answerSearch");
+﻿const answerSearchEl = document.getElementById("answerSearch");
 const answerTableBodyEl = document.querySelector("#answersTable tbody");
 let allAnswers = [];
 
 function normalizeUploadsCount(row) {
     if (Array.isArray(row.uploads_json)) return row.uploads_json.length;
     return 0;
-}
-
-function renderWitnessActionCell(row) {
-    if (row && row.witness_created) {
-        return `<a class="btn btn-secondary btn-inline is-disabled" href="#" aria-disabled="true" title="List of witnesses already created" onclick="event.preventDefault(); event.stopPropagation(); return false;">L/witnesses</a>`;
-    }
-    return `<a class="btn btn-secondary btn-inline" href="witness-create.html?answer_id=${row.id || ""}&case_id=${row.case_id || ""}" onclick="event.stopPropagation()">L/witnesses</a>`;
 }
 
 function renderAnswers(rows) {
@@ -31,7 +24,6 @@ function renderAnswers(rows) {
             <td>${row.attend_lawyer || ""}</td>
             <td>${normalizeUploadsCount(row)}</td>
             <td>${row.witness_created ? "&#10003;" : ""}</td>
-            <td>${renderWitnessActionCell(row)}</td>
         `;
         answerTableBodyEl.appendChild(tr);
     });
